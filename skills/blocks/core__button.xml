@@ -1,0 +1,26 @@
+<block-guide name="core/button"><![CDATA[
+CORE/BUTTON
+One button; it stands only inside core/buttons. Full guide: core/buttons.
+
+MARKUP (checked in the editor)
+<!-- wp:buttons -->
+<div class="wp-block-buttons"><!-- wp:button {"backgroundColor":"accent-3","textColor":"base","style":{"dimensions":{"width":"50%"}}} -->
+<div class="wp-block-button"><a class="wp-block-button__link has-base-color has-accent-3-background-color has-text-color has-background wp-element-button" href="https://wordpress.org/" target="_blank" rel="noreferrer noopener">Open in a new tab</a></div>
+<!-- /wp:button -->
+
+<!-- wp:button {"tagName":"button"} -->
+<div class="wp-block-button"><button type="button" class="wp-block-button__link wp-element-button">Not a link</button></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+Colour, border, radius, padding, shadow, font size and text alignment classes and inline styles
+go on the inner <a> (or <button>), between wp-block-button__link and wp-element-button.
+The outer div carries only wp-block-button and the style variation class (is-style-outline).
+New tab: target="_blank" rel="noreferrer noopener" on the <a>; nothing in the comment.
+tagName "button" -> <button type="button"> without href: it goes nowhere by itself.
+
+WIDTH
+style.dimensions.width: "25%" | "50%" | "75%" | "100%" or a CSS length ("12rem"); the saved HTML
+stays as without width, WordPress adds the width classes when it renders. There is no "width"
+attribute in this WordPress version: {"width":100} and wp-block-button__width-* classes in
+saved markup are old markup.
+]]></block-guide>

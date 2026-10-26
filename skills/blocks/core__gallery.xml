@@ -1,0 +1,40 @@
+<block-guide name="core/gallery"><![CDATA[
+CORE/GALLERY
+A grid of images. Each image is a full core/image block inside the gallery's <figure>: write
+each one exactly as the core/image guide says (library id + wp-image-<id> class, alt, sizeSlug).
+
+MARKUP (checked in the editor)
+<!-- wp:gallery {"columns":3,"linkTo":"none","sizeSlug":"full","aspectRatio":"1"} -->
+<figure class="wp-block-gallery has-nested-images columns-3 is-cropped"><!-- wp:image {"id":<id1>,"aspectRatio":"1","sizeSlug":"full","linkDestination":"none"} -->
+<figure class="wp-block-image size-full"><img src="<url1>" alt="First picture" class="wp-image-<id1>" style="aspect-ratio:1"/></figure>
+<!-- /wp:image -->
+
+<!-- wp:image {"id":<id2>,"aspectRatio":"1","sizeSlug":"full","linkDestination":"none"} -->
+<figure class="wp-block-image size-full"><img src="<url2>" alt="Second picture" class="wp-image-<id2>" style="aspect-ratio:1"/></figure>
+<!-- /wp:image --><figcaption class="blocks-gallery-caption wp-element-caption">Gallery caption.</figcaption></figure>
+<!-- /wp:gallery -->
+Image blocks are separated by one empty line; the gallery caption comes after the last one.
+
+GALLERY OPTIONS -> CLASSES
+Class order: wp-block-gallery, align class, has-nested-images, columns-<n> (or columns-default
+when "columns" is absent), is-cropped, then className.
+columns 1-8. imageCrop defaults to true and writes is-cropped; "imageCrop":false drops it.
+sizeSlug (default "large") is the size new images get; with list-media urls (full files) write
+"sizeSlug":"full" on the gallery and on every image.
+aspectRatio (e.g. "1", "4/3", "16/9"): the gallery attribute AND "aspectRatio" on each image with
+style="aspect-ratio:…" on its <img>. The editor changes both together; keep them equal.
+linkTo: "none" | "media" | "attachment" | "lightbox". Write it always (the editor adds it).
+It does not link anything by itself: every image carries its own link as in core/image
+("linkDestination":"media" + <a href="<file url>"> around the img); "lightbox" = each image
+"linkDestination":"none" with {"lightbox":{"enabled":true}}.
+Gallery caption: <figcaption class="blocks-gallery-caption wp-element-caption">; a caption of one
+image goes inside that image's figure (core/image).
+
+ON THE PAGE
+WordPress adds data-id to each <img> and a gap / layout class on render; do not write them.
+"randomOrder":true shuffles the images on every page load.
+
+CHECK
+Open the page: all images in the chosen columns, cropped to the ratio; reopen the editor: the
+gallery and every image are valid.
+]]></block-guide>

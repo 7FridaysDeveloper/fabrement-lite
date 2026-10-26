@@ -1,0 +1,34 @@
+<block-guide name="core/embed"><![CDATA[
+CORE/EMBED
+A video, post or map from another site (YouTube, Vimeo, Spotify, X, …) by its page address.
+You save only the address; WordPress asks the provider (oEmbed) and builds the player when the
+page is shown. Never write the provider's iframe or script yourself: it is refused.
+
+MARKUP (checked in the editor)
+<!-- wp:embed {"url":"https://www.youtube.com/watch?v=<video>","type":"video","providerNameSlug":"youtube","responsive":true,"className":"wp-embed-aspect-16-9 wp-has-aspect-ratio"} -->
+<figure class="wp-block-embed is-type-video is-provider-youtube wp-block-embed-youtube wp-embed-aspect-16-9 wp-has-aspect-ratio"><div class="wp-block-embed__wrapper">
+https://www.youtube.com/watch?v=<video>
+</div><figcaption class="wp-element-caption">Caption text.</figcaption></figure>
+<!-- /wp:embed -->
+The address stands ALONE on its own line inside wp-block-embed__wrapper (newline before and after);
+WordPress replaces exactly that line with the player. Same address in the comment's "url".
+No caption = no <figcaption>.
+
+TYPE, PROVIDER, ASPECT CLASSES
+"type" and "providerNameSlug" describe the provider and become classes, in this order:
+wp-block-embed, is-type-<type>, is-provider-<slug>, wp-block-embed-<slug>, then className.
+Video players: "responsive":true and className "wp-embed-aspect-16-9 wp-has-aspect-ratio" (4-3,
+1-1, 9-16… for other shapes) keep the player at that ratio; without them it keeps the provider's
+fixed size. YouTube and Vimeo are "type":"video".
+The minimal form also renders: {"url":"…"} with class wp-block-embed only; the editor then fills
+type, provider and classes itself when the block is opened.
+
+PITFALLS
+Use the page address WordPress knows (youtube.com/watch?v=…, youtu.be/…, vimeo.com/<id>), not
+the provider's /embed/ player address.
+An address no provider answers for stays on the page as plain text, not a link and not a player.
+
+CHECK
+Open the page: the player appears in place of the address; reopen the editor: the block shows
+the preview, no invalid-content notice.
+]]></block-guide>

@@ -1,0 +1,24 @@
+<block-guide name="core/accordion-heading"><![CDATA[
+CORE/ACCORDION-HEADING
+The clickable title of an accordion section; first child of core/accordion-item.
+Full guide: see core/accordion.
+
+MARKUP (default: level 3, icon on the right)
+<!-- wp:accordion-heading -->
+<h3 class="wp-block-accordion-heading has-icon has-icon-right"><button type="button" class="wp-block-accordion-heading__toggle"><span class="wp-block-accordion-heading__toggle-title">Title</span><span class="wp-block-accordion-heading__toggle-icon" aria-hidden="true">+</span></button></h3>
+<!-- /wp:accordion-heading -->
+The title is the text inside the __toggle-title span (inline formatting only).
+
+VARIANTS (keep them equal to the parent core/accordion's settings)
+level N -> "level":N and tag <hN>. Example with headingLevel 2 and the icon on the left
+(parent: <!-- wp:accordion {"iconPosition":"left","headingLevel":2} -->):
+<!-- wp:accordion-heading {"level":2,"iconPosition":"left"} -->
+<h2 class="wp-block-accordion-heading has-icon has-icon-left"><button type="button" class="wp-block-accordion-heading__toggle"><span class="wp-block-accordion-heading__toggle-icon" aria-hidden="true">+</span><span class="wp-block-accordion-heading__toggle-title">Shipping</span></button></h2>
+<!-- /wp:accordion-heading -->
+Icon left: the icon span comes BEFORE the title span. "showIcon":false: no icon span and no
+has-icon / has-icon-* classes.
+
+PITFALLS
+Classes must match the attributes exactly, or the block is invalid. Padding set on this block is
+written as an inline style on the <button>, not on the heading tag.
+]]></block-guide>

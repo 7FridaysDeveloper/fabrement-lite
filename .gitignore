@@ -1,0 +1,59 @@
+# Local env (API URLs, secrets) — copy from .env.example
+# (.env.example stays tracked — only real/local envs are ignored)
+.env
+.env.local
+.env.*.local
+
+# Deploy/release secrets (server IP, SSH password) — copy from .env.deploy.example
+# (.env.deploy.example stays tracked; the real .env.deploy with secrets never is)
+.env.deploy
+
+# Distribution build output (build.sh → dist/fabrement-<version>.zip)
+dist/
+*.zip
+
+# Generated JS/CSS bundles — rebuilt by build.sh / watch.sh, never committed.
+assets/editor-plugin/build/
+assets/templates-app/build/
+
+# Dependencies (composer.lock and package-lock.json ARE committed: build.sh installs from them)
+vendor/
+node_modules/
+yarn.lock
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+
+# Logs
+*.log
+error_log
+
+# Temporary files
+*.tmp
+*.temp
+
+# PHP tooling caches
+.phpunit.result.cache
+.phpcs.cache
+.php-cs-fixer.cache
+
+# Editor workspace files
+*.code-workspace
+
+# Tool scratch that lands in the working tree and is never part of the plugin:
+# Playwright MCP session logs/snapshots, and screenshots dropped at the root while
+# verifying something in a browser.
+.playwright-mcp/
+/img*.png
+
+# Per-machine Claude Code settings (permissions, hooks). The shared ones, if any,
+# belong in a tracked file — this is the local override.
+.claude/settings.local.json

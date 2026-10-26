@@ -1,0 +1,9 @@
+<block-guide name="core/playlist-track"><![CDATA[
+CORE/PLAYLIST-TRACK
+One audio file in a core/playlist; it exists only inside one. See core/playlist for the full
+markup. A comment only, no HTML:
+<!-- wp:playlist-track {"id":123,"src":"https://example.com/wp-content/uploads/intro.mp3","album":"Demo","artist":"Studio band","length":"3:21","title":"Intro"} /-->
+id (the audio attachment id) is required: without it the track is not shown. src = the file
+URL; title (else "Unknown title"), artist, album, length "m:ss", image + imageAlt are text.
+Never write "blob": it is a temporary upload address used only inside the editor.
+]]></block-guide>

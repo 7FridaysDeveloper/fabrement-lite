@@ -1,0 +1,49 @@
+/* No Tailwind preflight: it resets every element on the page, and this page is wp-admin. Its
+   theme and utilities only; the reset the screen needs is scoped to the app root below. */
+@layer theme, base, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme {
+  --font-fabrement-ui: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer base {
+  #fabrement-templates-app-root {
+    font-family: var(--font-fabrement-ui);
+    line-height: 1.5;
+  }
+  #fabrement-templates-app-root :where(*),
+  #fabrement-templates-app-root ::before,
+  #fabrement-templates-app-root ::after {
+    box-sizing: border-box;
+    border: 0 solid;
+    margin: 0;
+    padding: 0;
+  }
+  #fabrement-templates-app-root :where(h1, h2, h3, h4, h5, h6) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
+  #fabrement-templates-app-root :where(a) {
+    color: inherit;
+    text-decoration: inherit;
+  }
+  #fabrement-templates-app-root :where(ol, ul, menu) {
+    list-style: none;
+  }
+  #fabrement-templates-app-root :where(img, svg, video, iframe) {
+    display: block;
+    vertical-align: middle;
+  }
+  #fabrement-templates-app-root :where(button, input, select, textarea) {
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    border-radius: 0;
+    background-color: transparent;
+  }
+  #fabrement-templates-app-root :where(button) {
+    appearance: button;
+  }
+}

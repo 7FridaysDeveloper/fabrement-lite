@@ -1,0 +1,30 @@
+<block-guide name="core/post-content"><![CDATA[
+CORE/POST-CONTENT (Content)
+Draws the current page's or post's own blocks. Two places only:
+- A Fabrement template's content slot: the alternative to fabrement/content-source. Exactly one
+  of the two per template. It shows page content only; it cannot select a theme PHP file.
+- Inside a Query's post-template: each listed post's full content.
+Placed in a page's own content it draws nothing (WordPress stops it repeating the page).
+
+MARKUP (attributes only; no HTML of its own)
+<!-- wp:post-content {"align":"full","layout":{"type":"constrained"}} /-->
+As an entry: {"name":"core/post-content","attributes":{"align":"full","layout":{"type":"constrained"}}}.
+Drawn as <div class="entry-content wp-block-post-content ...">.
+
+WIDTH
+layout "constrained": paragraphs keep the theme's content width, and alignfull / alignwide sections
+of the page still reach the screen / wide width. layout "default": nothing is limited.
+Unlike content-source it takes align ("wide", "full"): with align "full" it may sit in a
+constrained group and still span the screen. In a template without a layout attribute the
+template's contentWidth decides ("full" = default, "constrained" = constrained).
+
+PITFALLS
+- A Fabrement template replaces the whole page: the frame must place its own header and footer
+  (core/block refs) and the title if wanted (core/post-title). The page body is not a place for
+  them.
+- Prefer fabrement/content-source in a new template: it does the same and can later take theme
+  file rules without changing the frame.
+
+CHECK
+Open a page assigned to the template: its content appears once, at the slot.
+]]></block-guide>

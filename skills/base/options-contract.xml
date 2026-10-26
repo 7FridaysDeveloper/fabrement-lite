@@ -1,0 +1,15 @@
+<skill id="options-contract"><![CDATA[
+FABREMENT OPTIONS PAGES
+Use list-options-pages before creating one; get-options-page before changing its definition.
+Use the current save-options-page schema, slug and expectedRevision for updates. Creating a new slug
+requires expectedRevision:0 and page.title. Preserve omitted
+sections and treat fields as a complete active definition list, with the retirement rules in fields-contract.
+An options page holds shared structured values such as contact details; it is not an arbitrary
+WordPress option editor or an ACF options-page editor.
+Use get-field-values/set-field-values with the options selector from their schema for actual values.
+Do not confuse the definition revision with a value, or store data in the schema instead of filling it.
+Read existing values, patch only requested fields and respect nested validation.
+Values become visible only where theme code reads them: fabrement()->options('<slug>')->get_<type>('<name>').
+These tools do not write that code.
+Check dependencies before delete-options-page and follow its explicit deletion/confirmation inputs.
+]]></skill>

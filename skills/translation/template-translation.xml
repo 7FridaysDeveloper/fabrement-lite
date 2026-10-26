@@ -1,0 +1,12 @@
+<skill id="template-translation"><![CDATA[
+Read template-contract first. Assign the original template ID; readers receive the language version.
+get-template reports translation.originalId, translations, missingLanguages and editor ownership.
+Use translate-template to open/create a version, then get-template and save-template on that version.
+If the translation plugin owns editing, use its reported editor URL and do not bypass the refusal.
+Shared headers/footers have their own translations through translate-synced-pattern; place the original
+pattern ID in templates so each reader receives the correct language. Native content-slot attributes
+and other saved block markup must be preserved. Source rules are shared by the original and all
+translations in one JSON manifest. Changing contentSource from any manually editable version updates
+the whole group's choices without rewriting translated blocks or words. Never create per-language
+rules or duplicate PHP files. PHP choices come only from the active/parent theme templates/ directory.
+]]></skill>

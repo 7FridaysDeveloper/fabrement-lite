@@ -1,0 +1,36 @@
+<block-guide name="core/playlist"><![CDATA[
+CORE/PLAYLIST (new in WordPress 7.1)
+An audio player with a track list: one waveform player on top, the tracks listed below; a
+click on a track plays it. Audio files from the media library only (no video, no streams).
+For a single file use core/audio.
+
+REQUIRED STRUCTURE
+core/playlist > core/playlist-track (one per file, nothing else allowed inside).
+Every track needs "id" (the audio attachment id) and "src" (its file URL): the server skips a
+track without an id, and a playlist with no such track renders nothing. Take both from
+list-media; title, artist, album and length ("m:ss") are text you supply (the editor copies
+them from the file's metadata). image / imageAlt: an optional cover picture URL and its alt.
+
+MARKUP (checked against the Gutenberg fixture and rendered)
+<!-- wp:playlist {"caption":"Morning set"} -->
+<figure class="wp-block-playlist"><ol class="wp-block-playlist__tracklist wp-block-playlist__tracklist-show-numbers"><!-- wp:playlist-track {"id":123,"src":"https://example.com/wp-content/uploads/intro.mp3","album":"Demo","artist":"Studio band","length":"3:21","title":"Intro"} /-->
+
+<!-- wp:playlist-track {"id":124,"src":"https://example.com/wp-content/uploads/outro.mp3","album":"Demo","artist":"Studio band","length":"2:05","title":"Outro"} /--></ol><figcaption class="wp-element-caption">Morning set</figcaption></figure>
+<!-- /wp:playlist -->
+Tracks are comments only, written inside the <ol>. The caption is in BOTH the comment and
+<figcaption>; without a caption leave out both. The player, buttons and script are added when
+the page is shown: never write them.
+
+OPTIONS AND THE <ol> CLASSES THEY NEED (in this order after wp-block-playlist__tracklist)
+showTracklist:false -> wp-block-playlist__tracklist-is-hidden
+showArtists:false -> wp-block-playlist__tracklist-artist-is-hidden
+showTrackLength:false -> wp-block-playlist__tracklist-length-is-hidden
+showNumbers:true (default) -> wp-block-playlist__tracklist-show-numbers
+showImages (true): cover pictures in the list. showPlayButtonArtwork (false): cover on the
+play button. waveformStyle: bars (default), mirror, line, blocks, dots, seekbar.
+order only re-sorts tracks by title inside the editor; the page plays them in written order.
+align: wide, full, left, center, right -> alignwide… on the <figure>.
+
+CHECK
+Open the page: the list shows every track and a click plays it; reopen the editor.
+]]></block-guide>

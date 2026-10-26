@@ -1,0 +1,16 @@
+<block-guide name="core/tab-panel"><![CDATA[
+CORE/TAB-PANEL
+The content of one tab; lives inside core/tab-panels. Full guide and example: see core/tabs.
+
+MARKUP
+<!-- wp:tab-panel {"label":"Overview"} -->
+<section role="tabpanel" tabindex="0" class="wp-block-tab-panel"><!-- wp:paragraph -->
+<p>What the product does.</p>
+<!-- /wp:paragraph --></section>
+<!-- /wp:tab-panel -->
+Any blocks go inside. Keep role="tabpanel" tabindex="0" before class, in that order.
+
+LABEL
+"label" is the tab's name in the editor; the page shows the text of the matching <button> in
+core/tab-list. Write the same text in both, at the same position.
+]]></block-guide>

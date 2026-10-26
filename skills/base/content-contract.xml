@@ -1,0 +1,66 @@
+<skill id="content-contract"><![CDATA[
+CONTENT WITH GUTENBERG AND ACF
+Read list-content before creating anything, then get-content before an edit.
+Read get-skill-doc {id:"block-discovery-contract"} before choosing or modifying a block.
+
+SAVE MODES
+save-content requires mode. create makes a draft; omit contentId. add appends blocks to an existing
+contentId; do not send the entire body when intending one insertion. replace replaces the complete body.
+edit applies edits to an existing contentId; supply expectedHash from the latest get-content.
+Use the tool's current edit schema for indexes, paths and operation arguments. A stale hash means reread,
+merge and retry; do not remove the hash to overwrite concurrent edits. Omitted unrelated content stays.
+New records are drafts; updating content preserves publication status. Publishing is a separate
+set-content-status operation requiring the user's intent. An HTTP success is not a visual verification.
+
+REGISTERED BLOCKS / ACF
+New or changed blocks accept only WordPress post-safe HTML, including nested JSON/ACF values.
+Scripts, HTML event handlers, iframe/style tags and executable URLs are refused atomically, even for
+administrators. Safe core/html content is supported. An untouched stored neighboring block is preserved;
+do not resend old script-bearing content as a new/replacement block. Theme/plugin code owns interactivity.
+Use {markup} for blocks whose writeMode is markup. Example:
+{"markup":"<!-- wp:paragraph --><p>Hello</p><!-- /wp:paragraph -->"}
+Preserve attributes encoded in comments, saved HTML and all nested block delimiters. No Markdown-to-block
+or arbitrary JavaScript save() serializer is provided. Ordinary core blocks are not all attribute-only.
+Use {name,attributes} only when get-block-source explicitly reports writeMode:"attributes".
+Never rebuild an entire page merely to update one ACF field. Unknown or unregistered blocks are not
+new writable blocks; preserve untouched neighboring content rather than silently dropping it.
+
+ACF DATA PATCHES
+ACF data is in attributes.data: field names and _name field-key references, groups with prefixed names,
+repeaters with a count and row keys such as rows_0_label. Missing field-key references are filled from
+the registered schema. Read the schema; do not guess field names, keys or choices.
+Value shapes by field type: text, textarea, wysiwyg, url, email, date -> string. number, range -> number.
+true_false -> true/false (or 1/0). select, radio, button_group -> the choice's value; checkbox or a multiple
+select -> a list of values. link -> {"url":"…","title":"…","target":""} (target "_blank" for a new tab).
+image, file, post_object, user, a single taxonomy -> one id. gallery, relationship, multiple ones -> a list of ids.
+For op:update only, data is patched by key: omitted fields and rows stay.
+Example: {"op":"update","index":0,"name":"acf/hero","attributes":{"data":{"headline":"New headline"}}}.
+Shrinking a repeater removes rows and references beyond the new count. Count 0 clears it; the editor's
+empty-string count is accepted as zero rows, subject to required/min/max validation.
+op:replace requires the complete replacement block; it is not a partial data patch.
+Unknown fields/references, invalid types or failed ACF validation refuse the content save. These checks
+also apply to nested ACF blocks in supplied markup. Unchanged neighbors are carried without revalidation.
+usePostMeta, conditional logic, flexible content, clone/custom field types and taxonomy save_terms are
+unsupported for writes. Respect acf.writable/limitations; do not work around them with raw post meta.
+
+CONTENT AND ASSETS
+Use the existing schema for title, slug, excerpt, featuredImage, parent and menuOrder. Parent must be
+valid for that type and cannot create a cycle. Title-only updates do not necessarily change a URL.
+Use set-post-terms for classification. Media belongs to the library; read site-assets-contract.
+Use synced-pattern-contract for content intentionally shared across pages.
+Do not insert scripts, event handlers, PHP or remote executable code, and do not use raw HTML to imitate
+a block the site does not have.
+The same refusal covers every text a writing tool takes (titles, labels, field values, form templates) and
+names what it refused ("the onerror attribute on the img element"). Quoting, spacing and "/>" do not matter;
+"a < b" is plain text, but a "<" right before a letter must be a tag that is closed. To show a tag as words
+write it with &lt; and &gt;.
+Inspect the preview and reopen the editor to check block validation before reporting completion.
+
+STATUS AND DELETION
+Use set-content-status to publish, unpublish, trash or restore. delete-content is permanent.
+The assigned front, posts and not-found pages have protection checks: the site administrator reassigns
+the front and posts page in Settings first; the not-found page is cleared with update-site-settings.
+Do not assume deleting a page deletes its attachments or reusable patterns.
+delete-media is permanent by default and can delete a referenced file: usedBy is informational, not a
+guarantee of refusal or exhaustive usage detection. Confirm intended deletion and repair known references.
+]]></skill>

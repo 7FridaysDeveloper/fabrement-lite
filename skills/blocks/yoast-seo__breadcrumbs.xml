@@ -1,0 +1,24 @@
+<block-guide name="yoast-seo/breadcrumbs"><![CDATA[
+YOAST-SEO/BREADCRUMBS (Yoast Breadcrumbs)
+The Yoast SEO breadcrumb trail of the page it is shown on (Home » … » current page). The block
+exists only while Yoast SEO is active. The server draws it on every request; it stores nothing.
+Place it in a page, or once in a template or shared header so every page gets its trail.
+
+MARKUP (comment only, no HTML)
+<!-- wp:yoast-seo/breadcrumbs /-->
+With a class of your own: <!-- wp:yoast-seo/breadcrumbs {"className":"<class>"} /-->
+It draws <div class="yoast-breadcrumbs <class>"><span><span><a href="…">Home</a></span> »
+<span class="breadcrumb_last" aria-current="page">Page title</span></span></div>.
+The block has no colour, spacing or alignment settings; to space it, put it in a group.
+
+WHERE THE WORDS COME FROM
+The "Home" label, the separator and the archive / search prefixes are Yoast's breadcrumb
+settings, not block attributes.
+
+PITFALLS
+- core/breadcrumbs is WordPress's own breadcrumb block; one trail per page is enough.
+- Yoast's BreadcrumbList in the structured data is published with or without this block.
+
+CHECK
+Open a page that has parents: the trail shows them, and the last item is the page, not a link.
+]]></block-guide>

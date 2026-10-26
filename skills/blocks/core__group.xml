@@ -1,0 +1,49 @@
+<block-guide name="core/group"><![CDATA[
+CORE/GROUP
+A container for other blocks: a page section, a card, a row or a stack. Any blocks go inside.
+The layout attribute decides how the children are placed; the editor's Group, Row, Stack and Grid
+are this one block with different layouts.
+
+MARKUP (checked in the editor)
+<!-- wp:group {"tagName":"section","align":"full","style":{"spacing":{"padding":{"top":"var:preset|spacing|60","bottom":"var:preset|spacing|60"}}},"backgroundColor":"accent-5","layout":{"type":"constrained"}} -->
+<section class="wp-block-group alignfull has-accent-5-background-color has-background" style="padding-top:var(--wp--preset--spacing--60);padding-bottom:var(--wp--preset--spacing--60)"><!-- wp:heading -->
+<h2 class="wp-block-heading">About us</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Text at the content width of the theme.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:group {"align":"wide","layout":{"type":"flex","flexWrap":"nowrap","justifyContent":"space-between"}} -->
+<div class="wp-block-group alignwide"><!-- wp:paragraph -->
+<p>Left</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Right</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group --></section>
+<!-- /wp:group -->
+tagName: "div" (default), "section", "main", "article", "aside", "header", "footer" = the element
+written in the HTML. Children sit directly inside the element, no inner wrapper.
+
+LAYOUT
+{"type":"constrained"}: children at the theme's content width, centred; a child with
+align "wide"/"full" breaks out to the wide or full width. Use it for page sections.
+{"type":"default"} or no layout at all: plain flow, children take the group's full width.
+{"type":"flex","flexWrap":"nowrap"} = Row; add "orientation":"vertical" for a Stack;
+justifyContent left|center|right|space-between, verticalAlignment top|center|bottom.
+{"type":"grid","columnCount":3} = equal columns; or "minimumColumnWidth":"12rem" to wrap.
+Space between children: style.spacing.blockGap (no inline style in the saved HTML).
+
+PITFALLS
+Never write is-layout-*, wp-container-* or has-global-padding classes: WordPress adds them when
+it renders the page; they do not belong in saved markup.
+align "wide"/"full" on a child works only inside a constrained parent (or at the top of the
+page content); inside a flow group it does nothing.
+A style variation (themeSettings.styles) may set background and text colour by itself.
+Colours, padding, border: see the theme settings rules in block-discovery-contract.
+
+CHECK
+Reopen the editor (no invalid notice), then look at the front at desktop and phone widths.
+]]></block-guide>

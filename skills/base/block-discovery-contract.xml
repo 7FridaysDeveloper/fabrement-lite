@@ -1,0 +1,60 @@
+<skill id="block-discovery-contract"><![CDATA[
+BLOCK DISCOVERY
+Before designing a page, read get-theme-styles once: how the theme already draws text, headings, links
+and buttons. Set a size, colour or font on a block only where it should differ from that.
+List blocks before choosing one: list-blocks {source:"core"|"acf"|"registered"|"all",search?,page?,limit?}.
+All sources read the local server registry. "registered" means other providers, excluding core and ACF.
+Use the returned exact name with get-block-source {name}: it returns the schema, not source files.
+When it also returns guide, read it before writing that block: checked markup and behavior the schema does not show.
+list-blocks marks those blocks with guide:true.
+A JavaScript-only registration is not visible in the server registry. Do not invent its schema.
+list-block-usage {name} answers where a block stands: pages, posts, custom records, global blocks and templates,
+with a count each. Use it before changing the same block everywhere, not a text search of the content.
+
+SCHEMA AND SAVED CONTENT
+attributes contains the WordPress schema (including type, source, selector and default when declared).
+supports, parent and ancestor describe registration constraints. These are not a complete editor serializer.
+Follow writeMode. "markup" requires complete Gutenberg saved markup, with delimiters and InnerBlocks.
+A PHP render callback (dynamic:true) does NOT prove JavaScript save() returns null.
+The plugin does not execute save() or guarantee that arbitrary supplied markup passes editor validation.
+Reuse valid markup from get-content; verify by reopening the WordPress editor as well as the frontend.
+"attributes" allows a known save contract; "unsupported" means do not write that block through MCP.
+
+THEME SETTINGS (themeSettings)
+Only features the block supports are listed; an absent group cannot be set on this block. Use a preset by its slug:
+palette -> "textColor"/"backgroundColor": slug; gradientPresets -> "gradient": slug; fontSizes -> "fontSize": slug;
+fontFamilies -> "fontFamily": slug. spacingSizes -> style.spacing.padding|margin.<side>: "var:preset|spacing|<slug>".
+shadow presets -> style.shadow: "var:preset|shadow|<slug>". A value outside the presets goes under style.* and only
+where the matching custom switch is true (custom, customGradient, customFontSize, customSpacingSize).
+styles -> put the variant's className on the block ("is-style-<name>"); `sets` shows what the theme draws for it,
+isDefault marks the look without a class; align -> "align": one of the listed values; a variation is its attributes.
+
+SAVED MARKUP FOR THESE SETTINGS (writeMode "markup")
+The comment carries the attributes; the HTML must carry what the editor writes for them. When the site already has
+such a block, copy its shape from get-content. Otherwise:
+textColor:"S" -> classes has-S-color has-text-color. backgroundColor:"S" -> has-S-background-color has-background.
+fontSize:"S" -> has-S-font-size. fontFamily:"S" -> has-S-font-family. borderColor:"S" -> has-border-color has-S-border-color.
+A custom gradient (style.color.gradient) -> class has-background and inline background:<the gradient>.
+align:"wide"|"full"|"center" -> alignwide / alignfull / aligncenter. A style variation -> its className in the
+comment's className attribute AND in the class list (is-style-<name>).
+Text alignment is style.typography.textAlign:"center" -> class has-text-align-center (not a textAlign attribute).
+A preset in style.* is written "var:preset|spacing|50" in the comment and var(--wp--preset--spacing--50) in the inline
+style (the same for |shadow|, |color|, |font-size|): style="margin-bottom:var(--wp--preset--spacing--50)".
+The editor writes inline declarations border first, then margin, then padding (top, right, bottom, left);
+style.spacing.blockGap writes no inline style at all.
+Example: <!-- wp:heading {"textColor":"accent-3","fontSize":"xx-large","style":{"typography":{"textAlign":"center"}}} -->
+<h2 class="wp-block-heading has-text-align-center has-accent-3-color has-text-color has-xx-large-font-size">Title</h2>
+<!-- /wp:heading -->
+The class goes on the block's own element, with exceptions: core/button puts colour, radius and shadow on the inner
+<a class="wp-block-button__link … wp-element-button"> and the variation class on the outer div; core/image puts
+border and shadow on the <img> and has-custom-border on the figure.
+The server checks the comment's attribute names against the schema; it does not check that classes match them. A wrong
+class is stored as sent and the editor then reports the block as invalid: reopen the editor after such a save.
+Void elements may be written either way (<hr class="x"/> or <hr class="x" />).
+
+
+ACF
+Read acf.fields, acf.writable and limitations. ACF PRO and the theme register and render the block;
+these tools create no ACF block PHP, field groups or render templates.
+Data format, patches, supported field types and refusals: get-skill-doc {id:"content-contract"}.
+]]></skill>

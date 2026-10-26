@@ -1,0 +1,14 @@
+<block-guide name="core/accordion-panel"><![CDATA[
+CORE/ACCORDION-PANEL
+The content of an accordion section, hidden until its heading is clicked; second child of
+core/accordion-item, after core/accordion-heading. Full guide: see core/accordion.
+
+MARKUP
+<!-- wp:accordion-panel -->
+<div role="region" class="wp-block-accordion-panel"><!-- wp:paragraph -->
+<p>Panel text.</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:accordion-panel -->
+Any blocks go inside (paragraphs, lists, images, buttons). Keep role="region" before class.
+Whether it starts open is set on the item (openByDefault), not here.
+]]></block-guide>

@@ -1,0 +1,21 @@
+<block-guide name="core/list-item"><![CDATA[
+CORE/LIST-ITEM
+One item of a core/list; it exists only inside core/list. Full guide: see core/list.
+
+MARKUP
+<!-- wp:list-item -->
+<li>Item text</li>
+<!-- /wp:list-item -->
+The <li> has no class. Its text is the "content" attribute, read from the HTML.
+
+NESTING
+A sub-list is a core/list placed inside the <li>, after the text:
+<!-- wp:list-item -->
+<li>Parent item<!-- wp:list -->
+<ul class="wp-block-list"><!-- wp:list-item -->
+<li>Child item</li>
+<!-- /wp:list-item --></ul>
+<!-- /wp:list --></li>
+<!-- /wp:list-item -->
+Do not write a <ul> inside an <li> without the core/list comments around it.
+]]></block-guide>

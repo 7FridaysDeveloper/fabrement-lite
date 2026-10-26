@@ -1,0 +1,48 @@
+<block-guide name="core/tabs"><![CDATA[
+CORE/TABS (new in WordPress 7)
+Content split into tabs: a row of tab buttons, one panel of blocks per tab.
+WordPress adds the switching and keyboard behaviour itself when the page renders; write no script.
+
+REQUIRED STRUCTURE (exact)
+core/tabs > core/tab-list (the buttons), then core/tab-panels > core/tab-panel (one per tab).
+Exactly one tab-list and one tab-panels, in this order; the editor locks this pair.
+Button N in the tab-list belongs to panel N: same count, same order.
+
+MARKUP (checked in the editor)
+<!-- wp:tabs -->
+<div class="wp-block-tabs"><!-- wp:tab-list -->
+<div role="tablist" class="wp-block-tab-list"><button type="button" role="tab">Overview</button><button type="button" role="tab">Pricing</button></div>
+<!-- /wp:tab-list -->
+
+<!-- wp:tab-panels -->
+<div class="wp-block-tab-panels"><!-- wp:tab-panel {"label":"Overview"} -->
+<section role="tabpanel" tabindex="0" class="wp-block-tab-panel"><!-- wp:paragraph -->
+<p>What the product does.</p>
+<!-- /wp:paragraph --></section>
+<!-- /wp:tab-panel -->
+
+<!-- wp:tab-panel {"label":"Pricing"} -->
+<section role="tabpanel" tabindex="0" class="wp-block-tab-panel"><!-- wp:paragraph -->
+<p>From $10 a month.</p>
+<!-- /wp:paragraph --></section>
+<!-- /wp:tab-panel --></div>
+<!-- /wp:tab-panels --></div>
+<!-- /wp:tabs -->
+
+LABELS ARE WRITTEN TWICE
+Each tab's name is the panel's "label" attribute AND the text of the matching <button>. The
+page shows the button text; the editor rebuilds the buttons from the panel labels. Keep both
+identical; when adding, removing or reordering a tab, change the button and the panel together.
+
+OPTIONS
+activeTabIndex (on core/tabs, default 0): the tab shown first, counted from 0.
+An "anchor" on a tab-panel becomes its id, and a link to #<anchor> opens that tab on load.
+
+PITFALLS
+Fewer buttons than panels: the extra panels can never be shown. More buttons: dead buttons.
+Panels are hidden in the page HTML until WordPress's script shows the active one.
+
+CHECK
+Open the page: clicking each tab shows its own panel. Reopen the editor: labels unchanged,
+no invalid-block warning.
+]]></block-guide>

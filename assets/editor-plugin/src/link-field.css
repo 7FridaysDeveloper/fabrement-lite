@@ -1,0 +1,145 @@
+.fabrement-link-field { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-link-field__label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #757575; }
+.fabrement-link-field__trigger {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    color: #1a1a1a;
+    width: 100%;
+    text-align: left;
+    transition: border-color 0.15s;
+}
+.fabrement-link-field__trigger:hover { border-color: #999; }
+.fabrement-link-field__trigger-icon { color: #888; flex-shrink: 0; }
+.fabrement-link-field__trigger-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fabrement-link-field__trigger-text--empty { color: #aaa; }
+/* The destination, beside the words: quieter than them, because it answers a different question. */
+.fabrement-link-field__trigger-dest { color: #999; }
+/* The record a link follows, named at the top of the modal before anything can be changed. */
+.fabrement-link-modal__attached {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #d5e5dd;
+    border-radius: 6px;
+    background: #f4faf7;
+}
+.fabrement-link-modal__attached-kind { color: #3a7d5d; font-weight: 600; }
+.fabrement-link-field__trigger-kind { color: #aaa; }
+.fabrement-link-modal__attached .fabrement-link-modal__result-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.fabrement-link-modal__attached-detach {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 18px;
+    line-height: 1;
+    color: #777;
+    cursor: pointer;
+}
+.fabrement-link-modal__attached-detach:hover { background: #e4efe9; color: #1a1a1a; }
+/* Two controls in one block — the switch and the wording it governs. WordPress's own
+   margin-bottom is dropped so the gap here is the only spacing, otherwise the switch's help text
+   and the field's caps label end up touching. */
+.fabrement-link-modal__label-field { display: flex; flex-direction: column; gap: 14px; }
+.fabrement-link-modal__label-field .components-base-control { margin-bottom: 0; }
+.fabrement-link-modal__label-field .components-base-control__help { margin: 4px 0 0; font-size: 11px; line-height: 1.5; color: #757575; }
+/* Greyed out, and plainly so: with the switch on this box is a readout of the page's name, and
+   an input that looks editable but refuses the cursor reads as broken. */
+.fabrement-link-modal__label-field input.components-text-control__input:disabled {
+    background: #f6f7f7; color: #6c7781; -webkit-text-fill-color: #6c7781; border-color: #e0e0e0; cursor: default;
+}
+.fabrement-link-modal__label-note {
+    /* Belongs to the field above it, not to the stack — pulled back out of the flex gap so it
+       reads as that field's footnote rather than as a third control. */
+    margin: -10px 0 0; font-size: 11px; line-height: 1.5; color: #999;
+}
+.fabrement-link-modal__label-reset {
+    border: 0;
+    padding: 0;
+    background: none;
+    font-size: 11px;
+    color: #0073aa;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.fabrement-link-modal__label-reset:hover { color: #005177; }
+.fabrement-link-field__trigger-clear {
+    background: none; border: none; padding: 2px 4px;
+    color: #aaa; cursor: pointer; border-radius: 6px; font-size: 14px; line-height: 1;
+}
+.fabrement-link-field__trigger-clear:hover { color: #cc3333; background: #fdf0f0; }
+
+.components-modal__screen-overlay.fabrement-link-modal-overlay { z-index: 100002; }
+
+.fabrement-link-modal {
+    width: 560px !important;
+    max-width: 95vw !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+}
+.fabrement-link-modal .components-modal__content { padding: 0 !important; overflow: hidden !important; }
+.fabrement-link-modal .components-modal__header { padding: 18px 24px 0; border-bottom: none; }
+.fabrement-link-modal .components-modal__header-heading { font-size: 15px; font-weight: 600; }
+
+.fabrement-link-modal__body { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 16px; }
+
+.fabrement-link-modal__search { position: relative; }
+.fabrement-link-modal__search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: #aaa; pointer-events: none;
+}
+.fabrement-link-modal__search input.components-text-control__input {
+    padding-left: 36px !important;
+    border-radius: 8px !important;
+}
+
+.fabrement-link-modal__results {
+    border: 1px solid #ebebeb;
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 240px;
+    overflow-y: auto;
+}
+.fabrement-link-modal__result {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+}
+.fabrement-link-modal__result:last-child { border-bottom: none; }
+.fabrement-link-modal__result:hover { background: #f5f5f5; }
+.fabrement-link-modal__result--selected { background: #f0f7ff; }
+.fabrement-link-modal__result--selected:hover { background: #e8f2ff; }
+.fabrement-link-modal__result-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.fabrement-link-modal__result-icon { color: #aaa; flex-shrink: 0; font-size: 14px; }
+.fabrement-link-modal__result-info { min-width: 0; }
+.fabrement-link-modal__result-title { font-size: 13px; font-weight: 500; color: #1a1a1a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fabrement-link-modal__result-url { font-size: 11px; color: #999; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fabrement-link-modal__result-check { color: #0073aa; font-size: 16px; flex-shrink: 0; }
+.fabrement-link-modal__spinner { display: flex; justify-content: center; padding: 16px; }
+.fabrement-link-modal__empty { text-align: center; padding: 16px; font-size: 13px; color: #aaa; }
+
+.fabrement-link-modal__divider { display: flex; align-items: center; gap: 12px; }
+.fabrement-link-modal__divider-line { flex: 1; height: 1px; background: #ebebeb; }
+.fabrement-link-modal__divider-text { font-size: 11px; color: #bbb; white-space: nowrap; }
+
+.fabrement-link-modal__footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid #ebebeb;
+}
+.fabrement-link-modal__footer-actions { display: flex; gap: 8px; }

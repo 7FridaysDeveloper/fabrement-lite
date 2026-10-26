@@ -1,0 +1,22 @@
+<block-guide name="core/audio"><![CDATA[
+CORE/AUDIO
+An audio file from the media library in the browser's own player. A Spotify or SoundCloud
+address is core/embed.
+
+MARKUP (checked in the editor)
+<!-- wp:audio {"id":<id>} -->
+<figure class="wp-block-audio"><audio controls src="<url>"></audio><figcaption class="wp-element-caption">Episode 1: getting started.</figcaption></figure>
+<!-- /wp:audio -->
+<id> and <url> come from list-media {kind:"audio"} or upload-media. The id goes only in the
+comment (no class on the tag); src is the file's url. controls is always written.
+
+OPTIONS
+autoplay, loop and preload are attributes of the <audio> tag (read from it, not from the
+comment), written after src: <audio controls src="<url>" autoplay loop preload="none"></audio>.
+Caption: <figcaption class="wp-element-caption"> after the player; no caption = no element.
+align: left|center|right|wide|full -> alignX class after wp-block-audio.
+The page shows the tag exactly as saved: nothing is added from the attachment.
+
+CHECK
+Open the page and press play; reopen the editor: no invalid-content notice.
+]]></block-guide>

@@ -1,0 +1,13 @@
+.fabrement-date-picker-field { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-date-picker-field__label { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-date-picker-field__caption { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #757575; }
+.fabrement-date-picker-field input.fabrement-date-picker-field__input {
+    width: 100%; min-width: 0; min-height: 38px; margin: 0;
+    padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px;
+    font-size: 13px; line-height: 1.4; font-family: inherit;
+    color: #1a1a1a; background: #fff; color-scheme: light;
+    box-sizing: border-box; box-shadow: none;
+}
+.fabrement-date-picker-field input.fabrement-date-picker-field__input:focus { border-color: #1a1a1a; outline: 1px solid #1a1a1a; }
+.fabrement-date-picker-field input.fabrement-date-picker-field__input:invalid { border-color: #b32d2e; }
+.fabrement-date-picker-field__clear { align-self: flex-start; padding: 0; border: 0; background: none; color: #757575; text-decoration: underline; cursor: pointer; font: inherit; font-size: 12px; }

@@ -1,0 +1,78 @@
+{
+    "name": "fabrement/fabrement-lite",
+    "description": "WordPress plugin: MCP server for content, installed blocks, custom fields and templates",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "autoload": {
+        "psr-4": {
+            "Fabrement\\": "src/"
+        },
+        "exclude-from-classmap": [
+            "vendor/wordpress/mcp-adapter/",
+            "vendor/wordpress/php-mcp-schema/"
+        ]
+    },
+    "require": {
+        "php": ">=8.0",
+        "symfony/polyfill-ctype": "^1.37",
+        "symfony/polyfill-mbstring": "^1.38",
+        "pimple/pimple": "^3.5",
+        "wordpress/mcp-adapter": "~0.7.1"
+    },
+    "replace": {
+        "automattic/jetpack-autoloader": "*"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "classmap-authoritative": true,
+        "platform": {
+            "php": "8.0.0"
+        },
+        "allow-plugins": {
+            "automattic/jetpack-autoloader": false,
+            "composer/installers": true
+        }
+    },
+    "require-dev": {
+        "php-stubs/wordpress-stubs": "^6.9",
+        "phpunit/phpunit": "^9.6",
+        "wp-phpunit/wp-phpunit": "^6.9",
+        "yoast/phpunit-polyfills": "^1.1",
+        "johnpbloch/wordpress-core": "^7.1",
+        "wpackagist-plugin/wordpress-seo": "28.5",
+        "wpackagist-plugin/contact-form-7": "6.1.5"
+    },
+    "scripts": {
+        "check:dead-code": "@php tools/dead-code/check.php",
+        "test:dead-code": "@php tools/dead-code/check.php --self-test",
+        "test": "@php vendor/phpunit/phpunit/phpunit",
+        "test:wp:db": "docker compose -f tests/WpSetup/docker-compose.yml up -d --wait --build",
+        "test:wp": "@php vendor/phpunit/phpunit/phpunit -c phpunit-wp.xml",
+        "test:wp:down": "docker compose -f tests/WpSetup/docker-compose.yml down",
+        "test:wpml:runtime": "@php tests/WpmlSetup/prepare-runtime.php",
+        "test:wpml:db": "docker compose -f tests/WpmlSetup/docker-compose.yml up -d --wait --build",
+        "test:wpml": "@php vendor/phpunit/phpunit/phpunit -c phpunit-wpml.xml",
+        "test:site:up": "docker compose -f tests/Site/docker-compose.yml up -d --wait --build",
+        "test:site": "@php vendor/phpunit/phpunit/phpunit -c phpunit-site.xml",
+        "test:site:down": "docker compose -f tests/Site/docker-compose.yml down -v",
+        "test:wpml:down": "docker compose -f tests/WpmlSetup/docker-compose.yml down"
+    },
+    "repositories": {
+        "wpackagist": {
+            "type": "composer",
+            "url": "https://wpackagist.org",
+            "only": ["wpackagist-plugin/*"]
+        }
+    },
+    "extra": {
+        "installer-paths": {
+            "vendor/wp-plugins/{$name}/": ["vendor:wpackagist-plugin"],
+            "vendor/{$vendor}/{$name}/": ["type:wordpress-plugin"]
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Fabrement\\Tests\\Site\\": "tests/Site/"
+        }
+    }
+}

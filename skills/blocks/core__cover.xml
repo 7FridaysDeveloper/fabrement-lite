@@ -1,0 +1,38 @@
+<block-guide name="core/cover"><![CDATA[
+CORE/COVER
+A section with a background image (or video, or plain colour) and blocks over it: hero banners,
+call-to-action strips. The content goes inside wp-block-cover__inner-container as normal blocks.
+
+MARKUP (checked in the editor)
+<!-- wp:cover {"url":"<url>","id":<id>,"alt":"What the picture shows","dimRatio":40,"overlayColor":"contrast","isUserOverlayColor":true,"focalPoint":{"x":0.5,"y":0.3},"minHeight":420,"minHeightUnit":"px","sizeSlug":"full","align":"full","layout":{"type":"constrained"}} -->
+<div class="wp-block-cover alignfull" style="min-height:420px"><img class="wp-block-cover__image-background wp-image-<id> size-full" alt="What the picture shows" src="<url>" style="object-position:50% 30%" data-object-fit="cover" data-object-position="50% 30%"/><span aria-hidden="true" class="wp-block-cover__background has-contrast-background-color has-background-dim-40 has-background-dim"></span><div class="wp-block-cover__inner-container"><!-- wp:heading {"textColor":"base"} -->
+<h2 class="wp-block-heading has-base-color has-text-color">Grow with us</h2>
+<!-- /wp:heading --></div></div>
+<!-- /wp:cover -->
+Order inside: <img>, then the overlay <span>, then the inner-container <div>.
+Unlike core/image, url, id and alt live in the comment as well as on the <img>.
+
+OVERLAY (dimRatio) — THE USUAL MISTAKE
+dimRatio is the overlay's opacity, 0-100, default 100. Leave it out over an image and the overlay
+is fully opaque (black when no colour is set): the image is hidden. Always write it with an image.
+Span classes: has-background-dim-<n> (n rounded to tens) + has-background-dim; at exactly 50 only
+has-background-dim. 0 = no dimming: has-background-dim-0 has-background-dim.
+Overlay colour: "overlayColor":"<slug>" + "isUserOverlayColor":true -> has-<slug>-background-color
+first in the span; a custom colour is "customOverlayColor":"#hex" -> style="background-color:#hex"
+on the span. Colour only, no image: omit url/img; the span then usually has dim 100.
+
+OPTIONS
+Library image: "id" + class wp-image-<id> (and size-<slug>) on the <img> gives srcset; an
+external image: url only, img class just wp-block-cover__image-background.
+focalPoint {"x":0-1,"y":0-1}: object-position in % in style AND data-object-position on the img.
+Height: "minHeight":420,"minHeightUnit":"px"|"vh" -> style="min-height:420px" on the div.
+Or a ratio: "style":{"dimensions":{"aspectRatio":"16/9"}}, no HTML change (applied on render).
+"isDark":false -> class is-light after the align class: for light images with dark text.
+contentPosition "top left"…"bottom right" -> has-custom-content-position is-position-top-left.
+Video: "backgroundType":"video" and <video class="wp-block-cover__video-background
+intrinsic-ignore" autoplay muted loop playsinline src="<url>" data-object-fit="cover"></video>.
+
+CHECK
+Open the page: the image is visible through the overlay and the text is readable; reopen the
+editor: no invalid-content notice.
+]]></block-guide>

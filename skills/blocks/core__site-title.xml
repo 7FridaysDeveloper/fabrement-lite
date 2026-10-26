@@ -1,0 +1,25 @@
+<block-guide name="core/site-title"><![CDATA[
+CORE/SITE-TITLE (Site Title)
+Draws the site's name (Settings > General), linked to the home page by default. The text is the
+setting, never written in the block: change it with update-site-settings {siteTitle}, and every
+site-title on the site changes. Places: a header or footer global block, or a template frame.
+
+MARKUP (comment only; no HTML)
+<!-- wp:site-title {"level":0} /-->
+<!-- wp:site-title {"level":0,"fontSize":"large","style":{"typography":{"fontWeight":"700"}}} /-->
+<!-- wp:site-title {"level":2,"isLink":false} /-->
+level: DEFAULT 1 (an H1). 0 draws a <p>: use 0 in a header, as Twenty Twenty-Five does, so the
+page title (core/post-title level 1) stays the page's only H1.
+isLink (default true) links to the home page; linkTarget "_blank" opens a new tab.
+
+OUTPUT
+<p class="wp-block-site-title"><a href="https://example.com" target="_self" rel="home">Name</a></p>
+
+PITFALLS
+- The default level 1 in a header gives every page two H1s.
+- An empty site title draws nothing.
+- For a logo next to the name, put core/site-logo and core/site-title in a flex group.
+
+CHECK
+Open any page: the name appears in the header and links home; the page has one H1.
+]]></block-guide>

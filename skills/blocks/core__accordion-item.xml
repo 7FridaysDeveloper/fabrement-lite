@@ -1,0 +1,18 @@
+<block-guide name="core/accordion-item"><![CDATA[
+CORE/ACCORDION-ITEM
+One section of a core/accordion. Full guide and example: see core/accordion.
+
+MARKUP
+<!-- wp:accordion-item -->
+<div class="wp-block-accordion-item">[accordion-heading block][accordion-panel block]</div>
+<!-- /wp:accordion-item -->
+It holds exactly one core/accordion-heading followed by one core/accordion-panel; the editor
+locks this pair, so no other block goes directly inside the item.
+
+OPEN ON LOAD
+"openByDefault":true in the comment AND class is-open on the div:
+<!-- wp:accordion-item {"openByDefault":true} -->
+<div class="wp-block-accordion-item is-open">…</div>
+<!-- /wp:accordion-item -->
+One without the other is an invalid block.
+]]></block-guide>

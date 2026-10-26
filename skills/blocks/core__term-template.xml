@@ -1,0 +1,11 @@
+<block-guide name="core/term-template"><![CDATA[
+CORE/TERM-TEMPLATE
+The repeated part of core/terms-query: its inner blocks are drawn once per term. It lives only
+inside core/terms-query; see core/terms-query for the structure and full markup.
+MARKUP: comments only, no HTML of its own:
+<!-- wp:term-template {"layout":{"type":"grid","columnCount":3}} -->
+<!-- wp:term-name {"isLink":true} /-->
+<!-- /wp:term-template -->
+Rendered as <ul class="wp-block-term-template"> with one <li class="wp-block-term …"> per term.
+Layout: none = a list, {"type":"grid","columnCount":N} = a grid. No pagination exists.
+]]></block-guide>

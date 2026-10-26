@@ -1,0 +1,15 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "fabrement/content-source",
+    "title": "Content Source",
+    "category": "theme",
+    "icon": "layout",
+    "description": "Shows page content or an existing PHP template supplied by the active theme.",
+    "textdomain": "fabrement-lite",
+    "usesContext": [ "postId", "postType" ],
+    "attributes": { "templateId": { "type": "integer" } },
+    "supports": { "html": false, "reusable": false, "layout": true },
+    "editorScript": "fabrement-editor-plugin",
+    "editorStyle": "fabrement-editor-plugin"
+}

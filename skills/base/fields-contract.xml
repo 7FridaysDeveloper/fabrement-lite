@@ -1,0 +1,24 @@
+<skill id="fields-contract"><![CDATA[
+FABREMENT CUSTOM FIELDS
+These tools manage Fabrement field definitions/values. They do not create or modify ACF field groups.
+ACF Gutenberg block values are edited through save-content: read content-contract.
+
+Read get-fields {type:"post",slug:<post type>} before save-fields.
+The response includes revision, fields, layout and possibly problem; do not overwrite a broken definition.
+Save with expectedRevision. On a conflict reread and merge. Omitted sections stay unchanged.
+fields is the COMPLETE active field list. Omitted fields are retired, their values retained.
+Do not send fields:[] to change only layout. Do not resend retired:true rows.
+A field's name identifies it and its type is permanent. A new name creates a new field, not a rename
+or a value migration. Retired names remain reserved; restoring the same definition revives the field.
+Use schema-supported field types, names, constraints, groups, repeaters and layout dimensions.
+Unknown or invalid properties are errors; use the error path to correct the input.
+
+Read get-field-values before set-field-values. Send only intended values using the tool's logical
+field shapes, not raw database keys. Omitted fields stay; explicit clearing must match the field type.
+Follow validation for choices, media IDs, related records, required fields and nested values.
+A field definition or value does not display itself: theme code must read it.
+Theme PHP reads a value with fabrement()->fields($post_id)->get_<type>('<name>'); list-post-type-fields gives
+the exact line per field. These tools write no PHP: do not claim a new field appears on the frontend by itself.
+Site-wide values use options-contract. ACF block write limitations do not describe Fabrement fields;
+these are different storage and schema systems.
+]]></skill>

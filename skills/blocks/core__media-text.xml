@@ -1,0 +1,40 @@
+<block-guide name="core/media-text"><![CDATA[
+CORE/MEDIA-TEXT
+An image (or video) beside text, two columns that stack on phones. The text side holds normal
+blocks (heading, paragraph, buttons…) inside wp-block-media-text__content.
+
+MARKUP (checked in the editor)
+<!-- wp:media-text {"align":"wide","mediaPosition":"right","mediaId":<id>,"mediaType":"image","mediaWidth":40,"verticalAlignment":"center"} -->
+<div class="wp-block-media-text alignwide has-media-on-the-right is-stacked-on-mobile is-vertically-aligned-center" style="grid-template-columns:auto 40%"><div class="wp-block-media-text__content"><!-- wp:heading {"level":3} -->
+<h3 class="wp-block-heading">Title</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Text beside the picture.</p>
+<!-- /wp:paragraph --></div><figure class="wp-block-media-text__media"><img src="<url>" alt="What the picture shows" class="wp-image-<id> size-full"/></figure></div>
+<!-- /wp:media-text -->
+
+MEDIA
+"mediaType":"image" is required (or "video"); without it the figure stays empty.
+mediaUrl and mediaAlt are NOT in the comment: they are read from the <img> src and alt.
+Library image: "mediaId":<id> + class "wp-image-<id> size-full" on the <img> (size-<mediaSizeSlug>
+when set; full otherwise) -> WordPress adds srcset. External image: no mediaId, no class at all.
+Video: <video controls src="<url>"></video> inside the figure.
+
+OPTIONS
+mediaPosition "right": class has-media-on-the-right AND the content <div> comes BEFORE the figure.
+Left (default) = figure first, no class.
+mediaWidth (default 50, %): any other value writes style="grid-template-columns:40% auto"
+(left) or "auto 40%" (right) on the outer div.
+isStackedOnMobile defaults to true and writes is-stacked-on-mobile; "isStackedOnMobile":false
+drops the class.
+verticalAlignment top|center|bottom -> is-vertically-aligned-<value>.
+imageFill true -> class is-image-fill-element and style="object-position:50% 50%" on the img (from
+focalPoint {"x","y"} when given): the image fills its column, cropped.
+Link around the image: <a href="…"> inside the figure wrapping the <img>; href is read from it.
+Class order: wp-block-media-text, align class, has-media-on-the-right, is-stacked-on-mobile,
+is-vertically-aligned-…, is-image-fill-element.
+
+CHECK
+Open the page wide and narrow (columns, then stacked); reopen the editor: no invalid-content notice.
+]]></block-guide>

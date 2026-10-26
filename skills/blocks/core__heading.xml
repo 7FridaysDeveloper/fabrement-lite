@@ -1,0 +1,30 @@
+<block-guide name="core/heading"><![CDATA[
+CORE/HEADING
+A heading h1-h6. Block page templates usually print the page title as h1 (post-title level 1),
+so headings in the content start at h2 (the default level). Keep levels in order (h2 > h3 > h4).
+
+MARKUP (checked in the editor)
+<!-- wp:heading {"level":1,"style":{"typography":{"textAlign":"center"}},"fontSize":"xx-large"} -->
+<h1 class="wp-block-heading has-text-align-center has-xx-large-font-size">Our <em>services</em></h1>
+<!-- /wp:heading -->
+
+<!-- wp:heading {"level":3,"anchor":"pricing"} -->
+<h3 id="pricing" class="wp-block-heading">Pricing</h3>
+<!-- /wp:heading -->
+The tag follows "level": level 3 = <h3>. Level 2 is the default and is left out of the comment.
+The element always has class wp-block-heading. Inline formatting inside: <strong>, <em>, <a href>,
+<br>. No <p>, <div> or other blocks inside a heading.
+
+OPTIONS
+Text alignment: style.typography.textAlign -> has-text-align-<value>. There is NO textAlign
+attribute in this WordPress version; {"textAlign":"center"} is old markup.
+align: "wide" | "full" (the block box, not the text) -> class alignwide / alignfull.
+anchor: "pricing" in the comment AND id="pricing" on the element, so #pricing links jump to it.
+Colours, font size, spacing: see the theme settings rules in block-discovery-contract.
+
+PITFALLS
+A comment level that differs from the tag (level 3 with <h2>) makes the block invalid.
+
+CHECK
+Reopen the editor: no "unexpected or invalid content" notice; the front shows the right tag.
+]]></block-guide>

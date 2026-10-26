@@ -1,0 +1,34 @@
+<block-guide name="yoast/how-to-block"><![CDATA[
+YOAST/HOW-TO-BLOCK (Yoast How-to)
+Step-by-step instructions. Yoast SEO adds a HowTo with one HowToStep per step to the page's
+structured data. The block exists only while Yoast SEO is active. ONE per post or page (the
+editor allows no second one). The HowTo's name is the page title, not a block attribute.
+
+EACH TEXT IS WRITTEN TWICE OR MORE
+- Steps: "name" / "text" (what the editor shows) and "jsonName" / "jsonText" (what goes into the
+  structured data) in the comment, and the same text in the HTML. The editor checks the HTML
+  against name / text; the structured data reads ONLY jsonName / jsonText.
+- Description: the editor reads it from the HTML (<p class="schema-how-to-description">); the
+  structured data reads "jsonDescription" from the comment. No "description" key in the comment.
+Keep them equal. A step with neither jsonName nor jsonText is left out of the structured data.
+
+MARKUP (the shape the Yoast editor saves)
+<!-- wp:yoast/how-to-block {"jsonDescription":"<D>","steps":[{"id":"how-to-step-<n1>","name":"<N1>","text":"<T1>","jsonName":"<N1>","jsonText":"<T1>","images":[]},{"id":"how-to-step-<n2>","name":"<N2>","text":"<T2>","jsonName":"<N2>","jsonText":"<T2>","images":[]}]} -->
+<div class="schema-how-to wp-block-yoast-how-to-block"><p class="schema-how-to-description"><D></p><ol class="schema-how-to-steps"><li class="schema-how-to-step" id="how-to-step-<n1>"><strong class="schema-how-to-step-name"><N1></strong><p class="schema-how-to-step-text"><T1></p></li><li class="schema-how-to-step" id="how-to-step-<n2>"><strong class="schema-how-to-step-name"><N2></strong><p class="schema-how-to-step-text"><T2></p></li></ol></div>
+<!-- /wp:yoast/how-to-block -->
+- The HTML is one line: no spaces or line breaks between the elements.
+- id: unique on the page ("how-to-step-" + a number); the step's HTML id and its #anchor in the
+  structured data. With no description the empty <p class="schema-how-to-description"></p> stays.
+- Step text may hold inline HTML; in the comment the editor writes < > & as < > &.
+- "unorderedList":true turns the <ol> into a <ul>.
+
+PITFALLS
+- Duration ("hasDuration", "days", "hours", "minutes" as strings) adds a "Time needed" line to
+  the HTML and totalTime to the structured data. Its saved markup is not covered here: leave it
+  out, or keep it as a block saved in the editor has it (get-content).
+- Change a step in every place at once: name, jsonName and the <strong>; text, jsonText and the <p>.
+
+CHECK
+Page source: the yoast-schema-graph script holds a HowTo with your description and one step per
+step. Reopen the editor: the block shows no invalid-content warning.
+]]></block-guide>

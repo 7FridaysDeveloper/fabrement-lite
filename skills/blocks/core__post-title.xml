@@ -1,0 +1,28 @@
+<block-guide name="core/post-title"><![CDATA[
+CORE/POST-TITLE (Title)
+Draws the title of the current page or post. The text is the record's title (save-content
+title), never written in the block. Places:
+- A Fabrement template frame, above the content slot. A Fabrement template replaces the whole
+  page, so the theme's title is not drawn: without this block the page shows no title.
+- Inside a Query's post-template: each listed post's title (usually with isLink).
+
+MARKUP (comment only; no HTML)
+<!-- wp:post-title {"level":1} /-->
+<!-- wp:post-title {"level":1,"align":"wide","fontSize":"xx-large"} /-->
+<!-- wp:post-title {"level":1,"style":{"typography":{"textAlign":"center"}}} /-->
+<!-- wp:post-title {"level":3,"isLink":true} /-->
+level: heading level, DEFAULT 2; the page heading needs "level":1. 0 draws a <p>.
+Centered text is style.typography.textAlign (the old textAlign attribute is migrated by the
+editor). isLink links to the record; linkTarget "_blank" opens a new tab.
+
+PITFALLS
+- A page whose content already opens with its own H1 (a hero) shows two titles under a template
+  with post-title. Give such pages a template without it.
+- Outside a Query on an archive or the blog index it shows the FIRST listed post's title, not the
+  archive's name: use core/query-title there.
+- An empty title draws nothing.
+- In a page's own content it repeats that page's title; the template is the place for it.
+
+CHECK
+Open an assigned page: exactly one H1, with the page's title.
+]]></block-guide>

@@ -1,0 +1,22 @@
+<skill id="forms-contract"><![CDATA[
+CONTACT FORM 7 FORMS
+list-forms first; avoid duplicate forms with the same title.
+The form tools support Contact Form 7 and require it to be active.
+Use create-cf7-form with title and template; use get-cf7-form before update-cf7-form.
+template is CF7 form markup and CF7 tags, not a PHP/JS generator. Use safe HTML and real CF7 controls.
+Do not build a fake HTML form with no handler, spam protection or delivery configuration.
+Honor the writer's control limits and reserved-name validation. Use names such as your-name rather
+than WordPress query vars. A required email tag can supply Reply-To; read get-cf7-form
+for recipient, subject and messages, and the current schema for attachment handling.
+Changing the form may affect every page that uses it.
+
+Place the form through Contact Form 7's registered Gutenberg block, or the returned shortcode
+in core/shortcode using valid saved markup. Follow block-discovery-contract for the block schema.
+The block as saved: <!-- wp:contact-form-7/contact-form-selector {"id":<formId>,"title":"<form title>"} -->
+<div class="wp-block-contact-form-7-contact-form-selector">[contact-form-7 id="<formId>" title="<form title>"]</div>
+<!-- /wp:contact-form-7/contact-form-selector -->
+Do not use a shortcode as a substitute for a normal layout block.
+Read back the form and preview the containing page. Preview proves rendering, not mail delivery;
+do not claim successful delivery without an authorized submission/delivery test.
+Delete only the requested form; check the pages that show it first.
+]]></skill>

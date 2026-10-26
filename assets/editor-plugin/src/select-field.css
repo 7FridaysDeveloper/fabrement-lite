@@ -1,0 +1,40 @@
+.fabrement-select-field { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-select-field__label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #757575; }
+.fabrement-select-field__wrapper { position: relative; }
+/* select.…__select inside .…__wrapper = (0,2,1) — outranks wp-admin's global
+   ".wp-admin select" (0,1,1). Without this the admin stylesheet caps the select
+   at max-width:25rem (the absolutely-positioned custom arrow then floats past
+   its right edge, orphaned in the gap) and paints its own background chevron on
+   top of ours. Every property WP sets (max-width, min-height, line-height,
+   background arrow, focus box-shadow) must be re-asserted here. */
+.fabrement-select-field__wrapper select.fabrement-select-field__select {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    padding: 8px 36px 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #1a1a1a;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+    box-shadow: none;
+}
+.fabrement-select-field__wrapper select.fabrement-select-field__select:focus { border-color: #1a1a1a; box-shadow: none; }
+.fabrement-select-field__arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #aaa;
+    font-size: 10px;
+    line-height: 1;
+}

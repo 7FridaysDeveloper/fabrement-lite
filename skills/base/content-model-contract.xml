@@ -1,0 +1,14 @@
+<skill id="content-model-contract"><![CDATA[
+CONTENT TYPES AND TAXONOMIES
+Post types and taxonomies are the site's: the theme, WordPress or another plugin registers them.
+These tools do not create, change or delete them. List them with list-post-types and list-taxonomies.
+When a task needs a type or taxonomy the site lacks, say so: the site administrator adds it.
+Use list-terms and the term tools for a taxonomy's terms; set-post-terms on content. Do not
+manufacture term IDs or write serialized storage manually.
+
+A content type defines structured records and URLs; it does not generate a frontend layout.
+The active theme and installed blocks provide rendering; these tools write no PHP.
+Use fields-contract for data definitions and content-contract for record content.
+list-post-type-fields discovers Fabrement, ACF and registered meta declarations. Discovery is not blanket
+write support for arbitrary ACF post meta. ACF block data is handled separately inside Gutenberg content.
+]]></skill>

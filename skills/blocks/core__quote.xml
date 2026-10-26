@@ -1,0 +1,36 @@
+<block-guide name="core/quote"><![CDATA[
+CORE/QUOTE
+A quotation with an optional source line. Its text is ordinary blocks inside it (paragraphs,
+lists, headings), so it can hold several paragraphs. A short eye-catching line pulled from the
+page's own text: core/pullquote.
+
+MARKUP (checked in the editor)
+<!-- wp:quote -->
+<blockquote class="wp-block-quote"><!-- wp:paragraph -->
+<p>Simplicity is the ultimate sophistication.</p>
+<!-- /wp:paragraph --><cite>Leonardo da Vinci</cite></blockquote>
+<!-- /wp:quote -->
+<!-- wp:quote {"textAlign":"center","className":"is-style-plain","fontSize":"x-large"} -->
+<blockquote class="wp-block-quote has-text-align-center is-style-plain has-x-large-font-size"><!-- wp:paragraph -->
+<p>Superb product and customer service!</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>We would order again.</p>
+<!-- /wp:paragraph --><cite>Jo Smith, Example Ltd.</cite></blockquote>
+<!-- /wp:quote -->
+The inner blocks are full blocks with their own comments; text is never bare inside
+<blockquote>. <cite> comes last, right after the last inner block's closing comment; no
+citation = no <cite>. Inner blocks are separated by a blank line.
+
+OPTIONS
+Text alignment is the "textAlign" attribute here -> class has-text-align-<value> right after
+wp-block-quote (not style.typography.textAlign as on headings and pullquotes).
+Styles: "default" (no class) and "plain" (is-style-plain: no side border, no padding). There is
+no "large" style in this WordPress version.
+align: left|right|wide|full only (no center).
+
+CHECK
+Reopen the editor: no "unexpected or invalid content" notice; the front shows the quote with
+its source line.
+]]></block-guide>

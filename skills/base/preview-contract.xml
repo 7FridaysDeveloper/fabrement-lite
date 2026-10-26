@@ -1,0 +1,14 @@
+<skill id="preview-contract"><![CDATA[
+VERIFY CONTENT
+Use preview {id:<contentId>}.
+Open the returned URL before reporting a page visually complete. Draft preview links are temporary;
+expiresIn is seconds, not a permanent public URL. Never publish solely to inspect a draft.
+The actual frontend uses the active theme and installed block renderers.
+Private, password-protected or trashed content is not an eligible shared preview; respect refusals.
+A tokenized preview URL grants temporary access: share only with the intended user/client.
+Previewing one isolated block does not prove a whole page renders correctly.
+Frontend rendering also does not prove Gutenberg save() validation; reopen the editor after markup changes.
+For SEO verify emitted metadata as described in seo-contract; for forms rendering is not mail delivery.
+Preview a page assigned to the template to check its header, content slot and footer.
+The preview tool accepts content IDs; it does not provide standalone block/template previews.
+]]></skill>

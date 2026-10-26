@@ -1,0 +1,34 @@
+<block-guide name="core/paragraph"><![CDATA[
+CORE/PARAGRAPH
+A paragraph of text. Every piece of running text in a page is one of these; one <p> per block.
+
+MARKUP (checked in the editor)
+<!-- wp:paragraph -->
+<p>Plain text with <strong>bold</strong>, <em>italic</em> and <a href="https://wordpress.org/">a link</a>.<br>A second line in the same paragraph.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph {"style":{"typography":{"textAlign":"center"}},"textColor":"accent-4","fontSize":"large"} -->
+<p class="has-text-align-center has-accent-4-color has-text-color has-large-font-size">A centred lead paragraph.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph {"dropCap":true} -->
+<p class="has-drop-cap">A paragraph that starts with a large first letter.</p>
+<!-- /wp:paragraph -->
+Saved HTML is a bare <p> with only the classes its settings need: no wp-block-paragraph class
+(WordPress adds that class itself on the front end). Inline content: text, <strong>, <em>,
+<a href>, <br>, <code>, <sub>, <sup>, <mark>. No block-level tags (<div>, <ul>, <h2>) inside.
+A new paragraph is a new block, not <br><br>.
+
+OPTIONS
+Text alignment: style.typography.textAlign -> has-text-align-<value> (no align attribute for text).
+dropCap: true -> class has-drop-cap (left out with centre or right alignment).
+align: "wide" | "full" widens the block box -> alignwide / alignfull.
+Colours, font size, spacing: see the theme settings rules in block-discovery-contract.
+
+PITFALLS
+Text inside the paragraph comment but outside <p> makes the block invalid; text between two
+blocks, with no comment of its own, becomes a Classic block.
+
+CHECK
+Reopen the editor: no invalid-content notice; links open where intended.
+]]></block-guide>

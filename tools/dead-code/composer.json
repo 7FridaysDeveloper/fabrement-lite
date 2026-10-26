@@ -1,0 +1,22 @@
+{
+    "name": "fabrement/dead-code-check",
+    "description": "Development-only, report-only PHP dead code analysis",
+    "type": "project",
+    "license": "GPL-2.0-or-later",
+    "require-dev": {
+        "phpstan/phpstan": "^2.1.41",
+        "shipmonk/dead-code-detector": "^1.4.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Fabrement\\Dev\\DeadCode\\": "src/"
+        }
+    },
+    "config": {
+        "allow-plugins": false,
+        "disable-tls": false,
+        "platform": { "php": "8.2.27" },
+        "secure-http": true,
+        "sort-packages": true
+    }
+}

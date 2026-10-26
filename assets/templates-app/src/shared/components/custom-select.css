@@ -1,0 +1,39 @@
+/* CustomSelect base styles — imported by the component itself. */
+.fabrement-bb-cs { position: relative; width: 100%; }
+.fabrement-bb-cs__value.is-placeholder { color: #a7b3bd; }
+.fabrement-bb-cs__trigger {
+  width: 100%; height: 36px; display: flex; align-items: center; gap: 8px;
+  padding: 0 10px; font-family: inherit; font-size: 13px; color: #2e3442; text-align: left;
+  background: #fff; border: 1px solid #d9e0e6; border-radius: 6px; cursor: pointer; outline: none;
+  transition: border-color .12s, box-shadow .12s;
+}
+.fabrement-bb-cs__trigger:hover { border-color: #c2ccd4; }
+.fabrement-bb-cs__trigger:focus-visible,
+.fabrement-bb-cs__trigger.is-open { border-color: #2cc486; box-shadow: 0 0 0 3px rgba(44,196,134,.18); }
+.fabrement-bb-cs__value { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fabrement-bb-cs__chevron {
+  flex-shrink: 0; width: 8px; height: 8px; margin-right: 1px;
+  border-right: 2px solid #8a94a6; border-bottom: 2px solid #8a94a6;
+  transform: rotate(45deg) translateY(-2px); transition: transform .15s;
+}
+.fabrement-bb-cs__trigger.is-open .fabrement-bb-cs__chevron { transform: rotate(-135deg) translateY(-1px); }
+
+.fabrement-bb-cs__list {
+  position: absolute; z-index: 60; top: calc(100% + 4px); left: 0; right: 0;
+  list-style: none; margin: 0; padding: 4px; max-height: 240px; overflow-y: auto;
+  background: #fff; border: 1px solid #d9e0e6; border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .16);
+}
+.fabrement-bb-cs__opt {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 6px; font-size: 13px; color: #2e3442; cursor: pointer;
+}
+.fabrement-bb-cs__opt-label { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fabrement-bb-cs__opt.is-active { background: #f2f6f9; }
+.fabrement-bb-cs__opt.is-selected { color: #21865d; font-weight: 600; }
+.fabrement-bb-cs__opt.is-selected.is-active { background: rgba(44,196,134,.12); }
+.fabrement-bb-cs__check {
+  flex-shrink: 0; width: 6px; height: 11px;
+  border-right: 2px solid #21865d; border-bottom: 2px solid #21865d;
+  transform: rotate(45deg);
+}

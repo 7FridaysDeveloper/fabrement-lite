@@ -1,0 +1,33 @@
+<block-guide name="core/separator"><![CDATA[
+CORE/SEPARATOR
+A horizontal line (<hr>) between parts of the content.
+
+MARKUP (checked in the editor)
+<!-- wp:separator -->
+<hr class="wp-block-separator has-alpha-channel-opacity"/>
+<!-- /wp:separator -->
+
+<!-- wp:separator {"className":"is-style-wide","backgroundColor":"accent-3"} -->
+<hr class="wp-block-separator has-text-color has-accent-3-color has-alpha-channel-opacity has-accent-3-background-color has-background is-style-wide"/>
+<!-- /wp:separator -->
+A separator has HTML: write the <hr> even when the comment has no attributes; never
+<!-- wp:separator /-->. The class has-alpha-channel-opacity is always there (the default
+"opacity" attribute).
+
+COLOUR
+The line colour is backgroundColor (not textColor): backgroundColor:"S" writes
+has-text-color has-S-color has-alpha-channel-opacity has-S-background-color has-background.
+A custom colour: style.color.background "#hex" -> has-text-color has-alpha-channel-opacity
+has-background and style="background-color:#hex;color:#hex".
+
+OPTIONS
+Style variations: is-style-wide (a long line), is-style-dots (three dots instead of a line);
+in the comment's className and at the end of the class list. Without a variation the line
+length depends on the theme.
+align: "center" | "wide" | "full" -> aligncenter / alignwide / alignfull, right after
+wp-block-separator. Margin: style.spacing.margin top and bottom only.
+tagName "div" writes a <div> instead of the <hr>.
+
+CHECK
+Reopen the editor (no invalid notice); the line shows on the front in the expected colour.
+]]></block-guide>

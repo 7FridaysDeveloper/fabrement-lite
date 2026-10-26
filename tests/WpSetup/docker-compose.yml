@@ -1,0 +1,52 @@
+# The database the WordPress integration tests (tests/Wp, tests/Cases/Wp) run against, and its web
+# server.
+#
+#   docker compose -f tests/WpSetup/docker-compose.yml up -d --wait --build   (composer test:wp:db)
+#   composer test:wp
+#   docker compose -f tests/WpSetup/docker-compose.yml down                    (data is in tmpfs: gone)
+#
+# Its own project name and ports, bound to 127.0.0.1: it never touches a Local site's MySQL or
+# the backend's containers. The WordPress test library installs its tables here on every run and
+# wraps each test in a transaction it rolls back.
+#
+# The web server answers http://127.0.0.1:18090 as the test site (Host: example.org): the same
+# WordPress, plugins, wp-content and database the PHPUnit run uses. It sees what a test COMMITTED —
+# a test's own transaction is invisible to another connection (tests/Support/WebRequests.php).
+name: fabrement-lite-wp-tests
+services:
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wordpress_test
+    ports:
+      - "127.0.0.1:14306:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  web:
+    build: ../WebServer
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:18090:80"
+    volumes:
+      - ../../vendor/johnpbloch/wordpress-core:/var/www/html:ro
+      - ./web/wp-config.php:/var/www/wp-config.php:ro
+      - ./web/mu-plugins:/var/www/web-mu-plugins:ro
+      # wp-tests-config.php keeps wp-content in the system temp folder (TEMP on Windows).
+      - ${FABREMENT_WP_CONTENT_DIR:-${TEMP:-/tmp}/fabrement-lite-wp-tests/wp-content}:/var/www/content
+      - ../..:/var/www/plugins/fabrement:ro
+      - ../../vendor/wp-plugins/contact-form-7:/var/www/plugins/contact-form-7:ro
+      - ../../vendor/wp-plugins/wordpress-seo:/var/www/plugins/wordpress-seo:ro
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 80) ? 0 : 1);"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

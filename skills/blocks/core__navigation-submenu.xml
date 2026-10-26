@@ -1,0 +1,17 @@
+<block-guide name="core/navigation-submenu"><![CDATA[
+CORE/NAVIGATION-SUBMENU
+A menu item that opens a list of links; it stands inside core/navigation (or another submenu).
+Read the core/navigation guide for the whole menu.
+
+MARKUP (comments only, no HTML)
+<!-- wp:navigation-submenu {"label":"Guides","type":"custom","url":"#","kind":"custom"} -->
+<!-- wp:navigation-link {"label":"Seeds","type":"page","id":14,"url":"https://example.com/seeds/","kind":"post-type"} /-->
+<!-- wp:navigation-link {"label":"Tools","url":"https://example.com/tools/","kind":"custom"} /-->
+<!-- /wp:navigation-submenu -->
+The submenu itself may point at a page (type/id/url/kind like a navigation-link); a parent with
+no page of its own uses url "#".
+
+OPTIONS
+How it opens is set on the parent core/navigation: submenuVisibility "hover" (default),
+"click" or "always", and showSubmenuIcon. Nesting stops at the navigation's maxNestingLevel (5).
+]]></block-guide>

@@ -1,0 +1,22 @@
+<block-guide name="core/site-logo"><![CDATA[
+CORE/SITE-LOGO (Site Logo)
+Draws the site's logo image, linked to the home page by default. The image is a site setting
+(the custom logo), not part of the block: one logo for every site-logo block on the site.
+These tools do not set it (update-site-settings sets the favicon, siteIcon, not the logo). A
+person sets it in the WordPress editor, with the block's own upload button.
+Places: a header or footer global block, or a template frame.
+
+MARKUP (comment only; no HTML)
+<!-- wp:site-logo {"width":120} /-->
+<!-- wp:site-logo {"width":48,"isLink":false} /-->
+width: pixels; the height follows the image's proportions. isLink (default true) links to the
+home page; linkTarget "_blank" opens a new tab.
+
+PITFALLS
+- With no logo set the block draws NOTHING on the page (no wrapper, no placeholder): open the
+  page to see whether a logo is set. When there is none, use core/site-title, or core/image
+  with an uploaded logo file (a fixed image, not the site setting).
+
+CHECK
+Open any page: the logo appears at the chosen width and links home.
+]]></block-guide>

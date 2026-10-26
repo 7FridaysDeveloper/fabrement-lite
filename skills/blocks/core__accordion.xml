@@ -1,0 +1,52 @@
+<block-guide name="core/accordion"><![CDATA[
+CORE/ACCORDION (new in WordPress 7)
+A group of collapsible sections: each has a heading button and a panel of any blocks.
+WordPress adds the open/close behaviour itself when the page renders; write no script.
+
+REQUIRED STRUCTURE (exact)
+core/accordion > core/accordion-item (one per section) > core/accordion-heading, then
+core/accordion-panel — exactly these two, in this order, in every item.
+The panel holds ordinary blocks (paragraph, list, image, buttons…).
+
+MARKUP (checked in the editor)
+<!-- wp:accordion {"autoclose":true} -->
+<div role="group" class="wp-block-accordion"><!-- wp:accordion-item {"openByDefault":true} -->
+<div class="wp-block-accordion-item is-open"><!-- wp:accordion-heading -->
+<h3 class="wp-block-accordion-heading has-icon has-icon-right"><button type="button" class="wp-block-accordion-heading__toggle"><span class="wp-block-accordion-heading__toggle-title">How long is delivery?</span><span class="wp-block-accordion-heading__toggle-icon" aria-hidden="true">+</span></button></h3>
+<!-- /wp:accordion-heading -->
+
+<!-- wp:accordion-panel -->
+<div role="region" class="wp-block-accordion-panel"><!-- wp:paragraph -->
+<p>Two to five working days.</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:accordion-panel --></div>
+<!-- /wp:accordion-item -->
+
+<!-- wp:accordion-item -->
+<div class="wp-block-accordion-item"><!-- wp:accordion-heading -->
+<h3 class="wp-block-accordion-heading has-icon has-icon-right"><button type="button" class="wp-block-accordion-heading__toggle"><span class="wp-block-accordion-heading__toggle-title">Can I return an item?</span><span class="wp-block-accordion-heading__toggle-icon" aria-hidden="true">+</span></button></h3>
+<!-- /wp:accordion-heading -->
+
+<!-- wp:accordion-panel -->
+<div role="region" class="wp-block-accordion-panel"><!-- wp:paragraph -->
+<p>Yes, within 30 days.</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:accordion-panel --></div>
+<!-- /wp:accordion-item --></div>
+<!-- /wp:accordion -->
+
+OPTIONS (on core/accordion)
+autoclose:true = opening one section closes the others. Default false.
+headingLevel (default 3), showIcon (default true), iconPosition "right"|"left": the editor copies
+them into EVERY accordion-heading (level, showIcon, iconPosition). Write the same values there,
+with the matching tag and classes (see core/accordion-heading).
+openByDefault is set per item (see core/accordion-item).
+
+PITFALLS
+The role attributes and the classes wp-block-accordion-heading__toggle and wp-block-accordion-panel
+are required: WordPress finds the button and the panel by these classes to make them work.
+The icon is the literal "+" in its span; core CSS rotates it 45 degrees on an open item.
+
+CHECK
+Open the page: each heading opens and closes its panel. Reopen the editor: no invalid blocks.
+]]></block-guide>

@@ -1,0 +1,16 @@
+.fabrement-text-field { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-text-field__label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #757575; }
+.fabrement-text-field__input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1a1a1a;
+    background: #fff;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+    box-sizing: border-box;
+}
+.fabrement-text-field__input:focus { border-color: #1a1a1a; }

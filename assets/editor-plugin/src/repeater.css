@@ -1,0 +1,207 @@
+.fabrement-fields__repeater-item {
+    position: relative;
+    background: #fff;
+    border: 1px solid #ebebeb;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 10px;
+}
+.fabrement-fields__repeater-item:last-of-type { margin-bottom: 0; }
+.fabrement-fields__repeater-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+}
+/* Space the repeater item's fields/grids apart (mirrors __section-body) so
+   stacked rows don't touch. */
+.fabrement-fields__repeater-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.fabrement-fields__repeater-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.fabrement-fields__repeater-label > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.fabrement-fields__drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    padding: 0;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: #9a9a9a;
+    cursor: grab;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+    /* Without this a touch drag is claimed by the browser for panning and
+       arrives as pointercancel instead of pointermove. */
+    touch-action: none;
+}
+.fabrement-fields__drag-handle:hover { background: #f2f2f2; color: #1a1a1a; }
+.fabrement-fields__drag-handle:active { cursor: grabbing; }
+.fabrement-fields__drag-handle svg { display: block; width: 14px; height: 14px; }
+
+/* The row the clone was lifted out of: now a LANDING SLOT, not the item. Its
+   content is hidden rather than removed so the slot keeps the exact height the
+   card will drop back into and nothing below it jumps. */
+.fabrement-fields__repeater-item--dragging {
+    border-style: dashed;
+    border-color: #22C55E;
+    background: #f4fdf7;
+    box-shadow: none;
+}
+.fabrement-fields__repeater-item--dragging > * { visibility: hidden; }
+
+/* The clone under the cursor. Fixed to the viewport and outside the scroller,
+   so wheel and edge auto-scroll move the list beneath it, never it. */
+.fabrement-fields__repeater-ghost {
+    position: fixed;
+    /* Inside the scroller: 0 keeps the clone above the rows and under
+       sticky chrome. */
+    z-index: 0;
+    margin: 0;
+    pointer-events: none;
+    background: #fff;
+    border: 1px solid #22C55E;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.22), 0 0 0 1px rgba(34, 197, 94, 0.35);
+    opacity: 0.97;
+    cursor: grabbing;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Off-screen but readable by a screen reader. Not display:none, which is
+   ignored, and not width/height 0, which some readers skip. */
+.fabrement-repeater-live {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.fabrement-fields__repeater-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.fabrement-fields__move-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    color: #9a9a9a;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.fabrement-fields__move-btn:hover:not([aria-disabled="true"]) { background: #f2f2f2; color: #1a1a1a; }
+/* Matches aria-disabled, not :disabled — the buttons stay focusable on purpose. */
+.fabrement-fields__move-btn[aria-disabled="true"] { opacity: 0.35; cursor: not-allowed; }
+.fabrement-fields__move-btn svg { display: block; width: 12px; height: 12px; }
+
+.fabrement-fields__remove-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: none;
+    border: 1px solid transparent;
+    color: #cc3333;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 6px;
+    transition: background 0.12s, border-color 0.12s;
+}
+.fabrement-fields__remove-btn:hover { background: #fff0f0; border-color: #fccaca; }
+
+.fabrement-fields__add-btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%;
+    padding: 10px 16px;
+    background: none;
+    border: 1.5px dashed #d0d0d0;
+    border-radius: 6px;
+    color: #666;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.fabrement-fields__add-btn:hover {
+    border-color: #1a1a1a;
+    color: #1a1a1a;
+    background: #fafafa;
+}
+.fabrement-fields__add-btn-icon {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #1a1a1a;
+    color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; line-height: 1;
+    transition: background 0.15s;
+    flex-shrink: 0;
+}
+.fabrement-fields__add-btn:hover .fabrement-fields__add-btn-icon { background: #333; }
+.fabrement-fields__add-btn:disabled,
+.fabrement-fields__add-btn--disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    border-color: #d0d0d0;
+    color: #666;
+    background: none;
+}
+.fabrement-fields__add-btn:disabled:hover,
+.fabrement-fields__add-btn--disabled:hover {
+    border-color: #d0d0d0;
+    color: #666;
+    background: none;
+}
+.fabrement-fields__add-btn:disabled .fabrement-fields__add-btn-icon,
+.fabrement-fields__add-btn--disabled .fabrement-fields__add-btn-icon { background: #999; }
+
+.fabrement-fields__add-row {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #ebebeb;
+}
+
+body.fabrement-repeater-dragging,
+body.fabrement-repeater-dragging * {
+    cursor: grabbing !important;
+    -webkit-user-select: none !important;   /* Safari <= 15 ignores the unprefixed one. */
+    user-select: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fabrement-fields__repeater-item { transition: none !important; }
+    .fabrement-fields__repeater-ghost { transition: none !important; }
+    .fabrement-fields__drag-handle,
+    .fabrement-fields__move-btn,
+    .fabrement-fields__remove-btn,
+    .fabrement-fields__add-btn,
+    .fabrement-fields__add-btn-icon { transition: none; }
+}

@@ -1,0 +1,15 @@
+includes:
+    - common.neon
+
+parameters:
+    paths:
+        - ../../src
+        - ../../templates
+        - ../../fabrement-lite.php
+        - ../../uninstall.php
+    scanFiles:
+        - ../../vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+    scanDirectories:
+        - ../../vendor/pimple/pimple/src
+        - ../../vendor/wordpress/mcp-adapter/includes
+        - ../../vendor/wordpress/php-mcp-schema/src

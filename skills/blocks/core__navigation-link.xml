@@ -1,0 +1,16 @@
+<block-guide name="core/navigation-link"><![CDATA[
+CORE/NAVIGATION-LINK
+One link inside core/navigation or core/navigation-submenu; never on its own. Read the
+core/navigation guide for the whole menu.
+
+MARKUP (a comment only, no HTML)
+A page or post, so the link follows it when its address changes:
+<!-- wp:navigation-link {"label":"About","type":"page","id":12,"url":"https://example.com/about/","kind":"post-type"} /-->
+A category: "type":"category","id":<term id>,"kind":"taxonomy" with its url.
+Anywhere else (external, anchor, tel:): <!-- wp:navigation-link {"label":"Shop","url":"https://example.com/","kind":"custom"} /-->
+"opensInNewTab":true opens a new tab; "description" and "title" are optional texts.
+
+PITFALLS
+Keep id, type, url and kind together for a page link; an id without kind/type is a custom link.
+A link without url renders as an empty item.
+]]></block-guide>

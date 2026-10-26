@@ -1,0 +1,55 @@
+<skill id="template-contract"><![CDATA[
+BLOCK TEMPLATES
+Templates are Gutenberg frames stored in WordPress. They use blocks installed by the active theme
+and plugins. These tools create no block types, PHP files or scripts. Existing theme PHP files
+may be selected as Content Source rules; the file is provided and maintained by the theme developer.
+List templates before creating, then get-template before editing. Fabrement > Templates opens the
+template list directly; open a template to add, move and edit installed blocks in Gutenberg.
+
+save-template requires mode create, replace or edit. Create needs title and blocks. Replace sends
+the complete frame, or omits blocks to rename/change metadata only. Edit uses edits and expectedHash
+from get-template; an outdated hash refuses the write. Preserve unrelated and unknown saved markup.
+Use exactly one content slot for the page's own content; it may be nested in a group: {name:"fabrement/content-source"},
+or core/post-content (which cannot select theme PHP files). Slot attributes survive edits.
+All other blocks follow block-discovery-contract and content-contract: a dynamic PHP renderer alone
+does not establish save() semantics. ACF data is validated against existing field definitions.
+Unsafe new or changed HTML/attributes are refused atomically.
+
+THEME PHP SOURCES
+list-theme-templates returns available files under templates/ in the active and parent themes.
+It returns paths and declared view kinds, not source code. Child files shadow parent files at the
+same relative path. Never invent paths, upload PHP or use other tools to bypass a missing file.
+save-template accepts contentSource:{rules:[{context:"singular:page",file:"body.php"}]}.
+Omit contentSource to preserve it; rules:[] restores page content. Rules are stored in one shared
+JSON manifest for the template and all translations, and returned separately by get-template.
+The slot reads them from that manifest each time the template is drawn: never send rules or templateId
+in block attributes; such a block is refused. Nonempty rules require fabrement/content-source;
+native core/post-content does not select PHP files. The block's Gutenberg sidebar offers the same choices.
+Contexts: singular:<type>, archive:<type>, blog-home, 404, tax, tax:<taxonomy>, tax:<taxonomy>:<termId>.
+A file may declare Fabrement: singular/archive or an exact context; respect its declared kind.
+The renderer rechecks paths and excludes traversal, external paths and escaped symlinks.
+If the file disappears or throws, the slot falls back to the page's own content (the posts page's on the blog index) without modifying it.
+Theme code runs as theme code; the content HTML checks do not audit the developer's PHP implementation.
+
+HEADERS AND FOOTERS
+Create reusable headers/footers with save-synced-pattern and kind header/footer, filled with existing
+core, ACF or registered blocks. Place them in the frame as {name:"core/block",attributes:{ref:123}}.
+One shared header edit updates all templates using it. Ordinary blocks can also sit directly in the
+frame. Use theme/plugin styling or supported Gutenberg design controls.
+
+ASSIGNMENT
+assign-template-pages with mode add affects only the supplied pageIds. Remove releases those pages.
+Replace makes pageIds the entire assigned set: use only after inspecting list-template-pages.
+set-default-template sets a default for a public post type; explicit page template picks take priority.
+Classic themes with front-page.php and block themes with front-page may override a type default on
+the homepage. Preview the actual assigned page, not just the saved frame.
+assign-template-archive binds archive contexts; build the listing with installed Query blocks or an
+existing theme PHP source authored for archive views.
+core/post-content within an archive Query's Post Template renders each result's content.
+delete-template refuses in-use templates unless force is explicit; deletion clears assignments,
+defaults and archive bindings. It does not delete page content or shared header/footer patterns.
+
+Native editor drafts are not assignable until published. The MCP save-template publishes the template
+because it is a shared layout, not a page. Verify an assigned page's frontend and Gutenberg editor.
+For multilingual templates, read template-translation; never create duplicate originals to translate.
+]]></skill>

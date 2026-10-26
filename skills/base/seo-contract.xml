@@ -1,0 +1,34 @@
+<skill id="seo-contract"><![CDATA[
+SEO AND STRUCTURED DATA
+Use get-seo/list-seo before set-seo, set-seo-defaults or set-schema. Follow the current target schema:
+record, term, post-type defaults and archive SEO are not interchangeable.
+Yoast-dependent operations require Yoast active. get-seo shows whether Yoast is active; when Yoast is missing,
+ask the site admin to install and activate it.
+Preserve SEO properties the user did not ask to change. Inspect inherited/default values before overriding.
+Custom schema is validated structured data; never treat JSON-LD fields as arbitrary JavaScript insertion.
+Use real content/field values and appropriate schema types, not fabricated ratings or claims.
+
+SEO often is not visible in a screenshot. Verify title, meta tags, canonical/robots/social output and
+structured data in the response/page source; a saved setting does not prove frontend output.
+Avoid duplicate/conflicting graph entities. Check the effect on representative records when changing
+post-type defaults or schemas. Rendering still belongs to the installed SEO plugin and theme.
+Archive SEO settings are data; the archive layout stays with the theme and templates.
+
+WHICH TOOL FOR WHICH SCOPE
+One record or one term: set-seo {contentId} / {termId}. A post type's archive: set-seo {archive}.
+The pattern every record of a type or term of a taxonomy follows: set-seo-defaults {postType} / {taxonomy}.
+Site-wide values (separator, website name, organisation, social profiles, share image): set-seo-defaults {site:true}.
+
+YOAST VARIABLES IN TITLE AND DESCRIPTION TEMPLATES
+An unknown variable is removed from the output without an error, so use only these:
+%%title%% %%excerpt%% %%excerpt_only%% %%date%% %%modified%% %%id%% %%name%% (author) %%parent_title%% %%focuskw%%
+%%sitename%% %%sitedesc%% %%sep%% %%page%% %%pagenumber%% %%pagetotal%% %%currentyear%% %%currentdate%%
+%%category%% %%primary_category%% %%tag%% %%pt_single%% %%pt_plural%%
+On a term: %%term_title%% %%term_description%% %%category_description%% %%tag_description%% %%term_hierarchy%%.
+Fields: %%fab_<name>%% (a Fabrement field as a reader sees it), %%cf_<meta key>%% (another plugin's meta),
+%%ct_<taxonomy>%% (a record's terms of that taxonomy).
+%%sitename%% is the WordPress site title (update-site-settings), not the Yoast website name.
+In set-schema the tokens are different: {{title}} {{url}} {{site_url}} {{excerpt}} {{featured_image}} {{date_published}}
+{{date_modified}} {{field:<name>}} {{option:<page>.<field>}} {{meta:<key>}} {{term:<taxonomy>}}; {{excerpt}} there is
+Yoast's description for the page.
+]]></skill>

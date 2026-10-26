@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- WordPress integration tests: real core + MySQL. Start the database first: composer test:wp:db -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         bootstrap="tests/WpSetup/bootstrap.php" colors="true" cacheResult="false"
+         failOnWarning="true" failOnRisky="true">
+    <testsuites>
+        <testsuite name="WordPress"><directory>tests/Wp</directory></testsuite>
+    </testsuites>
+</phpunit>

@@ -1,0 +1,10 @@
+<block-guide name="core/term-name"><![CDATA[
+CORE/TERM-NAME
+The name of a taxonomy term. Inside core/term-template it shows each listed term; elsewhere
+it shows the term of the current term archive, and on any other page nothing. See
+core/terms-query for the list.
+MARKUP: a comment only, the server writes the text:
+<!-- wp:term-name {"level":3,"isLink":true} /-->
+level: 0 (default) = <p>, 1-6 = <h1>-<h6>. isLink: true links the name to the term archive.
+Text alignment: style.typography.textAlign in the comment.
+]]></block-guide>

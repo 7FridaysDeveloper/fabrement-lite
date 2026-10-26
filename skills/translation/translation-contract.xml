@@ -1,0 +1,23 @@
+<skill id="translation-contract"><![CDATA[
+WPML CONTENT AND DATA
+These rules apply only when the site's multilingual tools are available. list-languages first:
+use returned codes, do not infer the default language from a title.
+Search across languages before create. If a record already exists in another language, use
+translate-content and edit its returned translation ID; do not create an unrelated duplicate.
+Creating a genuinely new non-default original requires the schema's explicit newOriginal flag.
+Pages managed by WPML's own translation editor may refuse direct changes; use the indicated workflow.
+Translation tools author or copy language variants; they do not guarantee automatic translation of text.
+Inspect returned content, terms, SEO, parent and slug. Title-only changes keep an existing slug;
+set it explicitly when the language's URL should change.
+An edit changes the selected language only. Apply an intended shared change to the other versions
+explicitly and report variants left unchanged.
+
+Use the available translation tools for terms, synced patterns and CF7 forms.
+Respect copy/translate/copy-once field behavior from the schema. Options values may be language-specific;
+read and write the intended language using the exposed parameters.
+Do not assume every ACF block or custom field is automatically configured for WPML translation.
+Deleting a language's record does not automatically mean deleting every language version.
+Media has different semantics: deleting an original may delete its language copies and shared file;
+inspect the tool's response/warnings and intended scope.
+Preview each changed language and inspect its actual SEO output. Missing variants/fallbacks must be reported.
+]]></skill>

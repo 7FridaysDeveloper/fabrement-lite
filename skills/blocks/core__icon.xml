@@ -1,0 +1,31 @@
+<block-guide name="core/icon"><![CDATA[
+CORE/ICON (new in WordPress 7.0)
+One SVG icon from WordPress's icon library, drawn by the server. The block stores the icon's
+NAME, never SVG: an <svg> written into content is refused by these tools, and is not needed.
+
+MARKUP (no HTML: the block is a comment only)
+<!-- wp:icon {"icon":"core/star-filled","rotation":90,"textColor":"accent-3","ariaLabel":"Rating","style":{"dimensions":{"width":"48px"}}} /-->
+Colour, border, padding and width live in the comment only; the server puts them on the <svg>.
+Rendered: <div class="wp-block-icon"><svg … class="has-text-color has-accent-3-color" …></div>.
+
+ICON NAMES ("collection/name"; plugins may add collections)
+core/ + a name from the library (88 icons), for example: arrow-up, arrow-down, arrow-left, arrow-right, arrow-up-left, arrow-up-right,
+arrow-down-left, arrow-down-right, chevron-up, chevron-down, chevron-left, chevron-right (each
+also -small), chevron-up-down, check, plus, plus-circle, search, menu, more-horizontal,
+more-vertical, home, envelope, at-symbol, map-marker, calendar, scheduled, bell, cart, store,
+payment, receipt, download, upload, external, share, rss, comment, quote, people, key, shield,
+settings, info, help, tip, caution, error, star-empty, star-half, star-filled, image, gallery,
+audio, capture-photo, capture-video, desktop, tablet, mobile, language, tag, category, file,
+pencil, published, next, previous, shuffle, chart-bar, table.
+An unknown name renders nothing, with no error.
+
+OPTIONS
+textColor / style.color.text: the icon's colour (it is drawn in currentColor).
+style.dimensions.width: the size (the icon is square). align: "left" | "center" | "right".
+rotation: 0, 90, 180 or 270 (the editor's steps). flipHorizontal / flipVertical: true mirrors.
+ariaLabel: a meaningful icon gets role="img" and this label; without it the icon is decorative
+(aria-hidden). Give a label when the icon carries meaning on its own.
+
+CHECK
+Open the page: the icon appears at the chosen size and colour; reopen the editor.
+]]></block-guide>

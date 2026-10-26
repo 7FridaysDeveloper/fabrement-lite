@@ -1,0 +1,26 @@
+<block-guide name="core/spacer"><![CDATA[
+CORE/SPACER
+Empty vertical space between blocks. Space inside a section or between its children is usually
+better as the parent's padding or blockGap; a spacer is for a one-off gap.
+
+MARKUP (checked in the editor)
+<!-- wp:spacer {"height":"var:preset|spacing|50"} -->
+<div style="height:var(--wp--preset--spacing--50)" aria-hidden="true" class="wp-block-spacer"></div>
+<!-- /wp:spacer -->
+
+<!-- wp:spacer {"height":"48px"} -->
+<div style="height:48px" aria-hidden="true" class="wp-block-spacer"></div>
+<!-- /wp:spacer -->
+The HTML is always this one empty <div>, attributes in this order: style, aria-hidden, class.
+
+HEIGHT
+height is a string with a unit ("48px", "3rem") or a spacing preset "var:preset|spacing|<slug>"
+(written var(--wp--preset--spacing--<slug>) in the style). Without height in the comment the
+default is 100px, and the HTML must still say style="height:100px".
+The value in the comment and the inline style must match, or the block is invalid.
+Inside a Row (flex group) a horizontal spacer uses width: {"height":"0px","width":"72px"} ->
+style="height:0px;width:72px".
+
+CHECK
+Reopen the editor (no invalid notice); the gap on the front has the expected size.
+]]></block-guide>

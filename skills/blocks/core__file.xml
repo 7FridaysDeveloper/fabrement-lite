@@ -1,0 +1,32 @@
+<block-guide name="core/file"><![CDATA[
+CORE/FILE
+A link to a file (PDF, ZIP, document) with a "Download" button, and for a PDF an optional
+preview of the file on the page.
+
+MARKUP (checked in the editor)
+<!-- wp:file {"id":<id>,"href":"<url>","displayPreview":true} -->
+<div class="wp-block-file"><object class="wp-block-file__embed" data="<url>" type="application/pdf" style="width:100%;height:600px" aria-label="Price list"></object><a id="wp-block-file--media-<unique>" href="<url>">Price list</a><a href="<url>" class="wp-block-file__button wp-element-button" download aria-describedby="wp-block-file--media-<unique>">Download</a></div>
+<!-- /wp:file -->
+<!-- wp:file {"id":<id>,"href":"<url>","showDownloadButton":false} -->
+<div class="wp-block-file"><a id="wp-block-file--media-<unique>" href="<url>" target="_blank" rel="noreferrer noopener">Brochure (ZIP)</a></div>
+<!-- /wp:file -->
+<id> and <url> come from list-media {kind:"document"} or upload-media. "id" and "href" go in
+the comment; href is also the button's href and the preview's data.
+
+THE TWO LINKS
+Name link: <a id="…" href="…">file name</a>. Its id is any value unique on the page (the editor
+writes wp-block-file--media-<its block id>); the button's aria-describedby repeats it. Its href
+is the file url (or the attachment page). New tab: target="_blank" rel="noreferrer noopener".
+Button: <a href="<url>" class="wp-block-file__button wp-element-button" download …>Download</a>;
+the bare "download" attribute is what marks it as the button. No button: "showDownloadButton":
+false in the comment and no second <a>. No name link: drop the first <a> and the button's
+aria-describedby.
+
+PDF PREVIEW
+The editor turns the preview on for a PDF picked from the library. "displayPreview":true needs
+the <object> first; its height is "previewHeight" (default 600, written as height:<n>px). The
+page hides the preview where the browser cannot show PDFs. Leave it out for other files.
+
+CHECK
+Open the page: the button downloads the file; reopen the editor: no invalid-content notice.
+]]></block-guide>

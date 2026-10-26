@@ -1,0 +1,243 @@
+/*
+ * The Fabrement tab shell — ONE layout for every screen in the plugin's menu.
+ *
+ * The Fabrement screens used to each carry their own
+ * copy of this: four full-bleed hacks, three different content paddings, two page
+ * heads and a third written in Tailwind. They drifted, and every tab read as a
+ * different product. This file is the single source; a screen brings only what is
+ * genuinely its own (its cards, its form, its grid).
+ *
+ * Loaded on every Fabrement admin screen from AbstractAdminPage::enqueue_tab_layout(),
+ * so the PHP-rendered screens and the React one (Templates) use the
+ * same class names rather than two implementations of the same picture.
+ *
+ * STRUCTURE
+ *   .wrap.fabrement-page            full-bleed page, brand background
+ *     [data-fabrement-topnav]       the dark bar (or the SPA's own <TopNav>)
+ *     .fabrement-page__content      the 40/32/60 content column
+ *       .fabrement-head             title + one-line description (+ optional actions)
+ *       …the screen's own content
+ */
+
+/* Brand tokens, so a screen can reach for them instead of repeating the hex. They sit
+   on the content column too: the React screens mount inside the SPA's own root and
+   carry that class without the page wrapper. */
+.fabrement-page,
+.fabrement-page__content {
+	--fabrement-page-bg: #edf3f8;
+	--fabrement-fg: #2e3442;
+	--fabrement-muted: #667185;
+	--fabrement-card: #ffffff;
+	--fabrement-card-border: #d9e0e6;
+	--fabrement-green: #2cc486;
+	--fabrement-green-hover: #21865d;
+	/* Green for WORDS on a light surface. --fabrement-green is the fill and edge
+	   green: at ~2:1 on white it is a shape, not something to read. This is the
+	   same hue carried to a weight that survives being set in text. Use it
+	   wherever green type sits on white or the page background; keep
+	   --fabrement-green for fills, edges and indicators. */
+	--fabrement-green-text: #229d6b;
+
+	/* One face for every screen: the system UI font. */
+	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.fabrement-page {
+	box-sizing: border-box;
+	background: var(--fabrement-page-bg);
+
+	/* Full-bleed: this replaces .wrap's own margins, so only the #wpcontent left gutter
+	   is left to cancel for the nav bar to touch both edges of the content area. */
+	margin: 0 0 0 -20px;
+	min-height: calc(100vh - 32px);
+
+	/* Column, so the content area fills the height under the nav. */
+	display: flex;
+	flex-direction: column;
+}
+
+.fabrement-page * {
+	box-sizing: border-box;
+}
+
+@media (max-width: 782px) {
+	.fabrement-page {
+		margin: 0 0 0 -10px;
+	}
+}
+
+.fabrement-page > [data-fabrement-topnav] {
+	flex-shrink: 0;
+}
+
+.fabrement-page__content {
+	flex: 1 1 auto;
+	padding: 40px 32px 60px;
+}
+
+@media (max-width: 782px) {
+	.fabrement-page__content {
+		padding-left: 16px;
+		padding-right: 16px;
+	}
+}
+
+/* ── Page head ─────────────────────────────────────────────────────────────
+   What this screen is, then one sentence on what it is for. */
+
+.fabrement-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 18px;
+	flex-wrap: wrap;
+	margin: 0 0 22px;
+}
+
+.fabrement-head__text {
+	min-width: 0;
+}
+
+/* wp-admin styles `.wrap h1` (23px/400, and a 9px top / 4px bottom padding that
+   pushed the title off the top of the content column). The screens here sit ON the
+   .wrap element and React mounts inside it, so the override has to out-weigh that
+   rule from a stylesheet whose load order is not guaranteed — hence !important on
+   the properties wp-admin actually sets. */
+.fabrement-head__title {
+	margin: 0 !important;
+	padding: 0 !important;
+	font-size: 24px !important;
+	font-weight: 700 !important;
+	line-height: 1.25 !important;
+	color: var(--fabrement-fg, #2e3442);
+}
+
+.fabrement-head__sub {
+	margin: 6px 0 0;
+	font-size: 14px;
+	line-height: 1.5;
+	color: var(--fabrement-muted, #667185);
+}
+
+.fabrement-head__sub code {
+	background: #f4f4f4;
+	padding: 1px 6px;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+/* ── Sub-tabs ──────────────────────────────────────────────────────────────
+   One screen in the menu, several things to do on it. Sits directly under the
+   page head, above that screen's cards.
+
+   Links, not buttons: each tab is a real URL (`?tab=…`) the server renders,
+   so it survives the admin-post round trip every action on these screens makes,
+   and it can be bookmarked, opened in a new tab and linked to from elsewhere.
+
+   Lives here rather than on one screen because it is page furniture — the same
+   strip, in the same place, whichever screen grows a second thing to do.
+
+   SHAPE — a row of white tabs, 50px tall with generous side padding, standing
+   on a grey rule that runs under the whole strip. Tabs are rounded at the top
+   only and have no bottom border, so they sit flush on the rule. The active one
+   carries a green bar along its top edge and a green label; the bar is an inset
+   box-shadow, so it takes no layout space and nothing shifts when it moves. */
+
+.fabrement-subtabs {
+	display: flex;
+	align-items: stretch;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin: 0 0 24px;
+	border-bottom: 1px solid var(--fabrement-card-border, #d9e0e6);
+}
+
+.fabrement-subtabs__tab {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	box-sizing: border-box;
+	height: 50px;
+	padding: 0 32px;
+	border: 1px solid var(--fabrement-card-border, #d9e0e6);
+	border-bottom: 0;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	/* !important defeats wp-admin's a:link/:visited blue, which otherwise wins. */
+	color: var(--fabrement-muted, #667185) !important;
+	text-decoration: none !important;
+	background: #fff;
+	transition: color .14s, border-color .14s, box-shadow .14s, background .14s;
+}
+
+/* wp-admin's `a:focus` (common.css) restyles EVERY focused link: a blue ring, and
+   `border-radius: 2px`. The ring fired on plain mouse clicks and left a blue box
+   around the tab you had just used; the radius squared the button off the moment
+   you clicked it. In the React screens the clicked tab keeps focus and keeps the
+   damage. `a:focus` (0,1,1) outweighs `.fabrement-subtabs__tab` (0,1,0), so the
+   tab's own shape has to be declared HERE, where the selector carries a
+   pseudo-class of its own. Keyboard focus gets its own ring below. */
+.fabrement-subtabs__tab,
+.fabrement-subtabs__tab:hover,
+.fabrement-subtabs__tab:focus,
+.fabrement-subtabs__tab:active {
+	border-radius: 10px 10px 0 0;
+	box-shadow: none;
+	outline: none;
+}
+
+.fabrement-subtabs__tab:not(.is-active):hover,
+.fabrement-subtabs__tab:not(.is-active):focus {
+	color: var(--fabrement-fg, #2e3442) !important;
+	border-color: #c5ced8;
+}
+
+/* Keyboard only — a mouse click does not match :focus-visible, so tabbing
+   still shows where you are without putting a ring around every click. */
+.fabrement-subtabs__tab:focus-visible {
+	outline: 2px solid var(--fabrement-green, #2cc486);
+	outline-offset: -4px;
+}
+
+/* Repeats the pseudo-classes so the green bar survives the all-states block above. */
+.fabrement-subtabs__tab.is-active,
+.fabrement-subtabs__tab.is-active:hover,
+.fabrement-subtabs__tab.is-active:focus,
+.fabrement-subtabs__tab.is-active:active {
+	color: var(--fabrement-green-text, #229d6b) !important;
+	border-color: var(--fabrement-card-border, #d9e0e6);
+	box-shadow: inset 0 3px 0 var(--fabrement-green, #2cc486);
+}
+
+/* A count or state chip beside a tab label ("2" connections, "Not set"). */
+.fabrement-subtabs__badge {
+	display: inline-flex;
+	align-items: center;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 7px;
+	border-radius: 10px;
+	background: #e6ecf2;
+	color: var(--fabrement-muted, #667185);
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+.fabrement-subtabs__tab.is-active .fabrement-subtabs__badge {
+	background: #dff3e9;
+	color: var(--fabrement-green-text, #229d6b);
+}
+
+/* ── Full-screen page spinner (partials/page-spinner.php). ─────────────────────── */
+.fabrement-page-loading{position:fixed;top:32px;left:160px;right:0;bottom:0;z-index:99990;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--fabrement-page-bg,#edf3f8);transition:opacity .2s ease,visibility .2s ease}
+.folded .fabrement-page-loading{left:36px}
+@media screen and (max-width:960px){.auto-fold .fabrement-page-loading{left:36px}}
+@media screen and (max-width:782px){.fabrement-page-loading,.auto-fold .fabrement-page-loading{top:46px;left:0}}
+.fabrement-page-loading[hidden]{display:flex;opacity:0;visibility:hidden;pointer-events:none}
+.fabrement-page-loading__ring{width:56px;height:56px;border-radius:50%;border:4px solid rgba(34,113,177,.18);border-top-color:#2271b1;animation:fabrement-page-spin .8s linear infinite}
+.fabrement-page-loading__text{margin:0;font-size:14px;color:#3c434a}
+@keyframes fabrement-page-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.fabrement-page-loading__ring{animation-duration:2.4s}}

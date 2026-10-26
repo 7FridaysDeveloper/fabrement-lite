@@ -1,0 +1,444 @@
+/* MCP Connection (templates/pages/mcp-connection.php). The page shell comes from
+   tab-layout.css via `fabrement-page` / `fabrement-page__content`, the card skin from
+   credentials-card.css. What is left here is this screen's own. */
+
+/* The screen's contents: a single column the card sets its own width in,
+   turned into two columns by --agents below. */
+.fabrement-cred__panel {
+    display: flex; flex-direction: column; gap: 24px;
+    align-items: flex-start; width: 100%;
+}
+.fabrement-cred__panel > .fabrement-cred__card { min-width: 0; }
+
+/* AGENTS TAB — two columns. "How do I connect this client?" and "what has
+   access to the site right now?" are different questions, and the register
+   used to answer the second one from the very bottom of the setup card,
+   below a code block as long as the screen. Its own column puts it in view
+   without scrolling past a flow that is not about it.
+   Both tracks are capped rather than free: the setup holds commands and
+   config files that must not be squeezed, the register is short rows. */
+.fabrement-cred__panel--agents {
+    display: grid;
+    grid-template-columns: minmax(0, 900px) minmax(0, 400px);
+    align-items: start;
+    max-width: 1324px;
+}
+/* Below this the setup track drops under ~600px, where the CLI commands and
+   the client grid start to break up. Squeezing them is worse than putting the
+   register back under the card — which is where it was to begin with. The
+   threshold follows the register's width: 600 + the gap + 400, plus the admin
+   menu and the content column's own padding. */
+@media (max-width: 1280px) {
+    .fabrement-cred__panel--agents {
+        display: flex; flex-direction: column; align-items: flex-start; max-width: 900px;
+    }
+}
+
+/* The palette, the card, the key field with its lock and clear button, the provider
+   pills and the Save button now live in assets/admin/credentials-card.css:
+   API Connection is a screen of its own and wears the same form. What is
+   left below belongs to THIS screen only. */
+
+/* ── Agent access (MCP) card — same brand tones as the settings card
+   above; overrides wp-admin's default .button / .widefat styling. ── */
+.fabrement-cred__mcp { max-width: 900px; }
+.fabrement-cred__mcp .fabrement-cred__title { margin: 0 0 8px; }
+
+.fabrement-cred__mcp-form { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.fabrement-cred__mcp-client-button {
+    --mcp-client: var(--green);
+    --mcp-client-rgb: 44, 196, 134;
+    --mcp-button-bg: var(--mcp-client);
+    --mcp-button-bg-hover: var(--green-hover);
+    --mcp-button-ring: rgba(var(--mcp-client-rgb), .28);
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 40px; min-width: 158px; padding: 10px 18px; color: #fff;
+    border: 0; border-radius: 6px;
+    background: var(--mcp-button-bg);
+    box-shadow: none;
+    font-size: 14px; font-weight: 700; font-family: inherit; line-height: 1;
+    letter-spacing: 0; cursor: pointer;
+    transition: background .14s, box-shadow .14s, transform .14s;
+}
+.fabrement-cred__mcp-client-button:hover,
+.fabrement-cred__mcp-client-button:focus {
+    background: var(--mcp-button-bg-hover);
+    box-shadow: 0 0 0 3px var(--mcp-button-ring);
+    transform: translateY(-1px);
+}
+/* Each client carries its own brand colour: --mcp-client is the colour,
+   --mcp-client-rgb the same value as components, so every tint, ring and
+   underline below is derived from it instead of written out per client. */
+.fabrement-cred__mcp-client-button[data-client="chatgpt"] {
+    --mcp-client: #0f9e7d; --mcp-client-rgb: 15, 158, 125;
+    --mcp-button-bg-hover: #0c8266;
+}
+.fabrement-cred__mcp-client-button[data-client="codex"] {
+    --mcp-client: #6f7ff7; --mcp-client-rgb: 111, 127, 247;
+    --mcp-button-bg-hover: #5667e4;
+}
+.fabrement-cred__mcp-client-button[data-client="claude"] {
+    --mcp-client: #d17354; --mcp-client-rgb: 209, 115, 84;
+    --mcp-button-bg-hover: #b95c3f;
+}
+.fabrement-cred__mcp-client-button[data-client="cursor"] {
+    --mcp-client: #080b0f; --mcp-client-rgb: 8, 11, 15;
+    --mcp-button-bg-hover: #22282f;
+}
+.fabrement-cred__oauth-clients { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+/* The client picker is a nav, not four calls to action: the buttons stay
+   white and only the selected one is lit in its brand colour, so the other
+   three read as available rather than as competing buttons. */
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button {
+    gap: 8px; min-width: 0; min-height: 46px; padding: 10px 12px; line-height: 1.4;
+    color: var(--deact); background: #fff; border: 1px solid var(--card-border);
+    font-weight: 600; transform: none; text-decoration: none;
+    transition: background .14s, border-color .14s, box-shadow .14s, color .14s;
+}
+/* The AI mark on every client button. It is painted as a MASK rather than an
+   <img>, so the glyph takes the button's own colour — grey while the client
+   is not selected, white on the filled one — which an <img> cannot do. One
+   file, one request, no copy of the path in four places in the markup. */
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button::before {
+    content: ''; flex: none; width: 15px; height: 15px; background: currentColor;
+    -webkit-mask: url("../images/ai.svg") center / contain no-repeat;
+    mask: url("../images/ai.svg") center / contain no-repeat;
+}
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button:hover:not(:disabled):not(.is-active),
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button:focus-visible:not(.is-active) {
+    color: var(--fg); background: rgba(var(--mcp-client-rgb), .07);
+    border-color: rgba(var(--mcp-client-rgb), .45); box-shadow: none;
+}
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button:focus-visible {
+    outline: 2px solid var(--mcp-client); outline-offset: 2px;
+}
+/* Selected: the button is filled with the client's own colour and the label
+   turns white, so the three beside it read as inactive without any dimming
+   of their own. */
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button.is-active {
+    color: #fff; font-weight: 700;
+    background: var(--mcp-client);
+    border-color: var(--mcp-client);
+    box-shadow: 0 0 0 3px rgba(var(--mcp-client-rgb), .18);
+}
+/* The hover rules above are narrower than .is-active, so the selected button
+   needs its own: without it, pointing at it would wash it back to the tint. */
+.fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button.is-active:hover:not(:disabled) {
+    background: var(--mcp-button-bg-hover); border-color: var(--mcp-button-bg-hover);
+}
+.fabrement-cred__connection-body { margin-top: 20px; }
+.fabrement-cred__oauth-fields { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 16px; margin-top: 18px; }
+.fabrement-cred__oauth-fields > * { min-width: 0; }
+/* Recommended / Advanced: the client's one suggested way in, and the rest.
+   Folder tabs: the selected one is outlined on three sides and runs into the
+   panel's frame below it — its white background covers the panel's top rule
+   for its own width — so tab and panel read as one sheet. The other tab has no
+   outline at all. Only this strip: the smaller .fabrement-cred__mcp-tabs inside
+   the setup (CLI / UI / file) keep their underline. */
+.fabrement-cred__mcp-tabs.fabrement-cred__setup-tabs {
+    position: relative; z-index: 1; gap: 0; margin: 0; border-bottom: 0;
+}
+.fabrement-cred__setup-tabs .fabrement-cred__mcp-tab {
+    min-width: 170px; margin: 0 0 -1px; padding: 16px 28px 17px; text-align: center;
+    color: var(--deact); background: transparent; font-size: 13px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .06em;
+    border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0 !important;
+    box-shadow: none;
+}
+.fabrement-cred__setup-tabs .fabrement-cred__mcp-tab:hover { color: var(--fg); }
+.fabrement-cred__setup-tabs .fabrement-cred__mcp-tab:focus { box-shadow: none; }
+.fabrement-cred__setup-tabs .fabrement-cred__mcp-tab:focus-visible {
+    outline: 2px solid var(--fabrement-green-text, #229d6b); outline-offset: -4px;
+}
+.fabrement-cred__setup-tabs .fabrement-cred__mcp-tab[aria-selected="true"] {
+    color: var(--fg); background: #fff; border-color: var(--card-border);
+}
+.fabrement-cred__setup-tabs ~ [data-setup-panel] {
+    padding: 32px; background: #fff;
+    border: 1px solid var(--card-border); border-radius: 0 6px 6px 6px;
+}
+@media (max-width: 520px) {
+    .fabrement-cred__setup-tabs .fabrement-cred__mcp-tab { flex: 1 1 0; min-width: 0; padding-left: 12px; padding-right: 12px; }
+    .fabrement-cred__setup-tabs ~ [data-setup-panel] { padding: 20px 16px; }
+}
+.fabrement-cred__oauth-code { overflow: hidden; border: 1px solid var(--input-border); border-radius: 6px; background: #f6f9fc; }
+.fabrement-cred__oauth-code-header { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--card-border); }
+.fabrement-cred__oauth-code-header label { display: inline-flex; gap: 8px; align-items: center; font-size: 12px; font-weight: 600; color: var(--label); overflow-wrap: anywhere; }
+@media (max-width: 680px) {
+    .fabrement-cred__oauth-fields { grid-template-columns: minmax(0, 1fr); }
+    .fabrement-cred__oauth-clients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.fabrement-cred__mcp [hidden] { display: none !important; }
+.fabrement-cred__mcp-ready { margin-top: 22px; }
+.fabrement-cred__mcp-tabs {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px;
+    border-bottom: 1px solid var(--card-border);
+}
+.fabrement-cred__mcp-tab {
+    appearance: none; border: 0; border-bottom: 2px solid transparent; border-radius: 0 !important;
+    margin: 0; padding: 9px 12px 10px; background: transparent; color: var(--deact);
+    font-size: 13px; font-weight: 600; line-height: 1.4; cursor: pointer; text-decoration: none;
+}
+.fabrement-cred__mcp-fields { display: grid; gap: 12px; margin-top: 14px; }
+.fabrement-cred__mcp-field label { display: block; margin-bottom: 5px; font-size: 12px; color: var(--label); }
+.fabrement-cred__mcp-field-control { display: flex; align-items: stretch; gap: 8px; }
+.fabrement-cred__mcp-field-control input {
+    flex: 1; min-width: 0; width: 100%; height: 40px; box-sizing: border-box; padding: 8px 10px;
+    background: #f6f9fc; border: 1px solid var(--input-border); border-radius: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px;
+}
+.fabrement-cred__mcp-field-control .button.fabrement-cred__mcp-copy { margin: 0; flex-shrink: 0; }
+.fabrement-cred__mcp-detail { margin-top: 18px; border-top: 1px solid var(--card-border); padding-top: 14px; }
+.fabrement-cred__mcp-detail summary { cursor: pointer; color: var(--deact); font-size: 13px; }
+.fabrement-cred__mcp-detail[open] summary { margin-bottom: 12px; }
+.fabrement-cred__mcp-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+.fabrement-cred__mcp .fabrement-cred__mcp-actions .button { margin-top: 0; }
+.fabrement-cred__mcp-link {
+    display: inline-flex; gap: 5px; align-items: center; min-height: 20px;
+    font-size: 13px; line-height: 20px;
+}
+.fabrement-cred__mcp .button.fabrement-cred__mcp-copy {
+    display: inline-grid !important; place-items: center; align-self: stretch;
+    width: 40px; height: 40px; min-height: 40px; box-sizing: border-box;
+    padding: 0 !important; gap: 0 !important; justify-content: center;
+    line-height: 1 !important;
+    flex: 0 0 40px; color: var(--deact) !important; background: #fff !important;
+    border: 1px solid var(--input-border) !important;
+}
+.fabrement-cred__mcp .button.fabrement-cred__mcp-copy:hover,
+.fabrement-cred__mcp .button.fabrement-cred__mcp-copy:focus-visible {
+    color: var(--fabrement-green-text, #229d6b) !important; border-color: #21865d !important; background: #edf9f3 !important;
+    outline: 2px solid #21865d; outline-offset: 2px;
+}
+.fabrement-cred__mcp .button.fabrement-cred__mcp-copy[data-copy-state="success"] { color: var(--fabrement-green-text, #229d6b) !important; border-color: #21865d !important; }
+.fabrement-cred__mcp .button.fabrement-cred__mcp-copy[data-copy-state="error"] { color: #a4252c !important; border-color: #a4252c !important; }
+.fabrement-cred__mcp .fabrement-cred__oauth-code-header .button.fabrement-cred__mcp-copy { margin: 0; width: 32px; height: 32px; min-height: 32px; flex-basis: 32px; }
+.fabrement-cred__mcp .button .dashicons {
+    display: inline-grid; place-items: center;
+    flex: 0 0 20px; width: 20px; height: 20px; margin: 0; padding: 0;
+    font-size: 20px; line-height: 20px; vertical-align: middle;
+}
+.fabrement-cred__mcp .button .dashicons::before {
+    display: block; width: 20px; height: 20px; line-height: 20px; text-align: center;
+}
+.fabrement-cred__mcp-copy-status {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+@media (max-width: 420px) {
+    .fabrement-cred__mcp { padding-left: 20px; padding-right: 20px; }
+    .fabrement-cred__mcp .fabrement-cred__title { margin-bottom: 0; }
+    .fabrement-cred__mcp-client-button { flex: 1 1 100%; justify-content: center; }
+}
+
+/* One-time command box */
+.fabrement-cred__mcp textarea[id^="fabrement-mcp-"],
+.fabrement-cred__mcp textarea[id^="fabrement-oauth-"] {
+    width: 100%; box-sizing: border-box; padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px !important; line-height: 1.5; color: var(--fg);
+    background: #f6f9fc !important; border: 1px solid var(--input-border) !important;
+    border-radius: 6px !important; box-shadow: none !important; resize: vertical;
+}
+.fabrement-cred__mcp textarea[id^="fabrement-mcp-"]:focus,
+.fabrement-cred__mcp textarea[id^="fabrement-oauth-"]:focus {
+    border-color: var(--green) !important; outline: none;
+    box-shadow: 0 0 0 3px rgba(44,196,134,.18) !important;
+}
+.fabrement-cred__mcp .fabrement-cred__oauth-code textarea {
+    display: block; min-width: 0; max-width: 100%; margin: 0; padding: 14px;
+    min-height: 104px; border: 0 !important; border-radius: 0 !important; line-height: 1.8;
+}
+.fabrement-cred__mcp .fabrement-cred__oauth-code textarea:focus { outline: 2px solid #21865d; outline-offset: -2px; box-shadow: none !important; }
+.fabrement-cred__mcp .fabrement-cred__private-notice { display: flex; gap: 7px; align-items: flex-start; margin: 12px 0 0; font-size: 12px; line-height: 1.6; color: #80530d; }
+.fabrement-cred__private-notice .dashicons { flex: 0 0 18px; font-size: 18px; }
+
+/* Branded buttons — override wp-admin .button / .button-primary inside the card */
+.fabrement-cred__mcp .button,
+.fabrement-cred__mcp .button-primary {
+    display: inline-flex; align-items: center; gap: 8px;
+    height: auto; padding: 10px 20px; font-size: 13px; font-weight: 600; line-height: 1;
+    border-radius: 6px !important; box-shadow: none !important; text-shadow: none;
+    cursor: pointer; transition: background .14s, border-color .14s, color .14s;
+}
+/* Primary = green filled (Generate) */
+.fabrement-cred__mcp .button-primary {
+    color: #fff !important; background: var(--green) !important; border: 1px solid var(--green) !important;
+}
+.fabrement-cred__mcp .button-primary:hover,
+.fabrement-cred__mcp .button-primary:focus {
+    background: var(--green-hover) !important; border-color: var(--green-hover) !important;
+}
+.fabrement-cred__mcp .button:disabled { opacity: .55; cursor: not-allowed; }
+/* Cursor's done first step: looks like the button it replaces, at rest, but is not one. */
+.fabrement-cred__mcp .button.fabrement-cred__mcp-done { margin-top: 0 !important; opacity: .55; cursor: default; pointer-events: none; }
+/* Secondary = outline (Copy) */
+.fabrement-cred__mcp .button:not(.button-primary):not(.fabrement-cred__mcp-tab):not(.fabrement-cred__mcp-copy) {
+    margin-top: 8px; color: var(--deact) !important; background: #fff !important;
+    border: 1px solid var(--input-border) !important;
+}
+.fabrement-cred__mcp .button:not(.button-primary):not(.fabrement-cred__mcp-tab):not(.fabrement-cred__mcp-copy):hover,
+.fabrement-cred__mcp .button:not(.button-primary):not(.fabrement-cred__mcp-tab):not(.fabrement-cred__mcp-copy):focus {
+    color: var(--fg) !important; border-color: var(--fg) !important; background: #f6f9fc !important;
+}
+
+/* A card of its own now, beside the setup rather than a section under it — so
+   no top rule, and padding tighter than the wide card's. The cap is 900px
+   rather than the card default of 520 for the one-column fallback, where this
+   sits under the setup card and has to line up with its edge; in the two-column
+   layout the grid track is narrower than either and the cap never applies. */
+.fabrement-cred__access { max-width: 900px; padding: 26px 24px 22px; scroll-margin-top: 48px; }
+.fabrement-cred__access .fabrement-cred__title { margin: 0; font-size: 16px; line-height: 1.5; }
+.fabrement-cred__access-lead { margin: 4px 0 18px; font-size: 12px; line-height: 1.6; color: #69747d; }
+.fabrement-cred__access-setting, .fabrement-cred__access-row { display: grid; align-items: center; gap: 12px; }
+.fabrement-cred__access-setting { grid-template-columns: 24px minmax(0, 1fr) auto; padding: 4px 0 20px; }
+/* No icon column: one icon labels the whole list, at its heading. The name and
+   its Disconnect then share a line at any width — the two halves of one item,
+   rather than a block with an action parked under it. */
+.fabrement-cred__access-row { grid-template-columns: minmax(0, 1fr) auto; }
+.fabrement-cred__access .fabrement-cred__access-icon { width: 24px; height: 24px; font-size: 21px; color: #65736e; }
+.fabrement-cred__access-info { min-width: 0; }
+.fabrement-cred__access-info strong { display: block; font-size: 13px; line-height: 1.6; font-weight: 600; color: var(--fg); overflow-wrap: anywhere; }
+.fabrement-cred__access-meta { display: flex; flex-wrap: wrap; gap: 2px 14px; margin-top: 2px; font-size: 12px; line-height: 1.6; color: #69747d; overflow-wrap: anywhere; }
+.fabrement-cred__access-toggle { display: flex; align-items: center; gap: 8px; margin: 0; }
+.fabrement-cred__access-state { font-size: 12px; color: #58646d; }
+.fabrement-cred .fabrement-cred__access-switch { display: grid; place-items: center; width: 48px; height: 44px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.fabrement-cred__access-switch-track { display: block; position: relative; width: 44px; height: 24px; border: 1px solid #7d8790; border-radius: 12px; background: #7d8790; }
+.fabrement-cred__access-switch-track::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+/* The shared brand green rather than this screen's own hex. --fabrement-green
+   is documented as the fill green, but at ~2:1 on white the ON track would
+   read as a light shape rather than a state; --fabrement-green-text is the
+   same hue carried to a weight that holds — 3.4:1 against both the white card
+   and the white knob, so the track edge and the knob each clear the 3:1 asked
+   of a non-text control. The focus ring follows it for both controls in this
+   card, so one card does not show two greens. */
+.fabrement-cred__access-switch[aria-checked="true"] .fabrement-cred__access-switch-track {
+    background: var(--fabrement-green-text, #229d6b); border-color: var(--fabrement-green-text, #229d6b);
+}
+.fabrement-cred__access-switch[aria-checked="true"] .fabrement-cred__access-switch-track::after { left: 23px; }
+.fabrement-cred__access-switch:disabled { opacity: .45; cursor: not-allowed; }
+.fabrement-cred__access-switch:focus-visible, .fabrement-cred__disconnect:focus-visible { outline: 2px solid var(--fabrement-green-text, #229d6b); outline-offset: 3px; }
+.fabrement-cred__access-warning { display: flex; align-items: flex-start; gap: 8px; margin: -4px 0 20px; color: #80530d; font-size: 12px; line-height: 1.6; }
+.fabrement-cred__access-warning .dashicons { flex: 0 0 20px; }
+.fabrement-cred__access-list-title { display: flex; align-items: center; gap: 8px; margin: 0; padding: 16px 0 8px; border-top: 1px solid #e9edf0; font-size: 13px; line-height: 1.6; color: var(--label); }
+.fabrement-cred__access-count { font-weight: 400; font-size: 12px; color: #69747d; }
+.fabrement-cred__access-list { list-style: none; padding: 0; margin: 0; }
+.fabrement-cred__access-list .fabrement-cred__access-row { margin: 0; padding: 14px 0; border-bottom: 1px solid #e9edf0; }
+.fabrement-cred__access-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.fabrement-cred__access-row form { margin: 0; }
+/* nowrap, not the row's overflow-wrap: sharing a line with the name, the button
+   must keep one width the name can be measured against — broken across two
+   lines it stops reading as this item's action. */
+.fabrement-cred__disconnect { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 7px 10px; max-width: 100%; border: 1px solid #d9e0e6; border-radius: 6px; background: #fff; color: #5b626a; font: inherit; font-size: 12px; line-height: 1.5; text-decoration: none; cursor: pointer; white-space: nowrap; }
+.fabrement-cred__disconnect .dashicons { font-size: 16px; width: 16px; height: 16px; flex: 0 0 16px; }
+.fabrement-cred__disconnect:hover { color: #a62323; background: #fff6f6; border-color: #d9a0a0; }
+.fabrement-cred__access-empty { margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: #69747d; }
+/* ── Setup guide: numbered steps (partials/mcp-step.php) ──
+   A pale green number disc, the instruction with the control it needs, and the
+   screenshot of the client beside it; a rule under each step, starting at the
+   text so the numbers read as one column. The number is the list's counter,
+   so the markup stays a plain <ol> a screen reader numbers by itself. */
+.fabrement-cred__guide-title { margin: 0 0 22px; font-size: 16px; line-height: 1.5; color: var(--fg); }
+/* A guide short enough to need no steps: one paragraph under the title instead. */
+.fabrement-cred__guide-lead { max-width: 680px; margin: -14px 0 18px; font-size: 13px; line-height: 1.6; color: #39414e; }
+.fabrement-cred__guide-lead strong { font-weight: 600; color: var(--fg); }
+.fabrement-cred__steps { list-style: none; margin: 0; padding: 0; counter-reset: fabrement-step; }
+.fabrement-cred__step {
+    counter-increment: fabrement-step; position: relative;
+    display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 24px; align-items: start;
+    margin: 0 0 28px; padding: 0 0 28px;
+}
+.fabrement-cred__step.has-shot { grid-template-columns: 52px minmax(0, 1fr) minmax(0, 1fr); }
+.fabrement-cred__step::before {
+    content: counter(fabrement-step);
+    display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%;
+    /* A pale tint of the brand green, the digit in its darker text shade. */
+    background: rgba(44, 196, 134, .14); color: var(--fabrement-green-text, #229d6b);
+    font-size: 17px; font-weight: 700; line-height: 1;
+}
+.fabrement-cred__step::after {
+    content: ''; position: absolute; left: 76px; right: 0; bottom: 0;
+    height: 3px; border-radius: 2px; background: #e3e7ea;
+}
+.fabrement-cred__step:last-child { margin-bottom: 0; padding-bottom: 0; }
+.fabrement-cred__step:last-child::after { display: none; }
+.fabrement-cred__step-body { min-width: 0; padding-top: 4px; }
+.fabrement-cred__step-title { margin: 0 0 6px; font-size: 14px; font-weight: 700; line-height: 1.5; color: var(--fg); }
+.fabrement-cred__step-body p { margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: #39414e; }
+.fabrement-cred__step-body p.fabrement-cred__hint { color: var(--muted); font-size: 12px; }
+/* The client's own controls named in a step ("Security and login", "Create"). */
+.fabrement-cred__step-body p strong { font-weight: 600; color: var(--fg); }
+.fabrement-cred__step-body > .fabrement-cred__mcp-form { margin-top: 12px; }
+.fabrement-cred__step-body .fabrement-cred__oauth-fields { grid-template-columns: minmax(0, 1fr); margin: 12px 0; }
+.fabrement-cred__step-shots { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.fabrement-cred__step-shot { display: block; min-width: 0; }
+.fabrement-cred__step-shot--placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    min-height: 180px; padding: 16px; text-align: center;
+    border: 1px dashed var(--input-border); border-radius: 6px; background: #f6f9fc;
+    color: var(--muted); font-size: 12px; line-height: 1.5;
+}
+.fabrement-cred__step-shot img {
+    display: block; max-width: 100%; max-height: 440px; width: auto; height: auto;
+    border: 1px solid var(--card-border); border-radius: 6px; background: #f6f9fc;
+}
+.fabrement-cred__step-shot:focus-visible { outline: 2px solid var(--fabrement-green-text, #229d6b); outline-offset: 3px; border-radius: 6px; }
+.fabrement-cred__guide-note { margin: 22px 0 0; font-size: 12px; line-height: 1.6; color: #69747d; }
+.fabrement-cred__guide-note + .fabrement-cred__guide-note { margin-top: 6px; }
+.fabrement-cred__guide a:not(.button), .fabrement-cred__alt a:not(.button) { color: var(--fabrement-green-text, #229d6b); text-underline-offset: 3px; }
+.fabrement-cred__guide > .fabrement-cred__mcp-detail { margin-top: 24px; }
+/* Narrow: the screenshot drops under the text, still right of the number. */
+@media (max-width: 782px) {
+    .fabrement-cred__step, .fabrement-cred__step.has-shot { grid-template-columns: 40px minmax(0, 1fr); column-gap: 16px; }
+    .fabrement-cred__step::before { width: 40px; height: 40px; font-size: 15px; }
+    .fabrement-cred__step::after { left: 56px; }
+    .fabrement-cred__step-shots { grid-column: 2; margin-top: 14px; }
+}
+
+/* ── Advanced tab: the other ways to connect, one section each ── */
+.fabrement-cred__alt-title { margin: 0 0 4px; font-size: 15px; line-height: 1.5; color: var(--fg); }
+.fabrement-cred__alt-lead { margin: 0 0 14px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.fabrement-cred__alt > .fabrement-cred__mcp-form { margin-top: 0; }
+.fabrement-cred__alt > .fabrement-cred__hint { margin: 0 0 14px; }
+/* Claude's Advanced tab: each way is a collapsible panel. */
+.fabrement-cred__alt--fold { border: 1px solid var(--card-border); border-radius: 8px; padding: 0 16px; background: #f6f9fc; transition: background-color .15s; }
+.fabrement-cred__alt--fold:not([open]):hover { background: #eef2f6; }
+.fabrement-cred__alt--fold[open] { background: #fff; padding-bottom: 16px; }
+.fabrement-cred__alt--fold + .fabrement-cred__alt--fold { margin-top: 12px; padding-top: 0; border-top: 1px solid var(--card-border); }
+.fabrement-cred__alt--fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; cursor: pointer; list-style: none; }
+.fabrement-cred__alt--fold > summary::-webkit-details-marker { display: none; }
+.fabrement-cred__alt--fold > summary::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
+.fabrement-cred__alt--fold[open] > summary::after { transform: rotate(-135deg); }
+.fabrement-cred__alt--fold > summary .fabrement-cred__alt-title { display: flex; align-items: center; gap: 10px; margin: 0; }
+.fabrement-cred__alt--fold .fabrement-cred__alt-lead { font-size: 14px; color: var(--fg); }
+.fabrement-cred__cursor-manual { margin-top: 20px; }
+.fabrement-cred__alt-lead:has(+ .fabrement-cred__way-list) { margin-bottom: 6px; }
+.fabrement-cred__way-list { margin: 0 0 14px; padding-left: 20px; list-style: disc; font-size: 14px; line-height: 1.6; color: var(--fg); }
+.fabrement-cred__way-list li { margin: 0; }
+/* A way inside a fold: what to do on the left half, the code to copy on the right. */
+.fabrement-cred__way { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; padding-top: 16px; }
+/* The divider runs edge to edge: it steps out over the fold's 16px side padding. */
+.fabrement-cred__way + .fabrement-cred__way { margin: 16px -16px 0; padding: 16px 16px 0; border-top: 1px solid var(--card-border); }
+.fabrement-cred__way-title { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 14px; line-height: 1.5; color: var(--fg); }
+.fabrement-cred__way-title .dashicons { flex: none; width: 18px; height: 18px; font-size: 18px; color: var(--muted); }
+.fabrement-cred__way-text p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: var(--fg); }
+.fabrement-cred__way-code .fabrement-cred__mcp-command { margin: 0; }
+.fabrement-cred__way-code > * + * { margin-top: 12px; }
+.fabrement-cred__way-code > .fabrement-cred__mcp-fields { margin-top: 0; }
+@media (max-width: 960px) { .fabrement-cred__way { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
+.fabrement-cred__alt--fold > summary .dashicons { flex: none; width: 20px; height: 20px; font-size: 20px; color: var(--fabrement-green-text, #229d6b); }
+@media (max-width: 520px) {
+    .fabrement-cred__access-row { gap: 8px 10px; }
+    .fabrement-cred__access-setting { gap: 10px; }
+}
+/* Sticky keeps the register in view against a setup flow that can run several
+   screens long. */
+@media (min-width: 1281px) {
+    .fabrement-cred__panel--agents .fabrement-cred__access { position: sticky; top: 48px; }
+    .fabrement-cred__panel--agents .fabrement-cred__access-row { gap: 10px; }
+    .fabrement-cred__panel--agents .fabrement-cred__access-setting { gap: 10px; padding-bottom: 18px; }
+}
+
+/* The card's own heading is smaller than a screen title; the key note sits flush. */
+.fabrement-cred__mcp > .fabrement-cred__title { font-size: 18px; }
+.fabrement-cred__mcp-ready > .fabrement-cred__hint { margin: 0; }

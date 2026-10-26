@@ -1,0 +1,35 @@
+<block-guide name="core/navigation"><![CDATA[
+CORE/NAVIGATION
+The site menu block. Two ways to fill it:
+- Inline links (what these tools write): navigation-link / navigation-submenu blocks inside it.
+  The links belong to this block only; edit them where the block stands.
+- "ref": the id of a saved Navigation (wp_navigation post) edited in the Site Editor.
+  These tools do not create or edit saved Navigations.
+
+EMPTY BLOCK = FALLBACK, NOT YOUR MENU
+A navigation with neither ref nor links shows, in this order: the most recently published saved
+Navigation; else a classic menu (the "primary" location, a menu with the "primary" slug, else the
+newest one), converted and saved; else a list of all pages, also saved. Once any saved Navigation
+exists, classic menus are never consulted again: a menu made with create-menu does NOT appear in a
+theme header that uses an empty navigation block. To show chosen links, write them inline.
+
+MARKUP (comments only, no HTML)
+<!-- wp:navigation {"overlayBackgroundColor":"base","overlayTextColor":"contrast","ariaLabel":"Main","layout":{"type":"flex","justifyContent":"right","flexWrap":"wrap"}} -->
+<!-- wp:navigation-link {"label":"About","type":"page","id":12,"url":"https://example.com/about/","kind":"post-type"} /-->
+<!-- wp:navigation-submenu {"label":"Guides","type":"custom","url":"#","kind":"custom"} -->
+<!-- wp:navigation-link {"label":"WordPress","url":"https://wordpress.org/","kind":"custom"} /-->
+<!-- /wp:navigation-submenu -->
+<!-- /wp:navigation -->
+A page or post link keeps "type", "id", "url" and "kind":"post-type" together (the editor follows
+the id when the page moves). An external link is "kind":"custom" with url only.
+Submenu: navigation-submenu with links inside; a parent without its own address uses url "#".
+
+OPTIONS
+overlayMenu: "mobile" (default: a menu button on small screens), "always", "never" (footers).
+overlayBackgroundColor / overlayTextColor: palette slugs for the opened mobile menu.
+layout: {"type":"flex"} with justifyContent left|center|right|space-between; a vertical list is
+{"type":"flex","orientation":"vertical"}. ariaLabel names the landmark ("Main", "Footer").
+
+CHECK
+Open the page on a narrow screen and press the menu button; reopen the editor to see the links.
+]]></block-guide>

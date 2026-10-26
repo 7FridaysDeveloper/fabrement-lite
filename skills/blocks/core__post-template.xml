@@ -1,0 +1,18 @@
+<block-guide name="core/post-template"><![CDATA[
+CORE/POST-TEMPLATE
+The look of ONE post in a list; it repeats for every result. It only works as a direct child of
+core/query. Read the core/query guide for the whole list.
+
+MARKUP (comments only: it has no HTML of its own)
+<!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
+<!-- wp:post-title {"level":3,"isLink":true} /-->
+<!-- wp:post-date {"metadata":{"bindings":{"datetime":{"source":"core/post-data","args":{"field":"date"}}}},"fontSize":"small"} /-->
+<!-- wp:post-excerpt {"excerptLength":20} /-->
+<!-- /wp:post-template -->
+Inside: post-title, post-date, post-excerpt, post-featured-image, post-terms, post-author-name,
+read-more, or groups and columns holding them.
+
+LAYOUT
+{"type":"default"} = a list; {"type":"grid","columnCount":3} = cards in columns (one column on
+phones). style.spacing.blockGap sets the space between posts.
+]]></block-guide>

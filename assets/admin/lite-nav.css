@@ -1,0 +1,9 @@
+/* The top navigation of every Fabrement screen: the full edition's bar, server-rendered. */
+.fabrement-lite-nav{display:flex;align-items:center;gap:28px;height:80px;min-height:80px;box-sizing:border-box;padding:0 32px;background:#2e3442;border-bottom:1px solid #474e5b;font-family:var(--font-fabrement-ui,'Manrope',-apple-system,BlinkMacSystemFont,sans-serif)}
+.fabrement-lite-nav__brand{display:inline-flex;align-items:center;text-decoration:none}
+.fabrement-lite-nav__brand img{display:block;height:40px;width:auto;max-width:none;margin:0;vertical-align:middle}
+.fabrement-lite-nav__links{display:flex;align-items:center;gap:24px}
+.fabrement-lite-nav__links a,.fabrement-lite-nav__links a:link,.fabrement-lite-nav__links a:visited{font-size:16px;color:#a7b3bd;text-decoration:none;transition:color .15s}
+.fabrement-lite-nav__links a:hover,.fabrement-lite-nav__links a:focus{color:#fff;box-shadow:none}
+.fabrement-lite-nav__links a[aria-current="page"],.fabrement-lite-nav__links a[aria-current="page"]:visited{color:#2cc486;font-weight:600}
+.fabrement-lite-nav a:focus-visible{outline:2px solid #fff;outline-offset:4px}

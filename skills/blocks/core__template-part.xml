@@ -1,0 +1,31 @@
+<block-guide name="core/template-part"><![CDATA[
+CORE/TEMPLATE-PART (Template Part)
+Draws a part of a block theme (header, footer, sidebar) by its slug: the theme's parts/<slug>.html
+file, or the copy a person saved in the Site Editor. These tools cannot read or edit theme parts:
+what the part shows (its menu, its logo, its words) is changed only in the Site Editor.
+
+IN A FABREMENT TEMPLATE: USE A GLOBAL BLOCK INSTEAD
+A Fabrement template replaces the whole page; the theme's header and footer are not drawn.
+Give the frame its own header and footer as global blocks: save-synced-pattern with kind
+"header" / "footer", placed as <!-- wp:block {"ref":20} /-->. Those you can read and change.
+A template-part in the frame is accepted and, on a block theme, draws the theme's part as it is,
+which these tools then cannot change. Use it only when the user wants the theme's own header.
+
+MARKUP (comment only; no HTML)
+<!-- wp:template-part {"slug":"header","tagName":"header"} /-->
+<!-- wp:template-part {"slug":"footer","tagName":"footer"} /-->
+slug: a part of the ACTIVE theme (get-block-source lists them under themeSettings.variations;
+Twenty Twenty-Five: header, header-large-title, vertical-header, footer, footer-columns,
+footer-newsletter, sidebar). theme: leave it out (= the active theme). A theme slug other than
+the active theme's finds nothing.
+
+PITFALLS
+- A wrong slug or theme draws nothing for visitors; with WP_DEBUG display on it prints
+  "Template part has been deleted or is unavailable: <slug>".
+- A classic theme usually has no parts: the block then draws nothing.
+- Changing the active theme changes or empties every placed part.
+- In a page's content it repeats the theme's header in the middle of the page.
+
+CHECK
+Open the page as a visitor: the part appears once, where it was placed.
+]]></block-guide>

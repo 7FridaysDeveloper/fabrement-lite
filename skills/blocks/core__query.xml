@@ -1,0 +1,53 @@
+<block-guide name="core/query"><![CDATA[
+CORE/QUERY (Query Loop)
+A list of posts chosen by conditions, each drawn by the blocks you place in its post-template.
+For a plain "latest posts" list with no layout of its own, core/latest-posts is simpler.
+
+REQUIRED STRUCTURE
+core/query (WHICH posts) > core/post-template (HOW ONE post looks; repeated per result).
+Inside the template: post-title, post-date, post-excerpt, post-featured-image, post-terms,
+post-author… alone or in groups. Optional siblings of the template: core/query-pagination
+(with query-pagination-previous / -numbers / -next) and core/query-no-results (shown when
+nothing matches). Post blocks inside the template are comments only: the server renders them.
+
+THE QUERY ATTRIBUTE
+postType, perPage (null = the site's "posts per page"), order / orderBy, author, search,
+exclude, sticky, taxQuery, parents.
+inherit:true = take the posts of the current WordPress view: a category archive shows that
+category, a search shows its results (archive templates use this). On an ordinary page it shows
+that page itself, not posts. inherit:false = this block's own conditions, on any page.
+queryId names the block's pagination address (?query-<queryId>-page=2); give two lists on one
+page different ids.
+
+MARKUP (checked in the editor)
+<!-- wp:query {"queryId":3,"query":{"perPage":6,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"date","author":"","search":"","exclude":[],"sticky":"","inherit":false,"taxQuery":null,"parents":[]},"align":"wide","layout":{"type":"default"}} -->
+<div class="wp-block-query alignwide"><!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
+<!-- wp:post-featured-image {"isLink":true,"aspectRatio":"4/3"} /-->
+<!-- wp:post-title {"level":3,"isLink":true} /-->
+<!-- wp:post-date {"metadata":{"bindings":{"datetime":{"source":"core/post-data","args":{"field":"date"}}}},"fontSize":"small"} /-->
+<!-- wp:post-excerpt {"excerptLength":20} /-->
+<!-- /wp:post-template -->
+<!-- wp:query-pagination {"layout":{"type":"flex","justifyContent":"space-between"}} -->
+<!-- wp:query-pagination-previous /-->
+<!-- wp:query-pagination-numbers /-->
+<!-- wp:query-pagination-next /-->
+<!-- /wp:query-pagination -->
+<!-- wp:query-no-results -->
+<!-- wp:paragraph -->
+<p>Nothing here yet.</p>
+<!-- /wp:paragraph -->
+<!-- /wp:query-no-results --></div>
+<!-- /wp:query -->
+Only core/query has HTML (<div class="wp-block-query">, plus its align class); post-template,
+pagination and no-results have none of their own.
+
+LAYOUT AND SPACING
+post-template layout: {"type":"default"} = a list; {"type":"grid","columnCount":3} = cards.
+core/query has no spacing settings: put it in a group to give it margin or padding.
+Excerpts come from the post's excerpt field, else from its text; set excerpt on posts whose
+body is made of server-rendered blocks, or the card stays empty.
+
+CHECK
+Open the page: the list shows real posts (drafts never appear) and, with more posts than
+perPage, the pagination links work.
+]]></block-guide>

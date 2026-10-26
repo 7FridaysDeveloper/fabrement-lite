@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Tests on a three-language site with the real WPML. Once: composer test:wpml:runtime; then
+     composer test:wpml:db and composer test:wpml. WPML itself is never in git (runtime/lite-wp-plugins). -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         bootstrap="tests/WpmlSetup/bootstrap.php" colors="true" cacheResult="false"
+         failOnWarning="true" failOnRisky="true">
+    <testsuites>
+        <testsuite name="WPML"><directory>tests/Wpml</directory><directory>tests/Cases/Wpml</directory></testsuite>
+    </testsuites>
+</phpunit>

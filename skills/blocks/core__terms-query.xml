@@ -1,0 +1,44 @@
+<block-guide name="core/terms-query"><![CDATA[
+CORE/TERMS-QUERY (Terms Query, WordPress 6.9+)
+core/query for taxonomy terms: a list of categories, tags or custom terms, each drawn by the
+blocks you place in its term-template. Use it for "Browse by topic" lists and term menus.
+
+REQUIRED STRUCTURE (like core/query > core/post-template)
+core/terms-query (WHICH terms) > core/term-template (HOW ONE term looks; repeated per term).
+Inside the template: core/term-name, core/term-count, core/term-description, alone or in a
+group. Unlike core/query there is NO pagination and NO "no results" block: with no terms the
+list renders nothing.
+
+THE termQuery ATTRIBUTE (write all eight keys, in this order)
+perPage: how many terms; 0 = all.  taxonomy: "category", "post_tag" or a custom taxonomy slug.
+orderBy/order: "name"+"asc"|"desc" or "count"+"desc"|"asc".  include: term ids to show only
+those, in that order (order and showNested are then ignored).  hideEmpty: true skips terms
+with no posts.  showNested: false = top-level terms only of a hierarchical taxonomy; true =
+all levels.  inherit: true = on a term archive template, the current term's child terms
+(non-hierarchical: all terms of its taxonomy); anywhere else it falls back to this block's own
+conditions.
+
+MARKUP (rendered and checked; terms are listed by the server)
+<!-- wp:terms-query {"termQuery":{"perPage":0,"taxonomy":"category","order":"desc","orderBy":"count","include":[],"hideEmpty":true,"showNested":false,"inherit":false}} -->
+<div class="wp-block-terms-query"><!-- wp:term-template -->
+<!-- wp:group {"layout":{"type":"flex","flexWrap":"nowrap"}} -->
+<div class="wp-block-group"><!-- wp:term-name {"isLink":true} /-->
+
+<!-- wp:term-count /--></div>
+<!-- /wp:group -->
+<!-- /wp:term-template --></div>
+<!-- /wp:terms-query -->
+Only core/terms-query has HTML (<div class="wp-block-terms-query">, plus alignwide/alignfull);
+term-template and the term blocks are comments only. tagName "main", "section" or "aside"
+replaces the <div> with that element.
+The page shows <ul class="wp-block-term-template"><li class="wp-block-term term-10 category
+taxonomy-category">…</li></ul>.
+
+LAYOUT
+term-template layout (the editor's two choices): none / {"type":"default"} = a vertical list;
+{"type":"grid","columnCount":3} = a grid. For name and count on one line, put them in a flex
+group as above. The template's colours, spacing and border go in its comment only.
+
+CHECK
+Open the page: real term names with links and post counts; the list changes when terms do.
+]]></block-guide>

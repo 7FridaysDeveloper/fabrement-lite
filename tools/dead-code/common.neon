@@ -1,0 +1,29 @@
+includes:
+    - vendor/shipmonk/dead-code-detector/rules.neon
+
+parameters:
+    customRulesetUsed: true
+    phpVersion: 80000
+    tmpDir: .cache/phpstan
+    bootstrapFiles:
+        # Pure data, also hashed by PHPStan so contract changes invalidate cached results.
+        - entry-points.php
+    parallel:
+        maximumNumberOfProcesses: 1
+    shipmonkDeadCode:
+        detect:
+            deadProperties:
+                neverRead: false
+                neverWritten: false
+        usageProviders:
+            phpunit:
+                enabled: false
+
+services:
+    -
+        class: Fabrement\Dev\DeadCode\EntryPointProvider
+        tags:
+            - shipmonk.deadCode.memberUsageProvider
+
+    errorFormatter.removeDeadCode:
+        class: Fabrement\Dev\DeadCode\DisabledRemovalFormatter

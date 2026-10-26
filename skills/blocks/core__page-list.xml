@@ -1,0 +1,25 @@
+<block-guide name="core/page-list"><![CDATA[
+CORE/PAGE-LIST
+A list of the site's pages built by WordPress each time the page is shown: every published
+page, child pages nested under their parent, ordered by page order, then title. Nothing in it
+is chosen by hand. Chosen links: core/navigation with navigation-link blocks, or core/list.
+
+MARKUP (checked in the editor; comment only, no HTML)
+<!-- wp:page-list /-->
+<!-- wp:page-list {"parentPageID":<pageId>} /-->
+
+OPTIONS
+parentPageID: only the children of that page (the page itself is not listed). If it has no
+published children, the block shows nothing.
+No setting excludes pages, limits depth or changes the order: every published page appears,
+including pages added later and test pages. Drafts and private pages do not.
+Colours, typography, border and spacing follow the general rules (in the comment only).
+Inside core/navigation it draws its pages as menu items and submenus.
+
+ON THE PAGE
+<ul class="wp-block-page-list"> with <li class="wp-block-pages-list__item"> and
+<a class="wp-block-pages-list__item__link">; the current page's item gets current-menu-item.
+
+CHECK
+Open the page: the list matches the published pages you expect.
+]]></block-guide>

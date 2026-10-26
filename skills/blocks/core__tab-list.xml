@@ -1,0 +1,15 @@
+<block-guide name="core/tab-list"><![CDATA[
+CORE/TAB-LIST
+The row of tab buttons; first child of core/tabs. Full guide and example: see core/tabs.
+
+MARKUP
+<!-- wp:tab-list -->
+<div role="tablist" class="wp-block-tab-list"><button type="button" role="tab">Overview</button><button type="button" role="tab">Pricing</button></div>
+<!-- /wp:tab-list -->
+No inner blocks: one <button type="button" role="tab"> per tab, in panel order, on one line.
+Each button's text must equal the "label" of the core/tab-panel at the same position.
+
+STYLING
+Colour and border set on this block are written on EVERY <button> (class and inline style),
+not on the div. ariaLabel names the tab row for screen readers (default "Tabbed content").
+]]></block-guide>

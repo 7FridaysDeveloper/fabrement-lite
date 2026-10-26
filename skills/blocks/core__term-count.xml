@@ -1,0 +1,9 @@
+<block-guide name="core/term-count"><![CDATA[
+CORE/TERM-COUNT
+The number of published posts in a taxonomy term. Inside core/term-template it shows each
+listed term's count; elsewhere the count of the current term archive, else nothing. See
+core/terms-query for the list.
+MARKUP: a comment only, the server writes <div class="wp-block-term-count">(3)</div>:
+<!-- wp:term-count {"bracketType":"none"} /-->
+bracketType: "round" (default) (3), "square" [3], "curly" {3}, "angle" <3>, "none" 3.
+]]></block-guide>

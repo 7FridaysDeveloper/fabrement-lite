@@ -1,0 +1,34 @@
+<block-guide name="core/breadcrumbs"><![CDATA[
+CORE/BREADCRUMBS (new in WordPress 7.0)
+A trail of links from Home to the page being viewed: Home / Parent page / This page.
+WordPress builds the trail itself when the page is shown; the block stores only its settings.
+Its place is a template or shared header (one block serves every page), or the top of one page.
+
+WHAT THE TRAIL SHOWS (built by the server, cannot be typed in)
+- Page (hierarchical type): Home, its parent pages, the page.
+- Post / custom record: Home, the post type archive if it has one (posts: the blog page, if set),
+  then the first category or term of the post, with its parent terms, then the post.
+- Category / tag / term archive: Home, parent terms, the term. Post type, author and date
+  archives, search results ("Search results for: …") and 404 ("Page not found") are covered too.
+- Page 2 and later adds "Page N". The last item is plain text (aria-current="page"), not a link.
+The trail follows the real page tree and terms: to change it, change parents or terms.
+
+MARKUP (no HTML: the block is a comment only)
+<!-- wp:breadcrumbs {"separator":"›","showOnHomePage":true,"fontSize":"small"} /-->
+Never write the <nav><ol> it renders; colours, fonts, spacing and border go in the comment only.
+The page shows <nav class="wp-block-breadcrumbs" aria-label="Breadcrumbs"><ol><li>…</li></ol></nav>.
+
+OPTIONS
+separator: text between items (default "/"); it is drawn by CSS, not written in the list.
+showHomeItem (true) / showCurrentItem (true): hide the first or the last item.
+showOnHomePage (false): by default the block shows NOTHING on the front page.
+prefersTaxonomy (false): for a page-like type that also has taxonomies, use terms, not parents.
+align: "wide" | "full".
+
+PITFALLS
+An empty space on the home page is the default, not a bug (showOnHomePage).
+A post with no category or term shows only Home and the post (plus the archive, if any).
+
+CHECK
+Open a child page and a post: the trail lists the real parents / category, each a working link.
+]]></block-guide>

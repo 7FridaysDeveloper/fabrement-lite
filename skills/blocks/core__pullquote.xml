@@ -1,0 +1,26 @@
+<block-guide name="core/pullquote"><![CDATA[
+CORE/PULLQUOTE
+One short line pulled out of the text and shown large, with an optional source. It holds ONE
+paragraph of text and no inner blocks. A longer quotation (several paragraphs, lists): core/quote.
+
+MARKUP (checked in the editor)
+<!-- wp:pullquote -->
+<figure class="wp-block-pullquote"><blockquote><p>Good design is as little design as possible.</p><cite>Dieter Rams</cite></blockquote></figure>
+<!-- /wp:pullquote -->
+<!-- wp:pullquote {"align":"wide","backgroundColor":"accent-5","style":{"typography":{"textAlign":"left"}}} -->
+<figure class="wp-block-pullquote alignwide has-text-align-left has-accent-5-background-color has-background"><blockquote><p>One quote, one paragraph.</p></blockquote></figure>
+<!-- /wp:pullquote -->
+Exactly figure > blockquote > p (+ cite) on one line, with no block comments inside. A second
+<p> or a paragraph block inside does not belong to this block: the editor reports it invalid.
+No citation = no <cite>.
+
+OPTIONS
+Text alignment: style.typography.textAlign -> class has-text-align-<value> right after the align
+class. Colours and border follow the general class rules; the theme already gives it a large
+font size, so fontSize is rarely needed.
+align: left|right|wide|full only (no center).
+
+CHECK
+Reopen the editor: no invalid-content notice; the front shows the line large and the source
+small.
+]]></block-guide>

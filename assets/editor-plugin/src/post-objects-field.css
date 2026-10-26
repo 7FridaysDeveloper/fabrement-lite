@@ -1,0 +1,48 @@
+.fabrement-post-objects-field { display: flex; flex-direction: column; gap: 8px; }
+.fabrement-post-objects-field__list { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-post-objects-field__item {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid #ececec; border-radius: 8px;
+    padding: 8px 10px; background: #fff;
+}
+.fabrement-post-objects-field__item-index {
+    flex-shrink: 0; width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 5px; background: #f1f1f5; color: #6a6a78;
+    font-size: 11px; font-weight: 600;
+}
+.fabrement-post-objects-field__item-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.fabrement-post-objects-field__item-title {
+    font-size: 13px; color: #1a1a1a;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fabrement-post-objects-field__item-title--missing { color: #cc3333; }
+.fabrement-post-objects-field__item-meta {
+    font-size: 11px; color: #999;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fabrement-post-objects-field__item-type {
+    display: inline-block; margin-right: 6px; padding: 1px 5px;
+    border-radius: 4px; background: #ececf2; color: #6a6a78;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.fabrement-post-objects-field__btn {
+    border: none; background: none; cursor: pointer; color: #999; font-size: 13px;
+    padding: 4px 6px; border-radius: 4px; line-height: 1; flex-shrink: 0;
+}
+.fabrement-post-objects-field__btn:hover { color: #1a1a1a; background: #f0f0f0; }
+.fabrement-post-objects-field__btn:disabled { opacity: 0.3; cursor: default; }
+.fabrement-post-objects-field__btn:disabled:hover { color: #999; background: none; }
+.fabrement-post-objects-field__btn--remove:hover { color: #cc3333; background: #fdf0f0; }
+.fabrement-post-objects-field__empty {
+    font-size: 12px; color: #aaa;
+    border: 1px dashed #e0e0e0; border-radius: 8px;
+    padding: 14px; text-align: center;
+}
+.fabrement-post-objects-field__add {
+    align-self: flex-start; border: 1px dashed #cfcfcf; background: none; border-radius: 6px;
+    padding: 6px 12px; font-size: 12px; color: #616161; cursor: pointer; font-family: inherit;
+}
+.fabrement-post-objects-field__add:hover { border-color: #1a1a1a; color: #1a1a1a; }
+.fabrement-post-objects-field__add:disabled { opacity: 0.45; cursor: default; border-style: solid; }
+.fabrement-post-objects-field__add:disabled:hover { border-color: #cfcfcf; color: #616161; }

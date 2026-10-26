@@ -1,0 +1,31 @@
+<block-guide name="core/code"><![CDATA[
+CORE/CODE
+Program code or command lines shown as written, in a monospace font, spaces and line breaks
+kept. No syntax colouring and no language setting.
+
+MARKUP (checked in the editor)
+<!-- wp:code -->
+<pre class="wp-block-code"><code>&lt;?php
+if ( $a &lt; $b &amp;&amp; $b &gt; 0 ) {
+	echo '&lt;p class="note"&gt;Hello&lt;/p&gt;';
+}
+$list = &#91;1, 2];</code></pre>
+<!-- /wp:code -->
+
+SPECIAL CHARACTERS (what the editor saves)
+<  ->  &lt;   always. A "<" before a letter is refused by these tools unless it is a closed tag,
+              and a real tag here would become markup, not visible text.
+&  ->  &amp;  so that "&lt;" written in the code itself stays visible as written.
+[  ->  &#91;  the editor writes it so a [shortcode] in the code is shown, not run.
+>  may stay ">" or be "&gt;"; both are valid. Quotes stay as they are.
+Line breaks and tabs are real newlines and tabs inside <code>; never <br> or &nbsp;.
+Everything between <code> and </code> is shown: start the code right after <code>.
+
+OPTIONS
+align: "wide" only. Colours, font size and padding follow the general class rules; the theme
+already sets a background, a monospace font and padding.
+
+CHECK
+Open the page: the code shows with its "<" characters and indentation; reopen the editor:
+no invalid-content notice.
+]]></block-guide>

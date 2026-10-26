@@ -1,0 +1,11 @@
+<block-guide name="core/tab-panels"><![CDATA[
+CORE/TAB-PANELS
+The container of all tab panels; second child of core/tabs, after core/tab-list.
+Full guide and example: see core/tabs.
+
+MARKUP
+<!-- wp:tab-panels -->
+<div class="wp-block-tab-panels">[one core/tab-panel block per tab]</div>
+<!-- /wp:tab-panels -->
+Only core/tab-panel blocks go inside, in the same order as the buttons of the tab-list.
+]]></block-guide>

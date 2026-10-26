@@ -1,0 +1,33 @@
+<block-guide name="core/html"><![CDATA[
+CORE/HTML (Custom HTML)
+Static HTML written between the block comments and printed as it is. For markup no installed block
+gives (a table with a special shape, a details/summary, a definition list). Text, headings, images,
+buttons and columns go into their own blocks: those the editor can change and the theme styles.
+
+MARKUP (the HTML is the content; no attributes)
+<!-- wp:html -->
+<details class="faq"><summary>Do you ship abroad?</summary><p>Yes, to the EU and the UK.</p></details>
+<!-- /wp:html -->
+
+WHAT THESE TOOLS ACCEPT
+WordPress's post-safe HTML: div, span, p, headings, a, img, lists, table, details/summary,
+figure, video/audio, label, textarea; class, id, aria-*, data-* and inline style (also grid,
+background url()). Checked: all of these save.
+REFUSED (the save names the element or attribute, and nothing is saved):
+script, style, iframe, svg, canvas, form, input, select, link and object elements;
+on* event handlers (onclick, onerror…); javascript:, vbscript: and data: addresses.
+So no embeds by iframe (use core/embed), no inline SVG icons, no forms (use the forms tools),
+no <style> blocks (use the block's or theme's styling).
+"2 < 3" is plain text; a "<" right before a letter must start a real, closed tag. To show a tag
+as words write &lt;div&gt;.
+
+PITFALLS
+- Do not rebuild a page as one big html block: nothing in it can be edited as blocks, and theme
+  styles for blocks (wp-block-* classes) do not apply.
+- Theme colours and sizes are not presets here: use var(--wp--preset--color--<slug>) or
+  var(--wp--preset--spacing--<slug>) in inline styles, or classes the theme already has.
+- A stored html block with a script is kept when untouched, but sending it again is refused.
+
+CHECK
+Open the page and reopen the editor: the block shows as Custom HTML with the same markup.
+]]></block-guide>

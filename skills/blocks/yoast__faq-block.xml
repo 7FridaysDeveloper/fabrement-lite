@@ -1,0 +1,35 @@
+<block-guide name="yoast/faq-block"><![CDATA[
+YOAST/FAQ-BLOCK (Yoast FAQ)
+A list of questions and answers. Yoast SEO adds FAQPage and one Question per answered question to
+the page's structured data. The block exists only while Yoast SEO is active. Use it for a real FAQ
+section of the page.
+
+EACH QUESTION IS WRITTEN THREE TIMES
+In the comment, per question: "question" / "answer" (what the editor shows) and "jsonQuestion" /
+"jsonAnswer" (what goes into the structured data); in the HTML, the same text again.
+- The editor checks the HTML against question / answer: a different text = invalid block.
+- The structured data reads ONLY jsonQuestion / jsonAnswer: a question without jsonAnswer is
+  left out of FAQPage, and an outdated json text is published while the page shows another.
+Keep all three equal, as the editor does; "images":[] when the answer has no image.
+
+MARKUP (the shape the Yoast editor saves)
+<!-- wp:yoast/faq-block {"questions":[{"id":"faq-question-<n1>","question":"<Q1>","answer":"<A1>","jsonQuestion":"<Q1>","jsonAnswer":"<A1>","images":[]},{"id":"faq-question-<n2>","question":"<Q2>","answer":"<A2>","jsonQuestion":"<Q2>","jsonAnswer":"<A2>","images":[]}]} -->
+<div class="schema-faq wp-block-yoast-faq-block"><div class="schema-faq-section" id="faq-question-<n1>"><strong class="schema-faq-question"><Q1></strong><p class="schema-faq-answer"><A1></p></div><div class="schema-faq-section" id="faq-question-<n2>"><strong class="schema-faq-question"><Q2></strong><p class="schema-faq-answer"><A2></p></div></div>
+<!-- /wp:yoast/faq-block -->
+- The HTML is one line: no spaces or line breaks between the elements.
+- id: unique on the page ("faq-question-" + a number; the editor uses the time in ms). It is the
+  section's HTML id and the #anchor of the Question in the structured data.
+- An answer may hold inline HTML (strong, em, a). In the comment the editor writes < > & as
+  < > &: "answer":"Two to four <strong>working days</strong>."
+- Questions take only italic, strikethrough and links in the editor.
+
+PITFALLS
+- Change a question in all three places at once (question, jsonQuestion, the <strong>); the same
+  for an answer (answer, jsonAnswer, the <p>).
+- Several FAQ blocks on one page feed the same FAQPage; do not repeat a question.
+- The page's type in the structured data becomes ["WebPage","FAQPage"].
+
+CHECK
+Page source: the yoast-schema-graph script lists one Question per answered question with the text
+you wrote. Reopen the editor: the block shows no invalid-content warning.
+]]></block-guide>

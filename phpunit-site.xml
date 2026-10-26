@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The plugin on real WordPress sites in Docker, used from outside as an AI agent and a visitor use
+     it. Start the sites first: composer test:site:up. -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         bootstrap="tests/Site/bootstrap.php" colors="true" cacheResult="false"
+         failOnWarning="true" failOnRisky="true" executionOrder="default">
+    <testsuites>
+        <testsuite name="Plain"><directory>tests/Site/Plain</directory></testsuite>
+        <testsuite name="Wpml"><directory>tests/Site/Wpml</directory></testsuite>
+    </testsuites>
+</phpunit>

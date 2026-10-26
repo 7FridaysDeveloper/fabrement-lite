@@ -1,0 +1,30 @@
+<block-guide name="core/video"><![CDATA[
+CORE/VIDEO
+A video file from the media library played by the browser's own player. A YouTube or Vimeo
+address is core/embed, not this block.
+
+MARKUP (checked in the editor)
+<!-- wp:video {"id":<id>} -->
+<figure class="wp-block-video"><video controls src="<url>"></video><figcaption class="wp-element-caption">Our studio in one minute.</figcaption></figure>
+<!-- /wp:video -->
+<!-- wp:video {"id":<id>,"align":"wide"} -->
+<figure class="wp-block-video alignwide"><video autoplay loop muted poster="<image url>" preload="auto" src="<url>" playsinline></video></figure>
+<!-- /wp:video -->
+<id> and <url> come from list-media {kind:"video"} or upload-media. The id goes ONLY in the
+comment: there is no wp-video class. src is the file's url.
+
+PLAYER SETTINGS ARE TAG ATTRIBUTES, NOT COMMENT ATTRIBUTES
+autoplay, controls, loop, muted, poster, preload, playsinline are read from the <video> tag.
+Write them bare (controls, not controls="true"), in this order: autoplay, controls, loop, muted,
+poster, preload, src, playsinline. No controls attribute = no player controls (background video).
+preload "metadata" is the default and is not written; "auto" or "none" is.
+
+ON THE PAGE
+With a real attachment id, WordPress adds the file's width, height and an aspect-ratio style
+to the <video> when the page is shown, so the space is kept while it loads. Without an id the
+tag is served as written.
+Caption: <figcaption class="wp-element-caption"> after the video; no caption = no element.
+
+CHECK
+Open the page and play the video; reopen the editor: no invalid-content notice.
+]]></block-guide>

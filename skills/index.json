@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "documents": {
+    "block-discovery-contract": {
+      "base": true,
+      "translation": false
+    },
+    "content-contract": {
+      "base": true,
+      "translation": false
+    },
+    "content-model-contract": {
+      "base": true,
+      "translation": false
+    },
+    "fields-contract": {
+      "base": true,
+      "translation": false
+    },
+    "options-contract": {
+      "base": true,
+      "translation": false
+    },
+    "site-assets-contract": {
+      "base": true,
+      "translation": false
+    },
+    "forms-contract": {
+      "base": true,
+      "translation": false
+    },
+    "synced-pattern-contract": {
+      "base": true,
+      "translation": false
+    },
+    "site-settings-contract": {
+      "base": true,
+      "translation": false
+    },
+    "seo-contract": {
+      "base": true,
+      "translation": false
+    },
+    "preview-contract": {
+      "base": true,
+      "translation": false
+    },
+    "translation-contract": {
+      "base": false,
+      "translation": true
+    },
+    "template-contract": {
+      "base": true,
+      "translation": false
+    },
+    "template-translation": {
+      "base": false,
+      "translation": true
+    }
+  }
+}

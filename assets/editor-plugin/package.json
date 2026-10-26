@@ -1,0 +1,19 @@
+{
+    "name": "@7f/editor-plugin",
+    "private": true,
+    "version": "1.0.0",
+    "description": "Fabrement Lite field forms for the WordPress editor and options pages.",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch",
+        "type-check": "tsc --noEmit",
+        "test": "node --test tests/post-fields-save.test.cjs tests/post-fields-null.test.cjs tests/post-fields-form.test.cjs tests/post-picker-refs.test.cjs tests/media-refs.test.cjs tests/gallery-field.test.cjs tests/block-pickers.test.cjs"
+    },
+    "devDependencies": {
+        "typescript": "^5.4.0",
+        "vite": "^6.4.5"
+    },
+    "dependencies": {
+        "squire-rte": "2.4.9"
+    }
+}

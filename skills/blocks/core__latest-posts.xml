@@ -1,0 +1,27 @@
+<block-guide name="core/latest-posts"><![CDATA[
+CORE/LATEST-POSTS
+A server-rendered list of the newest published posts (post type "post" only), with optional
+date, author, excerpt and featured image. One self-closing comment; no HTML, no inner blocks.
+For other post types, pagination or a custom card layout use core/query.
+
+MARKUP (checked in the editor)
+<!-- wp:latest-posts {"postsToShow":3,"displayPostContent":true,"excerptLength":20,"displayPostDate":true,"displayFeaturedImage":true,"featuredImageSizeSlug":"medium","addLinkToFeaturedImage":true,"layout":{"type":"grid","columnCount":3}} /-->
+
+OPTIONS
+postsToShow (default 5); order "desc"|"asc" with orderBy "date"|"title".
+categories: [{"id":12,"name":"News"}] — the id filters, the name is shown in the editor.
+selectedAuthor: a user id.
+displayPostContent:true shows text under each title: displayPostContentRadio "excerpt"
+(default, cut to excerptLength words, default 55) or "full_post".
+displayAuthor, displayPostDate: true adds the line.
+displayFeaturedImage:true with featuredImageSizeSlug (default "thumbnail"), featuredImageAlign
+"left"|"center"|"right", addLinkToFeaturedImage.
+Grid: "layout":{"type":"grid","columnCount":3}; without layout it is a plain list.
+
+PITFALLS
+Sticky posts get no special place; drafts and private posts never appear.
+Posts without a featured image show none even when displayFeaturedImage is on.
+
+CHECK
+Open the page: the newest posts appear with the parts that were switched on.
+]]></block-guide>

@@ -1,0 +1,40 @@
+<block-guide name="core/buttons"><![CDATA[
+CORE/BUTTONS (+ core/button)
+A row of one or more link buttons ("Contact us", "See pricing").
+
+REQUIRED STRUCTURE
+core/buttons holds only core/button blocks; core/button stands only inside core/buttons, even
+for a single button. Both have HTML: <div class="wp-block-buttons"> wraps the button <div>s.
+
+MARKUP (checked in the editor)
+<!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://example.com/contact/">Contact us</a></div>
+<!-- /wp:button -->
+
+<!-- wp:button {"className":"is-style-outline"} -->
+<div class="wp-block-button is-style-outline"><a class="wp-block-button__link wp-element-button" href="https://example.com/pricing/">See pricing</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons -->
+The address, text, target and rel live in the HTML only (href="…", the link text), not in the
+comment. Every button: <div class="wp-block-button"><a class="wp-block-button__link
+wp-element-button" href="…">Text</a></div>.
+
+OPTIONS ON CORE/BUTTONS
+layout: {"type":"flex","justifyContent":"left|center|right|space-between"};
+"orientation":"vertical" stacks the buttons. Gap: style.spacing.blockGap (no inline style).
+align "wide" | "full" -> alignwide / alignfull.
+
+OPTIONS ON CORE/BUTTON (see core/button for markup)
+Style variation: "className":"is-style-outline" in the comment and on the outer div;
+fill is the default look and needs no class.
+Colours, border radius, padding, shadow, font size and text alignment go on the inner <a>,
+not on the div. Width: style.dimensions.width, written in the comment only.
+
+PITFALLS
+A button with no text renders nothing on the front.
+Never write is-layout-* or wp-container-* classes: WordPress adds them when it renders.
+
+CHECK
+Reopen the editor (no invalid notice); click each button on the front.
+]]></block-guide>

@@ -1,0 +1,30 @@
+<block-guide name="core/math"><![CDATA[
+CORE/MATH
+A displayed formula: the block keeps the LaTeX source in its comment and the formula as
+MathML in its HTML. Browsers draw MathML themselves; there is no script and no server render.
+The formula stands on its own line (display="block"), scrolling sideways when too wide.
+
+MARKUP (checked against the Gutenberg fixture)
+<!-- wp:math {"latex":"a^2+b^2=c^2"} -->
+<div class="wp-block-math"><math display="block"><semantics><mrow><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>b</mi><mn>2</mn></msup><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">a^2+b^2=c^2</annotation></semantics></math></div>
+<!-- /wp:math -->
+Both halves are required: "latex" in the comment AND the MathML in <math display="block">.
+The page shows ONLY the saved MathML; latex alone shows nothing, and an empty latex saves
+nothing. Wrap the MathML in <semantics><mrow>…</mrow> and end with the
+<annotation encoding="application/x-tex"> holding the same LaTeX, as the editor does.
+In the comment JSON a backslash is doubled: "latex":"\\frac{1}{2}" (the editor writes \).
+Use mi (letters), mn (numbers), mo (operators), mfrac, msqrt, msup, msub, mrow.
+
+PITFALLS
+When the block is opened in the editor, the MathML is rebuilt from latex; if your MathML
+differs, the next save replaces it. Keep the two saying the same formula.
+MathML tags are allowed in content; script, style and event attributes are not.
+
+OPTIONS
+textColor, backgroundColor, fontSize (scales the formula), padding / margin, border: the
+classes and inline style go on the <div class="wp-block-math">.
+
+CHECK
+Open the page: the formula is drawn (fraction bars, exponents); reopen the editor: no
+"unexpected content" warning.
+]]></block-guide>

@@ -1,0 +1,30 @@
+<block-guide name="core/table"><![CDATA[
+CORE/TABLE
+A static data table. Cells are read from the HTML; there are no inner blocks.
+
+MARKUP (checked in the editor)
+<!-- wp:table {"className":"is-style-stripes"} -->
+<figure class="wp-block-table is-style-stripes"><table class="has-fixed-layout"><thead><tr><th scope="col">Plan</th><th class="has-text-align-right" data-align="right" scope="col">Price</th></tr></thead><tbody><tr><td>Basic</td><td class="has-text-align-right" data-align="right">$10</td></tr><tr><td>Pro</td><td class="has-text-align-right" data-align="right">$25</td></tr></tbody></table><figcaption class="wp-element-caption">Monthly prices</figcaption></figure>
+<!-- /wp:table -->
+Write the whole <figure> on one line, with no whitespace between tags.
+
+STRUCTURE
+<figure class="wp-block-table"> > <table> > <thead> / <tbody> / <tfoot> > <tr> > <th>|<td>.
+Sections that have no rows are left out. Caption: <figcaption class="wp-element-caption">
+after </table>, omitted when empty.
+
+OPTIONS
+hasFixedLayout defaults to TRUE: the <table> then MUST carry class="has-fixed-layout" (equal-width
+columns). For auto-width columns set "hasFixedLayout":false and write <table> with no class.
+Cell alignment: class="has-text-align-left|center|right" AND data-align="…" on that cell.
+scope="col"/"row" is kept on <th> only. colspan / rowspan are plain cell attributes.
+Stripes: className "is-style-stripes" in the comment and on the <figure>.
+Colour and border settings are written on the <table>, not on the <figure>.
+
+PITFALLS
+A <table> without has-fixed-layout while hasFixedLayout is not false = invalid block.
+Cells hold inline text (strong, em, a, br, code), never blocks.
+
+CHECK
+Reopen the editor: the table is editable cell by cell, no block-recovery warning.
+]]></block-guide>

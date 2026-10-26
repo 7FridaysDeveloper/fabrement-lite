@@ -1,0 +1,33 @@
+<block-guide name="core/social-links"><![CDATA[
+CORE/SOCIAL-LINKS
+A row of social network icons. Each icon is a core/social-link block; the server draws the
+icon, the link and the hidden label, so a social-link is a comment only, with no HTML.
+
+MARKUP (checked in the editor)
+<!-- wp:social-links {"iconColor":"contrast","iconColorValue":"#111111","openInNewTab":true,"className":"is-style-logos-only","layout":{"type":"flex","justifyContent":"center"}} -->
+<ul class="wp-block-social-links has-icon-color is-style-logos-only"><!-- wp:social-link {"url":"https://www.instagram.com/example","service":"instagram"} /-->
+
+<!-- wp:social-link {"url":"https://www.linkedin.com/company/example","service":"linkedin","label":"Our LinkedIn"} /-->
+
+<!-- wp:social-link {"url":"hello@example.com","service":"mail"} /--></ul>
+<!-- /wp:social-links -->
+
+OPTIONS (on core/social-links)
+Styles: default (coloured brand circles), "is-style-logos-only", "is-style-pill-shape" — in the
+comment's className AND on the <ul>.
+iconColor / iconBackgroundColor: palette slug, together with iconColorValue /
+iconBackgroundColorValue (the colour itself). A *Value adds has-icon-color /
+has-icon-background-color to the <ul>, written before the style class.
+size: "has-small-icon-size" | "has-normal-icon-size" | "has-large-icon-size" |
+"has-huge-icon-size" — also written as a class on the <ul>, before the others.
+openInNewTab:true -> every link gets target="_blank" rel="noopener nofollow".
+showLabels:true -> the service name is shown next to the icon (else it is screen-reader text);
+add has-visible-labels to the <ul>.
+layout: {"type":"flex","justifyContent":"left|center|right|space-between"}; writes no class.
+
+PITFALLS
+A social-link without "url" is not shown at all. "service" picks the icon; see core/social-link.
+
+CHECK
+Open the page: every icon shows and points to its address.
+]]></block-guide>

@@ -1,0 +1,40 @@
+<block-guide name="fabrement/content-source"><![CDATA[
+FABREMENT/CONTENT-SOURCE (Content Source)
+The slot of a Fabrement template: where the page's own content is drawn. Exactly one per template
+(it or core/post-content), at any depth. It belongs in save-template only; never put it in a
+page or a global block (save-content refuses it).
+A Fabrement template replaces the whole page: the theme's header and footer are not drawn. The frame
+places its own header and footer (core/block refs) and, if wanted, the title, date and image
+(core/post-title, core/post-date, core/post-featured-image) around the slot.
+
+MARKUP (attributes only; no HTML of its own)
+<!-- wp:block {"ref":20} /-->
+<!-- wp:group {"tagName":"main","layout":{"type":"default"}} -->
+<main class="wp-block-group"><!-- wp:fabrement/content-source {"layout":{"type":"constrained"}} /--></main>
+<!-- /wp:group -->
+<!-- wp:block {"ref":21} /-->
+As an entry: {"name":"fabrement/content-source","attributes":{"layout":{"type":"constrained"}}}.
+
+WIDTH
+The slot is drawn as core/post-content (<div class="entry-content wp-block-post-content ...">).
+It has no align setting. layout "constrained": text keeps the theme's content width and
+alignfull / alignwide sections inside the page still span the screen / wide width.
+layout "default": nothing is limited, plain paragraphs run edge to edge.
+Without a layout attribute the template's contentWidth decides ("full" = default,
+"constrained" = constrained). Do not put the slot in a group with layout "constrained": the slot
+then becomes a narrow column and full-width sections cannot leave it. Use a "default" group.
+
+THEME FILES
+Never send templateId or rules as attributes: such a block is refused. The slot learns its
+template when drawn and reads the theme-file rules from that template's saved JSON; choose files
+with save-template contentSource. With no matching rule it shows the page content; on an archive
+or the blog index, that view's own content.
+
+PITFALLS
+- A frame with two slots (or a slot plus core/post-content) is refused; none is refused too.
+- Only the slot is page content. Everything else in the frame is the same on every page using it.
+
+CHECK
+Open a page assigned to the template: header, page content and footer each appear once, and a
+full-width section of the page reaches both screen edges.
+]]></block-guide>

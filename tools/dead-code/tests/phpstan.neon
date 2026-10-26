@@ -1,0 +1,7 @@
+includes:
+    - ../common.neon
+
+parameters:
+    paths:
+        - fixtures
+    tmpDir: ../.cache/self-test

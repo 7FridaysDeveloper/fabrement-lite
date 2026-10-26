@@ -1,0 +1,31 @@
+<skill id="site-assets-contract"><![CDATA[
+MEDIA AND WORDPRESS MENUS
+List/search media first; results are paginated. Reuse existing attachments.
+upload-media accepts exactly one of sourceUrl or base64; it reads nothing from the server's disk.
+Base64 requires a filename and is limited to 512 KB decoded.
+Provide meaningful alt text for images. Use returned IDs/URLs in the actual target block's schema;
+different core/ACF blocks have different image attribute formats.
+SVG is not accepted: it is markup that can carry scripts. Ask the site admin to add one in the media library.
+
+delete-media is PERMANENT by default. Referenced files can still be deleted.
+usedBy reports detected references; it is not a blocking check or a complete dependency graph.
+Deleting a WPML original may affect its language copies; check the multilingual contract.
+Repoint known usages when replacing an image, and do not delete outside the user's requested scope.
+
+List menus before create-menu; use returned menu IDs with update-menu or delete-menu.
+update-menu items replaces the WHOLE tree, including children. Read, modify and resend the whole tree;
+omit items to rename only. Follow the schema for one link target per item (url/postId/termId/archive).
+Use real IDs and safe URLs. Keep attached object links attached rather than converting them to guessed URLs.
+A classic WordPress menu does not automatically appear in a core/navigation block. Inspect the actual
+navigation block and its references/content. Theme menu locations and Gutenberg navigation content
+are different systems; do not invent a menu attribute for core or ACF blocks.
+A menu is visible only when an existing theme/block uses it. Verify its real frontend location.
+A core/navigation block carries its own links as inner blocks, written as comments only (no HTML):
+<!-- wp:navigation {"overlayMenu":"mobile","ariaLabel":"Main"} -->
+<!-- wp:navigation-link {"label":"Visit us","type":"page","id":<pageId>,"url":"<its address>","kind":"post-type"} /-->
+<!-- wp:navigation-link {"label":"Shop","url":"https://example.com/","kind":"custom"} /-->
+<!-- /wp:navigation -->
+A link to a page keeps its id and address together; a submenu is wp:navigation-submenu with links inside.
+
+Forms have their own rules: get-skill-doc {id:"forms-contract"}.
+]]></skill>

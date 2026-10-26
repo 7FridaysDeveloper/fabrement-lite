@@ -1,0 +1,32 @@
+<block-guide name="core/post-featured-image"><![CDATA[
+CORE/POST-FEATURED-IMAGE (Featured Image)
+Draws the featured image of the current page or post. The image is the record's featuredImage
+(save-content, an attachment id from the media library), never set in the block. Places: a
+Fabrement template frame (above or beside the title) or a Query's post-template (cards).
+A Fabrement template replaces the whole page, so the theme's featured image is not drawn unless
+the frame has this block.
+
+MARKUP (comment only; no HTML)
+<!-- wp:post-featured-image /-->
+<!-- wp:post-featured-image {"aspectRatio":"16/9","align":"wide"} /-->
+<!-- wp:post-featured-image {"isLink":true,"aspectRatio":"3/2"} /-->
+aspectRatio: "1", "4/3", "3/2", "16/9", "3/4"…; the image is cropped to it (scale "cover", the
+default; "contain" shows it whole). Without aspectRatio the image keeps its own shape.
+align: "wide" or "full" (also left / right / center). isLink links to the record.
+sizeSlug picks a registered image size ("large", "full"); the default is the theme's
+post-thumbnail size.
+
+OUTPUT
+<figure class="wp-block-post-featured-image"><img ... class="... wp-post-image" alt="..." /></figure>
+The alt text is the attachment's own alt text: set it on the media item.
+
+PITFALLS
+- A record without a featured image draws NOTHING (no figure, no gap). Set featuredImage on the
+  records, or the template shows no image.
+- A small upload is not enlarged in quality: width 100% stretches it. Use an image at least as
+  wide as the place it fills.
+- Outside a Query on an archive it shows the first listed post's image.
+
+CHECK
+Open an assigned page that has a featured image, and one that has none.
+]]></block-guide>

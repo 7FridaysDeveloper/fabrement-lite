@@ -1,0 +1,35 @@
+<block-guide name="core/details"><![CDATA[
+CORE/DETAILS
+One collapsible section on the native HTML <details>/<summary>: works without any script.
+For a styled group of questions with icons and heading levels, core/accordion is the newer block.
+
+MARKUP (checked in the editor)
+<!-- wp:details {"showContent":true} -->
+<details class="wp-block-details" name="faq" open><summary>How long is delivery?</summary><!-- wp:paragraph -->
+<p>Two to five working days.</p>
+<!-- /wp:paragraph --></details>
+<!-- /wp:details -->
+
+<!-- wp:details -->
+<details class="wp-block-details" name="faq"><summary>Can I return an item?</summary><!-- wp:paragraph -->
+<p>Yes, within 30 days.</p>
+<!-- /wp:paragraph --></details>
+<!-- /wp:details -->
+
+STRUCTURE
+<summary> holds the visible title (inline text only), written right after <details …>.
+The hidden content is ordinary blocks after </summary>, before </details>.
+
+OPTIONS
+showContent:true -> the bare attribute open on <details> (shown expanded on load).
+name: written ONLY as the HTML attribute name="…" (not in the comment). Details with the same
+name form a group in which opening one closes the others (browser behaviour).
+Attribute order on <details>: class, name, open.
+
+PITFALLS
+showContent in the comment and open on the tag must agree, or the block is invalid.
+An empty summary is saved as the text "Details".
+
+CHECK
+Open the page: the title toggles the content. Reopen the editor: no invalid-block warning.
+]]></block-guide>

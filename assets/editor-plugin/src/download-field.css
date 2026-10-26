@@ -1,0 +1,78 @@
+.fabrement-download-field { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-download-field__label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: #757575;
+}
+
+.fabrement-download-field__upload {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1.5px dashed #d0d0d0;
+    border-radius: 6px;
+    background: #fafafa;
+    color: #888;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    font-family: inherit;
+    text-align: left;
+    width: 100%;
+}
+.fabrement-download-field__upload:hover { border-color: #555; color: #555; background: #f0f0f0; }
+.fabrement-download-field__upload-icon { flex-shrink: 0; }
+.fabrement-download-field__upload-text { flex: 1; }
+
+.fabrement-download-field__preview {
+    display: flex; align-items: stretch; gap: 0;
+    border: 1px solid #e2e2e2;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+}
+.fabrement-download-field__file-icon {
+    flex-shrink: 0;
+    width: 48px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f3f5f8;
+    color: #4a5568;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-right: 1px solid #e2e2e2;
+}
+.fabrement-download-field__file-info {
+    flex: 1; min-width: 0;
+    padding: 8px 12px;
+    display: flex; flex-direction: column; gap: 2px;
+    justify-content: center;
+}
+.fabrement-download-field__filename {
+    font-size: 13px; font-weight: 500; color: #1a1a1a;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.fabrement-download-field__meta {
+    font-size: 11px; color: #888;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.fabrement-download-field__actions {
+    flex-shrink: 0;
+    display: flex; align-items: center;
+    border-left: 1px solid #e2e2e2;
+}
+.fabrement-download-field__action {
+    height: 100%;
+    padding: 0 12px;
+    background: #fff;
+    border: none;
+    border-right: 1px solid #e2e2e2;
+    font-size: 12px; font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    font-family: inherit;
+}
+.fabrement-download-field__action:last-child { border-right: none; }
+.fabrement-download-field__action:hover { background: #f5f5f5; color: #222; }
+.fabrement-download-field__action--remove { color: #c0392b; }
+.fabrement-download-field__action--remove:hover { background: #fde8e8; color: #962518; }

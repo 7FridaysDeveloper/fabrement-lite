@@ -1,0 +1,111 @@
+.fabrement-wysiwyg-field { display: flex; flex-direction: column; gap: 6px; }
+.fabrement-wysiwyg-field__label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #757575; }
+.fabrement-wysiwyg-field__frame {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color 0.15s;
+}
+.fabrement-wysiwyg-field--focused .fabrement-wysiwyg-field__frame { border-color: #1a1a1a; }
+.fabrement-wysiwyg-field__toolbar,
+.fabrement-wysiwyg-field__bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 4px;
+    padding: 4px 6px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+    font-size: 12px;
+}
+.fabrement-wysiwyg-field__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 6px;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: #1a1a1a;
+    font-size: 12px;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.12s;
+}
+.fabrement-wysiwyg-field__btn:hover:not(:disabled) { background: #ececec; }
+.fabrement-wysiwyg-field__btn:disabled { opacity: 0.35; cursor: default; }
+.fabrement-wysiwyg-field__btn--active,
+.fabrement-wysiwyg-field__btn--active:hover:not(:disabled) { background: #1a1a1a; color: #fff; }
+.fabrement-wysiwyg-field__btn--bold { font-weight: 700; }
+.fabrement-wysiwyg-field__btn--italic { font-style: italic; font-family: Georgia, serif; }
+.fabrement-wysiwyg-field__btn--danger { color: #b32d2e; }
+.fabrement-wysiwyg-field__select {
+    height: 26px;
+    min-height: 26px;
+    padding: 0 22px 0 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    background: #fff;
+    font-size: 12px;
+    line-height: 1;
+    color: #1a1a1a;
+}
+.fabrement-wysiwyg-field__input {
+    flex: 1 1 160px;
+    min-width: 0;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 12px;
+}
+.fabrement-wysiwyg-field__bar label { display: inline-flex; align-items: center; gap: 4px; color: #1a1a1a; }
+.fabrement-wysiwyg-field__bar-title { font-weight: 600; color: #757575; margin-right: 4px; }
+.fabrement-wysiwyg-field__sep { width: 1px; height: 18px; margin: 0 4px; background: #e0e0e0; }
+.fabrement-wysiwyg-field__spacer { flex: 1 1 auto; }
+.fabrement-wysiwyg-field__area-wrap { position: relative; }
+.fabrement-wysiwyg-field__area {
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #1a1a1a;
+    outline: none;
+    overflow-y: auto;
+    word-break: break-word;
+}
+.fabrement-wysiwyg-field__area::after { content: ""; display: block; clear: both; }
+.fabrement-wysiwyg-field__source {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 0;
+    outline: none;
+    resize: vertical;
+    font: 12px/1.5 Menlo, Consolas, monospace;
+    color: #1a1a1a;
+}
+
+.fabrement-wysiwyg-field__area > *:first-child { margin-top: 0; }
+.fabrement-wysiwyg-field__area p { margin: 0 0 0.6em; }
+.fabrement-wysiwyg-field__area h2 { font-size: 18px; margin: 0 0 0.4em; }
+.fabrement-wysiwyg-field__area h3 { font-size: 16px; margin: 0 0 0.4em; }
+.fabrement-wysiwyg-field__area h4 { font-size: 14px; margin: 0 0 0.4em; }
+.fabrement-wysiwyg-field__area ul,
+.fabrement-wysiwyg-field__area ol { margin: 0 0 0.6em; padding-left: 1.4em; }
+.fabrement-wysiwyg-field__area blockquote { margin: 0 0 0.6em; padding-left: 10px; border-left: 3px solid #e0e0e0; color: #555; }
+.fabrement-wysiwyg-field__area a { color: #2271b1; }
+.fabrement-wysiwyg-field__area img { max-width: 100%; height: auto; vertical-align: middle; cursor: pointer; }
+.fabrement-wysiwyg-field__area img.alignleft { float: left; margin: 0 12px 6px 0; }
+.fabrement-wysiwyg-field__area img.alignright { float: right; margin: 0 0 6px 12px; }
+.fabrement-wysiwyg-field__area img.aligncenter { display: block; margin: 0 auto 6px; }
+.fabrement-wysiwyg-field__area img[data-fab-selected] { outline: 2px solid #2271b1; outline-offset: 2px; }
+
+/* The repeater's drag clone is a cloneNode(true) of the row. The text lives in the real DOM, so
+   the clone shows it — it just must not look or behave like a live editor while it rides the
+   pointer. */
+.fabrement-fields__repeater-ghost .fabrement-wysiwyg-field__toolbar { opacity: 0.5; pointer-events: none; }

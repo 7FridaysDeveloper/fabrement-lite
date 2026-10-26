@@ -1,0 +1,32 @@
+<block-guide name="core/block"><![CDATA[
+CORE/BLOCK (a global block / synced pattern placement)
+Draws a saved synced pattern (wp_block) by its id. The words live in the pattern, not here: read
+and change them with get-synced-pattern / save-synced-pattern; every placement then changes.
+
+MARKUP
+<!-- wp:block {"ref":123} /-->
+As an entry: {"name":"core/block","attributes":{"ref":123}}. Comment only, no HTML.
+ref is a number (a quoted "123" is stored as 123). Take it from list-synced-patterns.
+
+WHAT IS REFUSED
+- A ref to nothing, to a pattern in the trash, or to an unsynced pattern.
+- A language version's id: place the original; each language is shown its own version.
+- A header or footer pattern in a page (save-content): those go into a template (save-template).
+  Section patterns go anywhere.
+- A pattern that places itself.
+
+HOW IT DRAWS
+No wrapper element of its own: the pattern's blocks are output as they are. className, spacing or
+colors on core/block draw nothing; put the wrapper group, its width and colors inside the pattern.
+A pattern that is not published, or has a password, draws nothing (no error on the page).
+In a Fabrement template the header and footer are core/block placements; the theme's own
+header and footer are not drawn there.
+
+PITFALLS
+- To change one page's copy only, do not edit the pattern: it changes every page placing it.
+  Write ordinary blocks in that page instead.
+- Before a change, read usedBy from get-synced-pattern: where the pattern is placed.
+
+CHECK
+Open two pages that place the pattern: both show the change.
+]]></block-guide>

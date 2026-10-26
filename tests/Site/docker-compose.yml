@@ -1,0 +1,79 @@
+# Several independent copies can run side by side (one per person or agent): FABREMENT_STACK names
+# the copy, FABREMENT_PLAIN_PORT / FABREMENT_WPML_PORT / FABREMENT_MYSQL_PORT give it its ports.
+# The same variables tell the tests which copy to use (tests/Site/Support/Site.php).
+#
+# The two test sites of tests/Site — real WordPress sites in Docker that the tests use from outside,
+# as Claude and a visitor do: https://example.org:19443 (one language) and https://example.org:19444
+# (WPML: en, fr, pl). A test resolves example.org to 127.0.0.1 itself; nothing in hosts is needed.
+#
+#   docker compose -f tests/Site/docker-compose.yml up -d --wait --build   (composer test:site:up)
+#   composer test:site
+#   docker compose -f tests/Site/docker-compose.yml down -v                 (composer test:site:down)
+#
+# The code is mounted read-only under /src and COPIED into the site's own volume before each run
+# (setup/sync.sh, rsync: only what changed): served straight from a Windows folder, every request
+# re-read a thousand PHP files through the mount and took seconds. Each site has its own database
+# and its own volume — WordPress, its wp-content, the plugins as a host has them.
+name: ${FABREMENT_STACK:-fabrement-lite-site-tests}
+
+x-site: &site
+  build: ../WebServer
+  depends_on:
+    mysql:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "php", "-r", "exit(@fsockopen('127.0.0.1', 443) ? 0 : 1);"]
+    interval: 2s
+    timeout: 5s
+    retries: 30
+
+services:
+  mysql:
+    image: mysql:8
+    command: ["--max-binlog-size=32M", "--binlog-expire-logs-seconds=3600"]
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "127.0.0.1:${FABREMENT_MYSQL_PORT:-14308}:3306"
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  plain:
+    <<: *site
+    ports:
+      - "127.0.0.1:${FABREMENT_PLAIN_PORT:-19443}:443"
+    volumes:
+      - plain-site:/var/www/html
+      - ./web/wp-config-plain.php:/var/www/wp-config.php:ro
+      - ../../vendor/johnpbloch/wordpress-core:/src/core:ro
+      - ../../vendor/johnpbloch/wordpress-core/wp-content/themes:/src/themes:ro
+      - ../..:/src/plugins/fabrement:ro
+      - ../../vendor/wp-plugins/contact-form-7:/src/plugins/contact-form-7:ro
+      - ../../vendor/wp-plugins/wordpress-seo:/src/plugins/wordpress-seo:ro
+      - ./setup:/var/www/setup:ro
+
+  wpml:
+    <<: *site
+    ports:
+      - "127.0.0.1:${FABREMENT_WPML_PORT:-19444}:443"
+    volumes:
+      - wpml-site:/var/www/html
+      - ./web/wp-config-wpml.php:/var/www/wp-config.php:ro
+      - ../../vendor/johnpbloch/wordpress-core:/src/core:ro
+      - ../../vendor/johnpbloch/wordpress-core/wp-content/themes:/src/themes:ro
+      - ../..:/src/plugins/fabrement:ro
+      - ../../vendor/wp-plugins/contact-form-7:/src/plugins/contact-form-7:ro
+      - ../../vendor/wp-plugins/wordpress-seo:/src/plugins/wordpress-seo:ro
+      - ../../../runtime/lite-wp-plugins/sitepress-multilingual-cms:/src/plugins/sitepress-multilingual-cms:ro
+      - ../../../runtime/lite-wp-plugins/wp-seo-multilingual:/src/plugins/wp-seo-multilingual:ro
+      - ../../../runtime/lite-wp-plugins/wpml-string-translation:/src/plugins/wpml-string-translation:ro
+      - ./setup:/var/www/setup:ro
+
+volumes:
+  plain-site:
+  wpml-site:

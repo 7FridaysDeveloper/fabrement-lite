@@ -1,0 +1,17 @@
+<block-guide name="core/query-pagination"><![CDATA[
+CORE/QUERY-PAGINATION
+"Previous / 1 2 3 / Next" links for a core/query list; it stands inside core/query, after the
+post-template. Read the core/query guide for the whole list.
+
+MARKUP (comments only: none of these blocks has HTML of its own)
+<!-- wp:query-pagination {"layout":{"type":"flex","justifyContent":"space-between"}} -->
+<!-- wp:query-pagination-previous /-->
+<!-- wp:query-pagination-numbers /-->
+<!-- wp:query-pagination-next /-->
+<!-- /wp:query-pagination -->
+Any of the three may be left out. previous/next take "label" for their text.
+
+BEHAVIOR
+It shows only when the query has more posts than perPage. The page number travels in the address
+as ?query-<queryId>-page=2 (with inherit:false), or as the archive's own /page/2/ (inherit:true).
+]]></block-guide>

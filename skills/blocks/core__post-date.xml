@@ -1,0 +1,30 @@
+<block-guide name="core/post-date"><![CDATA[
+CORE/POST-DATE (Date)
+Draws the publish (or last-modified) date of the current page or post. The date comes from the
+record; never write a date into the block. Places: a Fabrement template frame (usually a post
+template, under core/post-title) or a Query's post-template. A Fabrement template replaces the
+whole page, so the theme's date line is not drawn unless the frame has this block.
+
+MARKUP (comment only; no HTML) — the form the editor writes in this WordPress:
+<!-- wp:post-date {"metadata":{"bindings":{"datetime":{"source":"core/post-data","args":{"field":"date"}}}}} /-->
+Last-modified date: the same with "field":"modified".
+With options:
+<!-- wp:post-date {"format":"F j, Y","isLink":true,"fontSize":"small","metadata":{"bindings":{"datetime":{"source":"core/post-data","args":{"field":"date"}}}}} /-->
+A bare <!-- wp:post-date /--> also shows the publish date, but the editor rewrites it to the
+binding form on the next save; write the binding form.
+format: a PHP date format ("F j, Y", "d.m.Y"); "human-diff" = "3 days ago"; none = the site's
+date format (Settings > General). isLink links to the record.
+Centered text is style.typography.textAlign, as on other blocks.
+
+OUTPUT
+<div class="wp-block-post-date"><time datetime="...">October 26, 2026</time></div>
+
+PITFALLS
+- Pages have dates too: a page template with post-date shows the page's creation date. Keep it
+  for posts unless the user wants it.
+- The modified date draws nothing until the record is changed after it was published.
+- Outside a Query on an archive it shows the first listed post's date.
+
+CHECK
+Open an assigned post: its date appears once, in the site's format or the one set.
+]]></block-guide>

@@ -1,0 +1,23 @@
+<skill id="synced-pattern-contract"><![CDATA[
+WORDPRESS SYNCED PATTERNS
+New or changed blocks use the same post-safe HTML rules as content-contract: no scripts, HTML event
+handlers, iframe/style tags or executable URLs. A refusal saves nothing; unchanged neighboring blocks stay.
+A synced pattern is shared content stored as wp_block. A placement uses core/block with its ref:
+<!-- wp:block {"ref":123} /-->
+Editing the pattern changes every placement. An ordinary block's separate instances are not synced.
+list-synced-patterns before creating; get-synced-pattern before updating. Inspect usedBy and any
+reported template usages. Counts/lists may be bounded; do not treat them as an exhaustive guarantee.
+
+save-synced-pattern requires mode: create, edit or replace. create takes title and blocks.
+edit uses edits and expectedHash from the latest read; replace supplies the full replacement body.
+Omitting body on a metadata-only change preserves it as described by the tool schema.
+Blocks follow content-contract and block-discovery-contract; dynamic:true alone does not allow
+attribute-only saves. ACF partial data patch behavior is the same as for page content.
+Patterns are created published by default so placements render; they are not ordinary draft pages.
+Choose kind and categories intentionally. Use kind section for ordinary shared content; current
+header/footer patterns belong in templates through save-template, using core/block with ref.
+Use template-contract for creating the frame and assigning it to pages.
+Categories replace the supplied list; omit to preserve. A pattern cannot contain itself.
+Deletion/status changes have in-use guards; inspect the error and dependencies instead of bypassing them.
+Preview a real page that places the pattern to verify the final result.
+]]></skill>

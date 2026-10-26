@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template words/blocks vary by language; the source-rule manifest belongs to the group.
+     Per-site field preferences are registered by the translation bridge. -->
+<wpml-config>
+    <custom-types>
+        <custom-type translate="1">fabrement_template</custom-type>
+    </custom-types>
+    <custom-fields>
+        <custom-field action="copy-once">_fabrement_st_content_width</custom-field>
+        <custom-field action="copy">_fabrement_st_key</custom-field>
+    </custom-fields>
+</wpml-config>

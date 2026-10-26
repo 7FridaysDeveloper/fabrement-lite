@@ -1,0 +1,42 @@
+<block-guide name="core/image"><![CDATA[
+CORE/IMAGE
+One picture with optional caption and link. Several pictures in a grid: core/gallery. Text over
+a picture: core/cover. Picture beside text: core/media-text.
+
+MARKUP (checked in the editor)
+<!-- wp:image {"id":<id>,"aspectRatio":"4/3","scale":"cover","sizeSlug":"full","linkDestination":"custom","align":"wide"} -->
+<figure class="wp-block-image alignwide size-full"><a href="https://example.com/"><img src="<url>" alt="What the picture shows" class="wp-image-<id>" style="aspect-ratio:4/3;object-fit:cover"/></a><figcaption class="wp-element-caption">Caption text.</figcaption></figure>
+<!-- /wp:image -->
+<!-- wp:image -->
+<figure class="wp-block-image"><img src="https://example.com/image.jpg" alt="What it shows"/></figure>
+<!-- /wp:image -->
+
+LIBRARY IMAGE VS EXTERNAL URL
+Library (list-media / upload-media): "id":<id> in the comment AND class="wp-image-<id>" on the
+<img>, plus "sizeSlug" with class size-<slug> on the figure. Use "sizeSlug":"full" with the url
+list-media returns (that is the full-size file). WordPress adds width, height, srcset and lazy
+loading only when the <img> has the wp-image-<id> class; without it the image is served as written.
+External URL: no id, no wp-image class, no sizeSlug.
+
+OPTIONS
+alt: on the <img> (alt="" only for a purely decorative picture).
+caption: <figcaption class="wp-element-caption"> last inside the figure; no caption = no element.
+link: "linkDestination":"custom" + <a href> around the <img>; "media" links to the file,
+"attachment" to its attachment page, "none" (or absent) = no <a>. New tab: only in the HTML,
+<a href="…" target="_blank" rel="noopener"> (href, target and rel are read from the <a>).
+aspectRatio + "scale":"cover" crop: style="aspect-ratio:…;object-fit:cover" on the <img>.
+focalPoint {"x":0.5,"y":0.3} works only with scale: add object-position:50% 30% after object-fit.
+width: "width":"240px" -> class is-resized on the figure, style="width:240px;height:auto" on img.
+align: left|center|right|wide|full -> alignX class right after wp-block-image.
+Rounded corners: className "is-style-rounded", written last in the figure's class list.
+lightbox: {"lightbox":{"enabled":true}} with no link: a click opens the image full screen.
+
+CLASS AND STYLE ORDER
+figure: wp-block-image, align class, size-<slug>, is-resized, has-custom-border, className.
+img attributes: src, alt, class, style. Style order: aspect-ratio, object-fit, object-position,
+width, height.
+
+CHECK
+Open the page: the image shows with srcset (library image) and the caption; reopen the editor:
+no "unexpected or invalid content" notice on the block.
+]]></block-guide>

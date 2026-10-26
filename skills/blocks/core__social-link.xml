@@ -1,0 +1,20 @@
+<block-guide name="core/social-link"><![CDATA[
+CORE/SOCIAL-LINK
+One icon inside core/social-links (never alone). Full guide: see core/social-links.
+
+MARKUP: a self-closing comment, no HTML
+<!-- wp:social-link {"url":"https://www.instagram.com/example","service":"instagram"} /-->
+<!-- wp:social-link {"url":"hello@example.com","service":"mail","label":"Write to us"} /-->
+
+ATTRIBUTES
+url: required; without it nothing is shown. An e-mail address becomes a mailto: link; an
+address without a scheme gets https:// added.
+service: the icon. Known slugs: amazon bandcamp behance bluesky chain codepen deviantart
+discord dribbble dropbox etsy facebook feed fivehundredpx flickr foursquare github goodreads
+google gravatar instagram lastfm linkedin mail mastodon medium meetup patreon pinterest pocket
+reddit share skype snapchat soundcloud spotify telegram threads tiktok tumblr twitch twitter
+vimeo vk whatsapp wordpress x yelp youtube. An unknown slug shows the generic "share" icon.
+chain = a plain link (a website); feed = RSS.
+label: the text for screen readers (or shown with showLabels); defaults to the service name.
+rel: extra rel values for the link.
+]]></block-guide>
