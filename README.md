@@ -1,3 +1,5 @@
+<p align="center"><a href="https://fabrement.com/"><img src=".github/fabrement-logo.png" alt="Fabrement" width="420"></a></p>
+
 # Fabrement Lite
 
 A WordPress plugin that makes your site an MCP (Model Context Protocol) server. Connect the AI client
