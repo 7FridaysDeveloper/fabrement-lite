@@ -14,6 +14,16 @@ words, and it is done on your site with the blocks, theme and plugins it already
 
 ▶ [Claude Design to WordPress: HTML Export to Gutenberg Blocks in Under 2 Hours](https://www.youtube.com/watch?v=swOd_r8PwNQ&t=44s) (YouTube)
 
+## Fabrement Pro
+
+Lite is free and complete on its own: nothing is locked or time-limited. **Fabrement Pro**, the full
+edition by the same team, adds AI generation of custom blocks and page layouts, a design system,
+site-wide CSS/JS and more, and uses a Fabrement account. The video above shows Pro at work. Read about
+it at [fabrement.com](https://fabrement.com/).
+
+One edition is active at a time: to switch, deactivate Lite and activate Pro. Your content stays in
+WordPress.
+
 ## Installing
 
 Download `fabrement-lite.zip` from the
