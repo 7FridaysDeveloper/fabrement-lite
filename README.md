@@ -5,7 +5,7 @@ you already use — Claude, ChatGPT, Codex, Cursor or any other MCP client — s
 words, and it is done on your site with the blocks, theme and plugins it already has.
 
 - Website: [fabrement.com](https://fabrement.com/)
-- Requires WordPress 6.9+, PHP 8.0+, an administrator account; single site (no Multisite)
+- Requires WordPress 6.9+, PHP 8.0+ and an administrator account
 - MCP endpoint: `/wp-json/fabrement/v1/mcp`
 - Text domain: `fabrement-lite`
 - License: GPL-2.0-or-later
