@@ -19,6 +19,10 @@ Download `fabrement-lite.zip` from the
 [latest release](https://github.com/7FridaysDeveloper/fabrement-lite/releases/latest) and upload it in
 *Plugins → Add New → Upload Plugin*, then activate it.
 
+> Don't use the green **Code → Download ZIP** button — that is the source code, without the built
+> scripts and dependencies. Download `fabrement-lite.zip` from
+> [Releases](https://github.com/7FridaysDeveloper/fabrement-lite/releases/latest).
+
 ## Connecting a client
 
 1. Open **Fabrement → MCP Connection**.
