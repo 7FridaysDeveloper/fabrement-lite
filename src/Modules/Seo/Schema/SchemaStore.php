@@ -8,33 +8,25 @@ use Fabrement\Modules\Seo\Seo;
 use Fabrement\Modules\Translation\Translation;
 
 /**
- * Custom structured data (schema.org JSON-LD) an agent attaches to ONE record or to EVERY record
- * of a post type.
+ * Custom structured data (schema.org JSON-LD) an agent attaches to ONE record, in post meta
+ * `_fabrement_schema`.
  *
  * Yoast builds a good generic graph (Organization, WebSite, WebPage, Breadcrumb, Article) but it
- * cannot know that a `book` is a Book, a `course` is a Course, or that this one landing page is a
- * FAQPage with these questions. That is what this store holds: extra graph PIECES, written once,
- * output on every matching page.
- *
- * TWO SCOPES, one shape:
- *   - post   → post meta `_fabrement_schema` — pieces for this record only (a FAQPage, an Event).
- *   - type   → option `fabrement_schema_types[<post_type>]` — a TEMPLATE of pieces applied to every
- *              record of the type, with `{{token}}` placeholders resolved per post at render time
- *              ({{title}}, {{url}}, {{field:price}}, {{option:site.phone}}, {{term:genre}} …;
- *              the field tokens are {@see SchemaFields}). This is how a CPT gets a
- *              Product / Book / Event node without touching each record.
+ * cannot know that this landing page is a FAQPage with these questions, or this record an Event.
+ * That is what this store holds: extra graph PIECES, with `{{token}}` placeholders resolved at
+ * render time ({{title}}, {{url}}, {{meta:price}}, {{term:genre}} …).
  *
  * Pieces are stored as they were given (tokens intact) and VALIDATED on write: a JSON-LD block
  * that does not parse is worse than none — Google silently drops the whole graph, Yoast's included.
  *
  * Output is the SEO plugin's: the nodes are a piece of its graph ({@see SchemaOutput}, one
  * <script>, one @graph, cross-references to its nodes work). Without an SEO plugin nothing is
- * printed — structured data is that plugin's job; the store keeps the templates until one runs.
+ * printed — structured data is that plugin's job; the store keeps the pieces until one runs.
  *
  * The page tokens ({{url}}, {{site_url}}, {{title}}, {{excerpt}}, {{featured_image}}, the dates) are
  * the plugin's own values ({@see \Fabrement\Modules\Seo\Contract\SeoBridge::schema_values()}), so
  * a node points at exactly the nodes the plugin prints, in the record's language. Fabrement's own
- * data — {{field:…}}, {{option:…}}, {{term:…}}, {{meta:…}} — is read here.
+ * data — {{term:…}}, {{meta:…}} — is read here.
  */
 final class SchemaStore {
 
@@ -58,21 +50,6 @@ final class SchemaStore {
         return self::decode( is_string( $raw ) ? $raw : '' );
     }
 
-    /** @return list<array<string, mixed>> */
-    public static function read_type( string $post_type ): array {
-        $all = get_option( Keys::OPTION_SCHEMA_TYPES, [] );
-        if ( ! is_array( $all ) || ! isset( $all[ $post_type ] ) ) {
-            return [];
-        }
-        return self::decode( is_string( $all[ $post_type ] ) ? $all[ $post_type ] : '' );
-    }
-
-    /** @return list<string> post types that carry a type-level graph */
-    public static function types_with_schema(): array {
-        $all = get_option( Keys::OPTION_SCHEMA_TYPES, [] );
-        return is_array( $all ) ? array_values( array_map( 'strval', array_keys( $all ) ) ) : [];
-    }
-
     // ───────────────────────────── write ─────────────────────────────
 
     /**
@@ -80,7 +57,7 @@ final class SchemaStore {
      * @return true|WP_Error
      */
     public static function write_post( int $post_id, array $pieces ) {
-        $json = self::validate( $pieces, (string) get_post_type( $post_id ), (string) get_permalink( $post_id ) );
+        $json = self::validate( $pieces, (string) get_permalink( $post_id ) );
         if ( $json instanceof WP_Error ) {
             return $json;
         }
@@ -93,43 +70,15 @@ final class SchemaStore {
     }
 
     /**
-     * @param list<array<string, mixed>> $pieces  [] clears.
-     * @return true|WP_Error
-     */
-    public static function write_type( string $post_type, array $pieces ) {
-        $json = self::validate( $pieces, $post_type );
-        if ( $json instanceof WP_Error ) {
-            return $json;
-        }
-        $all = get_option( Keys::OPTION_SCHEMA_TYPES, [] );
-        if ( ! is_array( $all ) ) {
-            $all = [];
-        }
-        if ( $json === '' ) {
-            unset( $all[ $post_type ] );
-        } else {
-            $all[ $post_type ] = $json;
-        }
-        if ( $all === [] ) {
-            delete_option( Keys::OPTION_SCHEMA_TYPES );
-        } else {
-            update_option( Keys::OPTION_SCHEMA_TYPES, $all, false );
-        }
-        return true;
-    }
-
-    /**
      * Shape check + size cap. Returns the canonical JSON ('' for an empty list) or a WP_Error
      * naming the piece and the reason, so the agent can fix exactly that.
      *
      * @param list<array<string, mixed>> $pieces
-     * @param string                     $post_type The records the graph is for: `{{field:…}}` paths
-     *                                              are checked against that type's fields.
      * @param string                     $page_url  The record's address, for a record's own graph: an
      *                                              @id written as that literal URL is Yoast's too.
      * @return string|WP_Error
      */
-    public static function validate( array $pieces, string $post_type = '', string $page_url = '' ) {
+    public static function validate( array $pieces, string $page_url = '' ) {
         if ( $pieces === [] ) {
             return '';
         }
@@ -169,14 +118,14 @@ final class SchemaStore {
                 return new WP_Error(
                     'yoast_node_extended',
                     sprintf(
-                        '%s names a node Yoast SEO prints (%s) and gives it properties of its own. Objects with one @id are ONE node in JSON-LD, so this would add to or overwrite the node Yoast prints. Point at it with the id alone — {"@id": "%s"}; what that node says (the name, logo, profiles of the organisation) is set-seo-defaults {site}.',
+                        '%s names a node Yoast SEO prints (%s) and gives it properties of its own. Objects with one @id are ONE node in JSON-LD, so this would add to or overwrite the node Yoast prints. Point at it with the id alone — {"@id": "%s"}; what that node says (the name, logo, profiles of the organisation) an administrator sets in Yoast\'s settings in wp-admin.',
                         $nested,
                         wp_json_encode( self::id_at( $piece, $nested ) ),
                         (string) self::id_at( $piece, $nested )
                     )
                 );
             }
-            $bad = self::scan_strings( $piece, 'graph[' . $i . ']', $post_type );
+            $bad = self::scan_strings( $piece, 'graph[' . $i . ']' );
             if ( $bad instanceof WP_Error ) {
                 return $bad;
             }
@@ -238,10 +187,10 @@ final class SchemaStore {
      *
      * @return true|WP_Error
      */
-    private static function scan_strings( $value, string $path, string $post_type = '' ) {
+    private static function scan_strings( $value, string $path ) {
         if ( is_array( $value ) ) {
             foreach ( $value as $k => $v ) {
-                $r = self::scan_strings( $v, $path . '.' . $k, $post_type );
+                $r = self::scan_strings( $v, $path . '.' . $k );
                 if ( $r instanceof WP_Error ) {
                     return $r;
                 }
@@ -262,9 +211,6 @@ final class SchemaStore {
                     if ( $arg === '' ) {
                         return new WP_Error( 'token_needs_arg', sprintf( '%s: {{%s:…}} needs a key — e.g. {{meta:price}} or {{term:genre}}.', $path, $name ) );
                     }
-                    if ( $name === 'meta' && strpos( $arg, Keys::FIELD_META_PREFIX ) === 0 ) {
-                        return new WP_Error( 'meta_is_a_field', sprintf( '%s: {{meta:%s}} is a Fabrement field — {{field:%s}} reads it as the page shows it (the default when unset, an image as its URL, a date-time with the time zone).', $path, $arg, substr( $arg, strlen( Keys::FIELD_META_PREFIX ) ) ) );
-                    }
                     if ( $name === 'term' && ! self::public_taxonomy( $arg ) ) {
                         return new WP_Error( 'taxonomy_not_public', sprintf( '%s: {{term:%s}} — "%s" is not a public taxonomy (list-taxonomies); the graph is public.', $path, $arg, $arg ) );
                     }
@@ -272,7 +218,7 @@ final class SchemaStore {
                         return new WP_Error(
                             'protected_meta',
                             sprintf(
-                                '%s: {{meta:%s}} reads a protected key — WordPress and plugins keep their internal state there (edit locks, template, other plugins\' settings), and the graph is public. A Fabrement field is {{field:<name>}}; list-post-type-fields names the keys a record has.',
+                                '%s: {{meta:%s}} reads a protected key — WordPress and plugins keep their internal state there (edit locks, template, other plugins\' settings), and the graph is public.',
                                 $path,
                                 $arg
                             )
@@ -280,30 +226,17 @@ final class SchemaStore {
                     }
                     continue;
                 }
-                if ( $name === 'field' || $name === 'option' ) {
-                    if ( $arg === '' ) {
-                        return new WP_Error( 'token_needs_arg', sprintf( '%s: {{%s:…}} needs a path — e.g. {{field:price}} or {{option:site.phone}}.', $path, $name ) );
-                    }
-                    $where = $path . ' {{' . $name . ':' . $arg . '}}';
-                    $bad   = $name === 'option'
-                        ? SchemaFields::check_option( $arg, $where )
-                        : ( $post_type !== '' ? SchemaFields::check_field( $arg, $post_type, $where ) : null );
-                    if ( $bad instanceof WP_Error ) {
-                        return $bad;
-                    }
-                    continue;
-                }
                 if ( ! in_array( $name, self::TOKENS, true ) ) {
-                    return new WP_Error( 'unknown_token', sprintf( '%s: unknown token {{%s}}. Known: {{%s}}, {{field:<name>}}, {{option:<page>.<field>}}, {{meta:<key>}}, {{term:<taxonomy>}}.', $path, $name, implode( '}}, {{', self::TOKENS ) ) );
+                    return new WP_Error( 'unknown_token', sprintf( '%s: unknown token {{%s}}. Known: {{%s}}, {{meta:<key>}}, {{term:<taxonomy>}}.', $path, $name, implode( '}}, {{', self::TOKENS ) ) );
                 }
             }
         }
-        // Braces left once the tokens are out are a token mistyped ({{Title}}, {{field :price}},
+        // Braces left once the tokens are out are a token mistyped ({{Title}}, {{meta :price}},
         // a lost brace): refused, or the page would print them as text.
         $rest = (string) preg_replace( self::TOKEN, '', $value );
         if ( str_contains( $rest, '{{' ) || str_contains( $rest, '}}' ) ) {
             preg_match( '/\{\{[^{}]*\}*|\}\}/', $rest, $fragment );
-            return new WP_Error( 'malformed_token', sprintf( '%s: "%s" is not a token — a token is lowercase, {{name}} or {{name:key}}, with nothing before the colon. Known: {{%s}}, {{field:<name>}}, {{option:<page>.<field>}}, {{meta:<key>}}, {{term:<taxonomy>}}.', $path, $fragment[0] ?? '{{', implode( '}}, {{', self::TOKENS ) ) );
+            return new WP_Error( 'malformed_token', sprintf( '%s: "%s" is not a token — a token is lowercase, {{name}} or {{name:key}}, with nothing before the colon. Known: {{%s}}, {{meta:<key>}}, {{term:<taxonomy>}}.', $path, $fragment[0] ?? '{{', implode( '}}, {{', self::TOKENS ) ) );
         }
         return true;
     }
@@ -393,41 +326,33 @@ final class SchemaStore {
     // ───────────────────────────── resolve ─────────────────────────────
 
     /**
-     * The pieces that apply to a post — type template first, then the post's own — with every
-     * `{{token}}` replaced by the post's value. A piece whose `@id` is missing gets a stable one
-     * derived from the URL, so every render names the same node.
+     * The record's pieces with every `{{token}}` replaced by the post's value. A piece whose `@id`
+     * is missing gets a stable one derived from the URL, so every render names the same node.
      *
-     * @param bool                       $with_type Include the template stored for this record's
-     *                                              OWN post type. The posts page is a `page`, so
-     *                                              what this suppresses is the site's page-level
-     *                                              template — which describes a document, and the
-     *                                              blog index is a listing.
-     * @param array<string,string>|null $values    The page tokens as the SEO plugin gives them
-     *                                              (SeoBridge::schema_values()); null asks it. Without
-     *                                              an SEO plugin there are none, and nothing resolves.
+     * @param array<string,string>|null $values The page tokens as the SEO plugin gives them
+     *                                           (SeoBridge::schema_values()); null asks it. Without
+     *                                           an SEO plugin there are none, and nothing resolves.
      */
-    public static function resolve_for_post( int $post_id, bool $with_type = true, ?array $values = null ): array {
+    public static function resolve_for_post( int $post_id, ?array $values = null ): array {
         // Supplied values belong to the caller's existing page context. Without them the ENTIRE
-        // resolution must follow the record, including field/option tokens after schema_values().
+        // resolution must follow the record, including meta/term tokens after schema_values().
         return $values !== null
-            ? self::resolve( $post_id, $with_type, $values )
-            : Translation::in_context( Translation::live_language_of( $post_id ), static fn(): array => self::resolve( $post_id, $with_type, null ) );
+            ? self::resolve( $post_id, $values )
+            : Translation::in_context( Translation::live_language_of( $post_id ), static fn(): array => self::resolve( $post_id, null ) );
     }
 
     /** @param array<string,string>|null $values */
-    private static function resolve( int $post_id, bool $with_type, ?array $values ): array {
+    private static function resolve( int $post_id, ?array $values ): array {
         $post = get_post( $post_id );
         if ( ! $post instanceof \WP_Post ) {
             return [];
         }
-        $pieces = $with_type
-            ? array_merge( self::read_type( (string) $post->post_type ), self::read_post( $post_id ) )
-            : self::read_post( $post_id );
+        $pieces = self::read_post( $post_id );
         if ( $pieces === [] ) {
             return [];
         }
         // A password-protected record keeps its words behind the password; the JSON-LD in <head>
-        // is served before anyone types it. So its summary, field values and terms resolve
+        // is served before anyone types it. So its summary, meta values and terms resolve
         // to "" (and those properties drop out) — for every visitor, the one who knows the
         // password included, since the same page is cached for both.
         $locked = (string) $post->post_password !== '';
@@ -453,7 +378,7 @@ final class SchemaStore {
         return $out;
     }
 
-    /** @param int $post_id 0 = a locked record: every field, meta and term token resolves to "". */
+    /** @param int $post_id 0 = a locked record: every meta and term token resolves to "". */
     private static function replace( $value, array $ctx, int $post_id ) {
         if ( is_array( $value ) ) {
             $out = [];
@@ -470,14 +395,6 @@ final class SchemaStore {
             static function ( array $m ) use ( $ctx, $post_id ): string {
                 $name = $m[1];
                 $arg  = isset( $m[2] ) ? trim( $m[2] ) : '';
-                if ( $name === 'field' ) {
-                    return $post_id > 0 ? SchemaFields::field( $arg, $post_id ) : '';
-                }
-                if ( $name === 'option' ) {
-                    // Site-wide facts (a phone, an address), not the record's words: a locked
-                    // record does not hide them.
-                    return SchemaFields::option( $arg );
-                }
                 if ( $name === 'meta' ) {
                     if ( $post_id <= 0 || self::is_private_meta( $arg ) ) {
                         return '';

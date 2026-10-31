@@ -19,7 +19,6 @@ final class SiteTest extends SiteTestCase {
         $this->assertSame( 'en', $languages['default'] );
         $this->assertSame( [ 'en', 'fr', 'pl' ], array_column( $languages['languages'], 'code' ) );
         $this->assertSame( [ true, false, false ], array_column( $languages['languages'], 'isDefault' ) );
-        $this->assertTrue( $languages['capabilities']['stringTranslation'], 'String Translation is active' );
 
         foreach ( [ '/' => 'en-US', '/fr/' => 'fr-FR', '/pl/' => 'pl-PL' ] as $path => $locale ) {
             $home = $this->get( $path );
@@ -52,6 +51,5 @@ final class SiteTest extends SiteTestCase {
     public function test_the_agent_is_told_about_languages_only_where_they_exist(): void {
         $tools = array_column( $this->client()->tools(), null, 'name' );
         $this->assertArrayHasKey( 'fabrement-translate-content', $tools );
-        $this->assertArrayHasKey( 'language', $tools['fabrement-set-field-values']['inputSchema']['properties'], 'an options page has a row per language' );
     }
 }

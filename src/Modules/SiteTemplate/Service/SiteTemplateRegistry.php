@@ -116,70 +116,27 @@ final class SiteTemplateRegistry {
     }
 
     /**
-     * Why {@see find_assignable()} answered null for $template_id, in words an agent can act
-     * on. A language version is a template get-template returns in full, so "not found" for the
-     * same id reads as a bug; the useful answer is which original to pass instead.
+     * Why {@see find_assignable()} answered null for $template_id, in words an agent can act on:
+     * for a language version, which original to pass instead.
      */
     public static function not_assignable_message( int $template_id ): string {
-        $record = self::find_any( $template_id );
-        if ( $record !== null && ! Translation::bridge()->is_original( $template_id, SiteTemplatePostType::POST_TYPE ) ) {
-            $original = self::original_id( $template_id );
-
-            // Naming the wrong id here is worse than naming none: this message exists to stop an
-            // agent assigning a version, and it is followed literally. It used to read the group's
-            // DEFAULT-LANGUAGE member as the original — measured on a group whose original is
-            // Polish, that handed back the English VERSION, which for template 10085 was 10085
-            // itself: the answer pointed at the id it had just refused.
-            if ( $original <= 0 || $original === $template_id ) {
+        if ( self::find_any( $template_id ) !== null && ! Translation::bridge()->is_original( $template_id, SiteTemplatePostType::POST_TYPE ) ) {
+            $original = SiteTemplateTranslator::original_of( $template_id );
+            if ( $original === null || $original->id === $template_id ) {
                 return sprintf(
                     /* translators: %d: the version's id. */
-                    __( 'Template %d is a language version, not a template of its own: pages, defaults and archives are assigned to the ORIGINAL. Which record that is could not be resolved here — read `translation.originalId` from get-template.', 'fabrement-lite' ),
+                    __( 'Template %d is a language version, not a template of its own: pages are assigned to the ORIGINAL. Read `translation.originalId` from get-template.', 'fabrement-lite' ),
                     $template_id
                 );
             }
-
             return sprintf(
                 /* translators: 1: version id, 2: original template id. */
-                __( 'Template %1$d is a language version, not a template of its own: pages, defaults and archives are assigned to the ORIGINAL (%2$d), and readers in that language are handed the version.', 'fabrement-lite' ),
+                __( 'Template %1$d is a language version, not a template of its own: pages are assigned to the ORIGINAL (%2$d), and readers in that language are handed the version.', 'fabrement-lite' ),
                 $template_id,
-                $original
+                $original->id
             );
         }
         return __( 'Template not found.', 'fabrement-lite' );
-    }
-
-    /**
-     * The record its group started from, or 0 when there is no group to ask about.
-     *
-     * ORIGINAL IS A ROLE, NOT A LANGUAGE. It is fixed when the group is made and it is whatever
-     * language somebody happened to author in — a template written in Polish has a Polish original
-     * and an English translation, and the site's default language says nothing about either. Two
-     * callers read this as "the default language's version" and both were wrong for such a group;
-     * this is the one place that asks the question properly, so a third does not invent a third
-     * answer.
-     *
-     * Batched on purpose: version_facts() answers language AND isOriginal for a set of ids in
-     * one query, where is_original() per member costs a lookup each.
-     */
-    public static function original_id( int $template_id ): int {
-        $bridge = Translation::bridge();
-        if ( $bridge->is_original( $template_id, SiteTemplatePostType::POST_TYPE ) ) {
-            return $template_id;
-        }
-
-        $group = $bridge->all_versions( $template_id, SiteTemplatePostType::POST_TYPE );
-        $ids   = array_values( array_map( 'intval', $group ) );
-        if ( $ids === [] ) {
-            return 0;
-        }
-
-        foreach ( $bridge->version_facts( $ids, SiteTemplatePostType::POST_TYPE ) as $id => $info ) {
-            if ( ! empty( $info['isOriginal'] ) ) {
-                return (int) $id;
-            }
-        }
-
-        return 0;
     }
 
     /**

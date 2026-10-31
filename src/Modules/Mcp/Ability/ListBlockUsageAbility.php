@@ -88,6 +88,10 @@ final class ListBlockUsageAbility extends AbstractAbility {
         $used = [];
         $rows = self::candidates( $name );
         foreach ( $rows as $row ) {
+            // Only records this user may read: another's draft or private page is not named (read_post).
+            if ( ! current_user_can( 'read_post', (int) $row->ID ) ) {
+                continue;
+            }
             $count = self::count( parse_blocks( (string) $row->post_content ), $name );
             if ( $count === 0 ) {
                 continue; // the name stood in text, not in a block

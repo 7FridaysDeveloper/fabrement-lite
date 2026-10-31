@@ -4,7 +4,6 @@ namespace Fabrement\Modules\Seo\Integration;
 
 use Fabrement\Modules\Seo\Content\ContentImages;
 use Fabrement\Modules\Seo\Contract\SeoIntegration;
-use Fabrement\Modules\Seo\Content\FieldText;
 use Fabrement\Modules\Seo\SiteQueryVars;
 use Fabrement\Modules\NotFound\NotFoundPage;
 
@@ -33,7 +32,6 @@ final class YoastIntegration implements SeoIntegration {
         add_filter( 'wpseo_add_opengraph_additional_images', [ self::class, 'open_graph_image' ] );
         add_filter( 'wpseo_sitemap_urlimages', [ self::class, 'sitemap_images' ], 10, 2 );
         add_filter( 'Yoast\WP\SEO\allowlist_permalink_vars', [ self::class, 'allowed_query_vars' ] );
-        add_action( 'wpseo_register_extra_replacements', [ self::class, 'register_variables' ] );
     }
 
     /** @param string $robots */
@@ -87,7 +85,7 @@ final class YoastIntegration implements SeoIntegration {
      * A social preview picture for a page built of blocks. Yoast's own order runs first — the image
      * set for the page, then its featured image, a gallery image or the first <img> in the stored
      * content, then the image set for its post type (Yoast Premium) — and only when all of that
-     * found nothing does the page's first image in a global block or field step in, before the
+     * found nothing does the page's first image in a global block step in, before the
      * site's default. A picture chosen by a person is never replaced.
      *
      * @param mixed $container Yoast's Images value object.
@@ -139,7 +137,7 @@ final class YoastIntegration implements SeoIntegration {
     }
 
     /**
-     * The images in a record's blocks and fields, added to its sitemap entry. Yoast lists what it
+     * The images in a record's global blocks, added to its sitemap entry. Yoast lists what it
      * found in the stored content; these are the ones it could not see. Each goes through the same
      * filters as Yoast's own (a CDN rewriting `wpseo_xml_sitemap_img_src` rewrites ours too), so
      * a picture both lists is listed once.
@@ -193,34 +191,5 @@ final class YoastIntegration implements SeoIntegration {
      */
     public static function allowed_query_vars( $vars ) {
         return is_array( $vars ) ? array_values( array_unique( array_merge( $vars, SiteQueryVars::added() ) ) ) : $vars;
-    }
-
-    /** `%%fab_…%%`, on `wpseo_register_extra_replacements`. */
-    public static function register_variables(): void {
-        if ( ! function_exists( 'wpseo_register_var_replacement' ) ) {
-            return;
-        }
-        static $registered = [];
-        foreach ( array_keys( FieldText::names() ) as $name ) {
-            if ( isset( $registered[ $name ] ) ) {
-                continue;
-            }
-            $registered[ $name ] = true;
-            wpseo_register_var_replacement( $name, [ self::class, 'variable' ], 'advanced', FieldText::describe( $name ) );
-        }
-    }
-
-    /**
-     * Yoast's callback: `$args` is what it renders for — a post (ID), a term or an archive (none).
-     * Null makes Yoast drop the variable, and a doubled separator with it.
-     *
-     * @param mixed $name
-     * @param mixed $args
-     */
-    public static function variable( $name, $args = null ): ?string {
-        $text = FieldText::for_variable( (string) $name, is_object( $args ) ? (int) ( $args->ID ?? 0 ) : 0 );
-        // Yoast strips tags from the whole title after the variables are in, so "Kids <12" would be
-        // cut at "<": "<" goes in as "&lt;", which the strip leaves and esc_html() prints as "<".
-        return $text === null ? null : str_replace( '<', '&lt;', $text );
     }
 }

@@ -3,7 +3,7 @@
 namespace Fabrement\Api\Markup;
 
 use Fabrement\Api\Content\Post;
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Support\OrElse;
 use Fabrement\Api\Support\Quietly;
 use Fabrement\Modules\Translation\Version;
@@ -49,16 +49,16 @@ final class Link {
             return new self( Attributes::address( $value, $where ), '', false, 0 );
         }
         if ( ! is_array( $value ) ) {
-            throw new FieldsException( 'give a url attribute or link field value {url, label, newTab, postId, lang, useRecordTitle}, or an address; got ' . esc_html( get_debug_type( $value ) ) . '.' );
+            throw new ApiException( 'give a url attribute or link value {url, label, newTab, postId, lang, useRecordTitle}, or an address; got ' . esc_html( get_debug_type( $value ) ) . '.' );
         }
         foreach ( [ 'url' => 'is_string', 'label' => 'is_string', 'text' => 'is_string', 'lang' => 'is_string', 'newTab' => 'is_bool', 'useRecordTitle' => 'is_bool', 'postId' => 'is_int' ] as $key => $check ) {
             if ( array_key_exists( $key, $value ) && ! $check( $value[ $key ] ) ) {
-                throw new FieldsException( 'a link value is {url, label, newTab, postId, lang, useRecordTitle} — ' . esc_html( $key ) . ' is ' . ( $check === 'is_string' ? 'text' : ( $check === 'is_bool' ? 'true or false' : 'a record id' ) ) . ', not ' . esc_html( get_debug_type( $value[ $key ] ) ) . '.' );
+                throw new ApiException( 'a link value is {url, label, newTab, postId, lang, useRecordTitle} — ' . esc_html( $key ) . ' is ' . ( $check === 'is_string' ? 'text' : ( $check === 'is_bool' ? 'true or false' : 'a record id' ) ) . ', not ' . esc_html( get_debug_type( $value[ $key ] ) ) . '.' );
             }
         }
         $post_id = $value['postId'] ?? 0;
         if ( $post_id < 0 ) {
-            throw new FieldsException( 'a link value\'s postId is a record id (an integer from 0), not ' . esc_html( $post_id ) . '.' );
+            throw new ApiException( 'a link value\'s postId is a record id (an integer from 0), not ' . esc_html( $post_id ) . '.' );
         }
         if ( $post_id <= 0 ) {
             return new self( Attributes::address( $value['url'] ?? '', $where ), self::words( $value ), ( $value['newTab'] ?? false ) === true, 0 );

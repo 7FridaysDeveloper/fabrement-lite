@@ -101,8 +101,7 @@ final class SetPostTermsAbility extends AbstractAbility {
     public function execute( array $input ) {
         $post_id  = (int) ( $input['contentId'] ?? 0 );
         $taxonomy = sanitize_key( (string) ( $input['taxonomy'] ?? '' ) );
-        // THE SAME THREE WORDS the other set-taking tools use (assign-template-pages), so an agent
-        // does not have to remember a different spelling here. `remove` takes ONE term off without
+        // `remove` takes ONE term off without
         // sending every other term back.
         // No default (the input schema requires it): silently replacing was how a call meant to
         // add one term took every other term off the record.

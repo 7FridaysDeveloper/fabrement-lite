@@ -2,19 +2,17 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
-use Fabrement\Modules\Mcp\Support\PostTypeArchive;
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 use Fabrement\Modules\Mcp\Support\LanguageVersion;
 use Fabrement\Modules\Mcp\Support\NotKept;
 use Fabrement\Modules\Mcp\Support\StrictBooleans;
 use Fabrement\Modules\Seo\Contract\SeoBridge;
 use Fabrement\Modules\Seo\Seo;
-use Fabrement\Modules\Translation\Translation;
 use WP_Error;
 
 /**
  * Per-record SEO through the SEO plugin ({@see Seo::bridge()}): the fields of its metabox, written
- * by an agent — for a record, a term archive, or a post-type archive.
+ * by an agent — for a record or a term archive.
  *
  * Refused without an SEO plugin: the values would sit in post meta with nothing reading them, and
  * the agent would report "SEO done" on a page whose <title> never changed.
@@ -24,25 +22,21 @@ final class SetSeoAbility extends AbstractAbility {
     private const MAX_TITLE = 200;
     private const MAX_DESC  = 320;
 
-    /** What a post-type archive takes: the plugin keeps one site-wide value each. */
-    private const ARCHIVE_DEFAULT_FIELDS = [ 'title', 'metaDesc', 'noindex' ];
-
     public function name(): string {
         return 'fabrement/set-seo';
     }
 
     public function label(): string {
-        return 'Set SEO for a record';
+        return 'Set SEO';
     }
 
     public function description(): string {
-        return 'Set the Yoast fields of ONE record (contentId), ONE term archive (termId — a category, tag or '
-            . 'term of a custom taxonomy) or ONE post-type archive (archive: the post type, e.g. "book" for '
-            . '/books/; it takes title, metaDesc and noindex, one value for the whole site): title, metaDesc, focusKeyword, canonical, '
-            . 'noindex/nofollow, robotsAdvanced, schemaPageType/ArticleType, og*/twitter*. A term takes title, metaDesc, '
+        return 'Set the Yoast fields of ONE record (contentId) or ONE term archive (termId — a category, tag or '
+            . 'term of a custom taxonomy): title, metaDesc, focusKeyword, canonical, '
+            . 'noindex/nofollow, robotsAdvanced, breadcrumbTitle, cornerstone, schemaPageType/ArticleType, og*/twitter*. A term takes title, metaDesc, '
             . 'focusKeyword, canonical, noindex, breadcrumbTitle, cornerstone, og*/twitter* only. Send only what '
             . 'changes; "" or null clears a field. Refused when Yoast is not active. Custom schema nodes go '
-            . 'through set-schema. Verify with get-seo {contentId} / {termId} / {archive}.';
+            . 'through set-schema. Verify with get-seo {contentId} / {termId}.';
     }
 
     public function contract(): ?string {
@@ -54,9 +48,8 @@ final class SetSeoAbility extends AbstractAbility {
         return [
             'type'                 => 'object',
             'properties'           => [
-                'contentId'          => [ 'type' => 'integer', 'minimum' => 1, 'description' => 'A page, post or custom record. Give this, termId OR archive.' ],
+                'contentId'          => [ 'type' => 'integer', 'minimum' => 1, 'description' => 'A page, post or custom record. Give this OR termId.' ],
                 'termId'             => [ 'type' => 'integer', 'minimum' => 1, 'description' => 'A term (list-terms): the SEO of its archive page.' ],
-                'archive'            => [ 'type' => 'string', 'description' => 'A post type (list-archives): the SEO of its archive.' ],
             ] + self::multilingual( [
                 'language'           => [ 'type' => 'string', 'description' => 'With the contentId or termId of an ORIGINAL: its version in this language (the answer gives that id, and the original in from). Codes: list-languages.' ],
             ] ) + [
@@ -64,7 +57,7 @@ final class SetSeoAbility extends AbstractAbility {
                 'metaDesc'           => [ 'type' => [ 'string', 'null' ], 'maxLength' => self::MAX_DESC ],
                 'focusKeyword'       => [ 'type' => [ 'string', 'null' ], 'maxLength' => 120 ],
                 'canonical'          => [ 'type' => [ 'string', 'null' ], 'maxLength' => 2000 ],
-                'noindex'            => [ 'type' => [ 'boolean', 'null' ], 'description' => 'true hides it from search, false shows it even when its type is hidden, null follows the setting of its type; an archive takes only true or false.' ],
+                'noindex'            => [ 'type' => [ 'boolean', 'null' ], 'description' => 'true hides it from search, false shows it even when its type is hidden, null follows the setting of its type.' ],
                 'nofollow'           => [ 'type' => 'boolean' ],
                 'robotsAdvanced'     => [ 'type' => [ 'array', 'null' ], 'items' => self::one_of( $seo->robots_advanced() ) ],
                 'breadcrumbTitle'    => [ 'type' => [ 'string', 'null' ], 'maxLength' => 200 ],
@@ -104,7 +97,6 @@ final class SetSeoAbility extends AbstractAbility {
             'properties' => [
                 'contentId' => [ 'type' => 'integer' ],
                 'termId'    => [ 'type' => 'integer' ],
-                'archive'   => [ 'type' => 'string' ],
                 'from'      => [ 'type' => 'integer', 'description' => 'The original whose `language` version this is.' ],
                 'written'   => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                 'stored'    => [ 'type' => 'object' ],
@@ -129,9 +121,9 @@ final class SetSeoAbility extends AbstractAbility {
             return new WP_Error( 'yoast_inactive', 'Yoast SEO is not active, so these fields would never reach the page. Ask the site admin to install and activate it (get-seo shows the state).' );
         }
 
-        $targets = count( array_filter( [ ! empty( $input['contentId'] ), ! empty( $input['termId'] ), ! empty( $input['archive'] ) ] ) );
+        $targets = count( array_filter( [ ! empty( $input['contentId'] ), ! empty( $input['termId'] ) ] ) );
         if ( $targets !== 1 ) {
-            return new WP_Error( 'one_target', 'Give exactly one of contentId (a record), termId (a term archive) or archive (a post-type archive).' );
+            return new WP_Error( 'one_target', 'Give exactly one of contentId (a record) or termId (a term archive).' );
         }
         $input = LanguageVersion::target( $input );
         if ( is_wp_error( $input ) ) {
@@ -139,9 +131,6 @@ final class SetSeoAbility extends AbstractAbility {
         }
         $from = (int) ( $input['from'] ?? 0 );
         unset( $input['from'] );
-        if ( ! empty( $input['archive'] ) ) {
-            return self::archive( $seo, $input );
-        }
         if ( ! empty( $input['termId'] ) ) {
             $result = self::term( $seo, $input );
         } else {
@@ -165,6 +154,10 @@ final class SetSeoAbility extends AbstractAbility {
         }
         if ( ! current_user_can( 'edit_post', $id ) ) {
             return new WP_Error( 'forbidden', sprintf( 'You may not edit content %d.', $id ) );
+        }
+        $locked = self::not_allowed( $seo, $fields );
+        if ( $locked !== null ) {
+            return $locked;
         }
 
         $warnings = [];
@@ -208,57 +201,6 @@ final class SetSeoAbility extends AbstractAbility {
     }
 
     /**
-     * A post-type archive: the SEO plugin keeps one title, description and noindex for it across the
-     * whole site, and that is what is written.
-     *
-     * @param array<string,mixed> $input
-     * @return array<string,mixed>|WP_Error
-     */
-    private static function archive( SeoBridge $seo, array $input ) {
-        $type    = (string) $input['archive'];
-        $archive = PostTypeArchive::check( $type );
-        if ( $archive instanceof WP_Error ) {
-            return $archive;
-        }
-        $lang = (string) ( $input['language'] ?? '' );
-        if ( $lang !== '' && Translation::is_multilingual() && $lang !== Translation::bridge()->default_language() ) {
-            return new WP_Error( 'archive_one_value', sprintf( 'The "%s" archive has ONE SEO value for every language; send it without language.', $type ) );
-        }
-        $fields = $input;
-        unset( $fields['archive'], $fields['language'] );
-
-        if ( ! current_user_can( 'manage_options' ) ) {
-            return new WP_Error( 'forbidden', 'The SEO of an archive is a site setting — that needs the manage_options capability.' );
-        }
-        $other = array_diff( array_keys( $fields ), self::ARCHIVE_DEFAULT_FIELDS );
-        if ( $other !== [] ) {
-            return new WP_Error( 'not_for_archive', sprintf( '%s cannot be set on an archive. It takes: %s.', implode( ', ', $other ), implode( ', ', self::ARCHIVE_DEFAULT_FIELDS ) ) );
-        }
-        if ( array_key_exists( 'noindex', $fields ) && $fields['noindex'] === null ) {
-            return new WP_Error(
-                'archive_noindex_null',
-                sprintf( 'The "%s" archive noindex is true (hidden) or false (shown) — there is no type setting for it to follow. Send true or false.', $type )
-            );
-        }
-        $refused = NotKept::error( $seo->not_kept_defaults( $fields ) );
-        if ( $refused !== null ) {
-            return $refused;
-        }
-        $written  = $seo->write_archive_defaults( $type, $fields );
-        $warnings = [ sprintf( 'The "%s" archive: these are site-wide values for it%s.', $type, Translation::is_multilingual() ? ', the same in every language' : '' ) ];
-        if ( ! empty( $fields['noindex'] ) ) {
-            $warnings[] = 'noindex=true on this archive — it will drop out of search results.';
-        }
-
-        return [
-            'archive'  => $type,
-            'written'  => $written,
-            'stored'   => (object) $seo->read_archive_defaults( $type ),
-            'warnings' => $warnings,
-        ];
-    }
-
-    /**
      * The term branch. Its fields are a subset: a term archive has no nofollow, advanced robots or
      * schema types in Yoast — refused by name rather than dropped, so "set" means set.
      *
@@ -287,6 +229,10 @@ final class SetSeoAbility extends AbstractAbility {
         $other = array_diff( array_keys( $fields ), $seo->term_fields() );
         if ( $other !== [] ) {
             return new WP_Error( 'not_for_terms', sprintf( '%s cannot be set on a term. A term takes: %s.', implode( ', ', $other ), implode( ', ', $seo->term_fields() ) ) );
+        }
+        $locked = self::not_allowed( $seo, $fields );
+        if ( $locked !== null ) {
+            return $locked;
         }
         $fields = self::media_and_canonical( $fields );
         if ( is_wp_error( $fields ) ) {
@@ -335,6 +281,15 @@ final class SetSeoAbility extends AbstractAbility {
             }
         }
         return $fields;
+    }
+
+    /** The fields the SEO plugin's own metabox would not let this user set (Yoast: Advanced, Schema). */
+    private static function not_allowed( SeoBridge $seo, array $fields ): ?WP_Error {
+        $locked = $seo->not_allowed( array_keys( $fields ) );
+        return $locked === [] ? null : new WP_Error(
+            'forbidden',
+            sprintf( 'You may not set %s: Yoast lets only users with wpseo_edit_advanced_metadata change them. Send the other fields without them.', implode( ', ', $locked ) )
+        );
     }
 
     private static function without( array $arr, array $keys ): array {

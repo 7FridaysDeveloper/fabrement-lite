@@ -1,7 +1,7 @@
 <block-guide name="core/site-title"><![CDATA[
 CORE/SITE-TITLE (Site Title)
 Draws the site's name (Settings > General), linked to the home page by default. The text is the
-setting, never written in the block: change it with update-site-settings {siteTitle}, and every
+setting, never written in the block: an administrator changes it in wp-admin, and every
 site-title on the site changes. Places: a header or footer global block, or a template frame.
 
 MARKUP (comment only; no HTML)

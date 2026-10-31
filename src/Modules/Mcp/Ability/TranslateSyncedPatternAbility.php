@@ -64,6 +64,7 @@ final class TranslateSyncedPatternAbility extends DestructiveAbility {
                 'title'     => [ 'type' => 'string' ],
                 'blocks'    => [ 'type' => 'array', 'items' => [ 'type' => 'object' ] ],
                 'editUrl'   => [ 'type' => 'string' ],
+                'note'      => [ 'type' => 'string' ],
             ],
         ];
     }
@@ -106,8 +107,16 @@ final class TranslateSyncedPatternAbility extends DestructiveAbility {
         }
 
         $version = (int) $opened['id'];
+        $note    = '';
         if ( get_post_status( $version ) !== 'publish' ) {
-            wp_update_post( [ 'ID' => $version, 'post_status' => 'publish' ] );
+            // Publishing is the editor's Publish button: without it the version stays a draft. The
+            // type's publish cap, as the REST controller asks ('publish_post' on a wp_block maps to
+            // publish_blocks, which no role holds).
+            if ( current_user_can( get_post_type_object( SyncedPatterns::POST_TYPE )->cap->publish_posts ) ) {
+                wp_update_post( [ 'ID' => $version, 'post_status' => 'publish' ] );
+            } else {
+                $note = 'Left a draft: you may not publish it (publish_posts). Until an editor publishes it, pages in that language show nothing there.';
+            }
         }
 
         return [
@@ -117,6 +126,6 @@ final class TranslateSyncedPatternAbility extends DestructiveAbility {
             'title'     => (string) get_post_field( 'post_title', $version, 'raw' ),
             'blocks'    => BlockEntry::of_post( $version ),
             'editUrl'   => (string) get_edit_post_link( $version, 'raw' ),
-        ];
+        ] + ( $note !== '' ? [ 'note' => $note ] : [] );
     }
 }

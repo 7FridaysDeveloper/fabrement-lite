@@ -39,13 +39,16 @@ defined( 'ABSPATH' ) || exit;
     <h2><?php esc_html_e( 'Access to this site\'s content', 'fabrement-lite' ); ?></h2>
     <p><?php esc_html_e( 'This authorization works only through the Fabrement MCP server on this website. The OAuth token cannot sign in to wp-admin or authenticate requests to other WordPress REST API routes or other MCP servers.', 'fabrement-lite' ); ?></p>
     <p class="warning"><?php esc_html_e( 'This is not read-only access: the connected agent can change this site\'s content.', 'fabrement-lite' ); ?></p>
+    <p><?php esc_html_e( 'The agent acts as this WordPress account: it can do only what this account may do in wp-admin, and never more than an Editor. An Administrator\'s account works here with an Editor\'s permissions.', 'fabrement-lite' ); ?></p>
     <ul>
-        <li><?php esc_html_e( 'Read, create, edit and delete pages and posts, blocks on pages, templates, media, menus, forms, terms, and Fabrement fields, options pages and their values.', 'fabrement-lite' ); ?></li>
-        <li><?php esc_html_e( 'Edit SEO data through Yoast SEO, and the site title, tagline, icon and 404 page.', 'fabrement-lite' ); ?></li>
+        <li><?php esc_html_e( 'Read, create, edit and delete pages and posts, blocks on pages, media, forms and terms.', 'fabrement-lite' ); ?></li>
+        <li><?php esc_html_e( 'Edit synced patterns, including a header or footer that templates show on every page.', 'fabrement-lite' ); ?></li>
+        <li><?php esc_html_e( 'Build templates from blocks and assign them to pages.', 'fabrement-lite' ); ?></li>
+        <li><?php esc_html_e( 'Edit the SEO data of pages, posts and terms through Yoast SEO.', 'fabrement-lite' ); ?></li>
         <li><?php esc_html_e( 'Send requested site data to the connected AI provider.', 'fabrement-lite' ); ?></li>
     </ul>
-    <p><?php esc_html_e( 'It cannot install or change plugins, themes or users, and cannot change post types, taxonomies, the home page, the posts page or permalinks.', 'fabrement-lite' ); ?></p>
-    <p><?php esc_html_e( 'Access remains active until disconnected. You can disconnect it at any time in Fabrement → MCP Connection. Your WordPress password is not shared.', 'fabrement-lite' ); ?></p>
+    <p><?php esc_html_e( 'It cannot install or change plugins, themes or users, and cannot change site-wide template defaults, menus, site settings, site-wide SEO settings, post types, taxonomies or permalinks, or change content that takes more than an Editor\'s permissions, such as WooCommerce products.', 'fabrement-lite' ); ?></p>
+    <p><?php esc_html_e( 'Access ends when disconnected, after 90 days unused, or when this account\'s password changes. You can disconnect it at any time in Fabrement → MCP Connection. Your WordPress password is not shared.', 'fabrement-lite' ); ?></p>
     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
         <input type="hidden" name="action" value="fabrement_mcp_authorize">
         <input type="hidden" name="pending" value="<?php echo esc_attr( $pending ); ?>">

@@ -57,7 +57,7 @@ final class RegisteredBlocks {
     /** Refuse values WordPress would silently replace with defaults when rendering. */
     public static function validate( \WP_Block_Type $type, array $attrs, string $where ): array {
         if ( $type->name === 'fabrement/content-source' && ( array_key_exists( 'rules', $attrs ) || array_key_exists( 'templateId', $attrs ) ) ) {
-            throw new McpAbilityException( esc_html( $where ) . ': the Content Source slot takes no rules or templateId. Choose theme files with save-template contentSource.', [], 'invalid_attribute' );
+            throw new McpAbilityException( esc_html( $where ) . ': the Content Source slot takes no rules or templateId; theme files are set in wp-admin.', [], 'invalid_attribute' );
         }
         $keys = array_keys( $attrs );
         if ( AcfBlockData::is_block( $type->name ) && array_key_exists( 'id', $attrs ) ) {

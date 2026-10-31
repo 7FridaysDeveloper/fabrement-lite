@@ -8,8 +8,8 @@
 defined( 'ABSPATH' ) || exit;
 
 // A card of its own beside the setup card, not a section inside it: the switch controls
-// site-wide access, and the list is every OAuth connection on the site (with who authorized it)
-// plus this user's application passwords.
+// site-wide access, and the list is every OAuth connection (with who authorized it) plus this
+// user's application passwords.
 $fabrement_oauth_storage_ready = ( new \Fabrement\Modules\Mcp\OAuth\Store() )->ready();
 $fabrement_oauth_allowed = $fabrement_oauth_storage_ready && (bool) get_option( \Fabrement\Framework\Keys::OPTION_MCP_OAUTH_ENABLED, false );
 $fabrement_oauth_https = \Fabrement\Modules\Mcp\OAuth\Config::https();
@@ -72,7 +72,7 @@ $fabrement_stamp = 'Y-m-d H:i';
                         <?php if ( ! empty( $fabrement_oauth_grant['payload']['created'] ) ) : ?>
                             <span class="fabrement-cred__access-meta"><?php echo esc_html( sprintf( /* translators: %s: date and time. */ __( 'Authorized %s', 'fabrement-lite' ), wp_date( $fabrement_stamp, (int) $fabrement_oauth_grant['payload']['created'] ) ) ); ?></span>
                         <?php endif; ?>
-                        <span class="fabrement-cred__access-meta"><?php esc_html_e( 'Until disconnected', 'fabrement-lite' ); ?></span>
+                        <span class="fabrement-cred__access-meta"><?php esc_html_e( 'Until disconnected, unused for 90 days, or the password changes', 'fabrement-lite' ); ?></span>
                     </div>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                         <input type="hidden" name="action" value="fabrement_mcp_oauth_settings">

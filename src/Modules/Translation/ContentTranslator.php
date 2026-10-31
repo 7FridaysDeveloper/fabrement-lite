@@ -90,6 +90,10 @@ final class ContentTranslator {
             );
         }
         if ( $existing_post ) {
+            // Handed back to be edited: the caller must be able to edit it.
+            if ( ! current_user_can( 'edit_post', (int) $existing_post->ID ) ) {
+                return new WP_Error( 'fabrement_ct_forbidden', __( 'You cannot edit this content.', 'fabrement-lite' ), [ 'status' => 403 ] );
+            }
             return [ 'id' => (int) $existing_post->ID, 'created' => false ];
         }
 
@@ -104,8 +108,10 @@ final class ContentTranslator {
             );
         }
 
-        if ( ! current_user_can( 'edit_post', $content_id ) ) {
-            return new WP_Error( 'fabrement_ct_forbidden', __( 'You cannot edit this content.', 'fabrement-lite' ), [ 'status' => 403 ] );
+        // The copy is a new record of the type: edit the source, and create one of these.
+        $type_object = get_post_type_object( $type );
+        if ( ! current_user_can( 'edit_post', $content_id ) || ! $type_object || ! current_user_can( $type_object->cap->create_posts ) ) {
+            return new WP_Error( 'fabrement_ct_forbidden', __( 'You cannot edit this content or create its translation.', 'fabrement-lite' ), [ 'status' => 403 ] );
         }
 
         $placed = self::parent_in( $original, $type, $language );

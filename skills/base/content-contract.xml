@@ -59,7 +59,7 @@ Inspect the preview and reopen the editor to check block validation before repor
 STATUS AND DELETION
 Use set-content-status to publish, unpublish, trash or restore. delete-content is permanent.
 The assigned front, posts and not-found pages have protection checks: the site administrator reassigns
-the front and posts page in Settings first; the not-found page is cleared with update-site-settings.
+them in Settings first.
 Do not assume deleting a page deletes its attachments or reusable patterns.
 delete-media is permanent by default and can delete a referenced file: usedBy is informational, not a
 guarantee of refusal or exhaustive usage detection. Confirm intended deletion and repair known references.

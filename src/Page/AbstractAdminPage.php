@@ -124,15 +124,6 @@ abstract class AbstractAdminPage {
     }
 
     /**
-     * A few rules only this screen needs, printed with the shared layout stylesheet
-     * ({@see enqueue_tab_layout()}, which must be enqueued first) instead of a <style>
-     * tag in the template.
-     */
-    protected function add_screen_css( string $css ): void {
-        wp_add_inline_style( 'fabrement-tab-layout', $css );
-    }
-
-    /**
      * The card skin — see assets/admin/credentials-card.css. Used by MCP Connection.
      */
     protected function enqueue_credentials_card(): void {

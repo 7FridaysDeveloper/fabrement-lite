@@ -6,8 +6,8 @@
  *
  * Removes Lite's connection state (OAuth storage, the application passwords it issued, schema
  * version) and its own transients.
- * What the site built stays — templates, field definitions and values,
- * SEO schema — so installing the plugin again brings everything back as it was.
+ * What the site built stays — templates and SEO schema — so installing the plugin again brings
+ * everything back as it was.
  *
  * @package Fabrement
  */

@@ -52,13 +52,6 @@ declare global {
         wp: WpGlobal;
         fabrementEditor?: {
             themeTemplates?: Array<{path: string; label: string; kind?: string | null}>;
-            /**
-             * The site's languages, or an EMPTY list when there is no translation plugin (and
-             * also when it reports only one). Fields read the emptiness as "there is nothing to
-             * choose" and render no language control at all.
-             */
-            languages?: Array<{ code: string; label: string; isCurrent: boolean }>;
-            currentLanguage?: string;
         };
     }
 
@@ -76,6 +69,3 @@ declare global {
 }
 
 export {};
-
-// Stylesheets are collected into build/editor-plugin.css by the build.
-declare module '*.css';

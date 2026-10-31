@@ -119,6 +119,19 @@ function check_admin_referer( ...$args ) {
     if ( ! Fabrement\Tests\WordPressState::$valid_nonce ) { wp_die( 'Invalid nonce.' ); }
 }
 function wp_is_application_passwords_available_for_user( $user ) { return Fabrement\Tests\WordPressState::$passwords_available; }
+function wp_is_application_passwords_available() { return Fabrement\Tests\WordPressState::$passwords_available; }
+// A stand-in hash: "$wp$" + the password.
+function wp_check_password( $password, $hash, $user_id = '' ) { return $hash === '$wp$' . $password; }
+// Core's check: records the credentials it got; a user for the one known login and password.
+function wp_authenticate_application_password( $input_user, $username, $password ) {
+    Fabrement\Tests\WordPressState::$password_logins[] = [ $username, $password ];
+    if ( 'editor' === $username && 'SYNTHETIC_PASSWORD' === $password ) {
+        $user = ( new ReflectionClass( WP_User::class ) )->newInstanceWithoutConstructor();
+        $user->ID = 5;
+        return $user;
+    }
+    return new WP_Error( 'incorrect_password', 'The provided password is an invalid application password.' );
+}
 function wp_date( $format, $timestamp = null, $timezone = null ) {
     if ( $timestamp === null ) { return '2026-09-14 12:00'; }
     return ( new DateTimeImmutable( '@' . $timestamp ) )->setTimezone( $timezone ?? wp_timezone() )->format( $format );

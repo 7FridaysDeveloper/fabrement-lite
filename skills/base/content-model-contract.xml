@@ -8,7 +8,6 @@ manufacture term IDs or write serialized storage manually.
 
 A content type defines structured records and URLs; it does not generate a frontend layout.
 The active theme and installed blocks provide rendering; these tools write no PHP.
-Use fields-contract for data definitions and content-contract for record content.
-list-post-type-fields discovers Fabrement, ACF and registered meta declarations. Discovery is not blanket
-write support for arbitrary ACF post meta. ACF block data is handled separately inside Gutenberg content.
+Use content-contract for record content. These tools do not write ACF post meta; ACF block data is
+handled inside Gutenberg content.
 ]]></skill>

@@ -53,10 +53,10 @@ final class ServerDefinition {
             $this->registrar->ability_names(),
             [],
             [],
-            // Transport gate for the WHOLE server; each ability re-checks its own
-            // permission on top of this.
+            // Transport gate for the WHOLE server: who may connect. Each ability then checks
+            // the capability its own action needs.
             static function (): bool {
-                return current_user_can( Capabilities::ADMIN );
+                return Capabilities::can_connect();
             }
         );
 

@@ -126,7 +126,10 @@ final class SiteTemplatePages {
         // Merge unique by ID (current picks first), then map through the shared row.
         $pages = [];
         foreach ( array_merge( $included, $found ) as $page ) {
-            $pages[ $page->ID ] = $page;
+            // Only what this user may read: another's draft or private record stays out (read_post).
+            if ( current_user_can( 'read_post', $page->ID ) ) {
+                $pages[ $page->ID ] = $page;
+            }
         }
         update_meta_cache( 'post', array_keys( $pages ) );
 
@@ -230,6 +233,30 @@ final class SiteTemplatePages {
             }
         }
         return array_values( array_unique( $out ) );
+    }
+
+    /**
+     * The records reconcile() would change that the current user may not edit (`edit_post`),
+     * as the editor's own Template dropdown asks. Empty = the call may go ahead.
+     *
+     * @param int[] $page_ids
+     * @return list<int>
+     */
+    public static function not_editable( string $slug, array $page_ids, string $mode = self::MODE_REPLACE ): array {
+        $named   = self::with_translations( array_map( 'intval', $page_ids ) );
+        $touched = $mode === self::MODE_ADD ? $named : array_merge(
+            $mode === self::MODE_REMOVE ? array() : $named,
+            array_values( $mode === self::MODE_REMOVE
+                ? array_intersect( self::carriers_of( $slug ), $named )
+                : array_diff( self::carriers_of( $slug ), $named ) )
+        );
+        $out = array();
+        foreach ( array_unique( $touched ) as $id ) {
+            if ( get_post( $id ) instanceof \WP_Post && ! current_user_can( 'edit_post', $id ) ) {
+                $out[] = (int) $id;
+            }
+        }
+        return $out;
     }
 
     /** Page id set as the static front page (0 = latest-posts home). */

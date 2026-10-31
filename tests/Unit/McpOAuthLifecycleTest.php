@@ -123,16 +123,78 @@ final class McpOAuthLifecycleTest extends TestCase {
         self::assertCount( $queries, $GLOBALS['wpdb']->queries );
     }
 
-    public function test_rejected_o_auth_callback_restores_existing_word_press_user(): void {
-        WordPressState::select_user( 12, [ 'manage_options' ] );
+    public function test_an_access_token_is_a_login_on_the_mcp_route_only_and_never_switches_users(): void {
+        $error = new \ReflectionProperty( Bootstrap::class, 'token_error' );
+        $error->setAccessible( true );
+        $error->setValue( null, null );
         update_option( Keys::OPTION_MCP_OAUTH_ENABLED, false );
-        $request = new \WP_REST_Request( 'POST', Config::ROUTE );
-        $request->set_header( 'authorization', 'Bearer fb_oauth_at_synthetic' );
-        $response = Bootstrap::authenticate( null, [], $request );
-        self::assertInstanceOf( \WP_Error::class, $response );
-        self::assertSame( 0, get_current_user_id() );
-        self::assertSame( $response, Bootstrap::restore_user( $response, [], $request ) );
-        self::assertSame( 12, get_current_user_id() );
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer fabrement_oauth_at_synthetic';
+        try {
+            // Not the MCP route: the token is no login there.
+            $_SERVER['REQUEST_URI'] = '/subsite/wp-json/wp/v2/posts';
+            self::assertFalse( Bootstrap::determine_user( false ) );
+            // A user already found (cookie, application password) is kept.
+            $_SERVER['REQUEST_URI'] = '/subsite/wp-json/fabrement/v1/mcp';
+            self::assertSame( 12, Bootstrap::determine_user( 12 ) );
+            // Refused (OAuth off): no user, and the route answers why before any tool runs.
+            WordPressState::select_user( 0, [] );
+            self::assertFalse( Bootstrap::determine_user( false ) );
+            $request = new \WP_REST_Request( 'POST', Config::ROUTE );
+            $response = Bootstrap::authenticate( null, [], $request );
+            self::assertInstanceOf( \WP_Error::class, $response );
+            self::assertSame( 403, $response->get_error_data()['status'] );
+            self::assertSame( 0, get_current_user_id() );
+        } finally {
+            unset( $_SERVER['HTTP_AUTHORIZATION'], $_SERVER['REQUEST_URI'] );
+            $error->setValue( null, null );
+        }
+    }
+
+    /** The route WordPress serves decides, not the address: a POSTed rest_route, /batch/v1. */
+    public function test_a_token_login_is_refused_on_any_route_but_mcp(): void {
+        $token_user = new \ReflectionProperty( Bootstrap::class, 'token_user' );
+        $token_user->setAccessible( true );
+        $token_user->setValue( null, 12 );
+        WordPressState::select_user( 12, [ 'edit_posts' ] );
+        try {
+            foreach ( [ '/wp/v2/users/me/application-passwords', '/wp/v2/users/me', '/batch/v1' ] as $route ) {
+                $GLOBALS['wp'] = (object) [ 'query_vars' => [ 'rest_route' => $route ] ];
+                $result = Bootstrap::refuse_other_route( null );
+                self::assertInstanceOf( \WP_Error::class, $result, $route );
+                self::assertSame( 'fabrement_oauth_scope', $result->get_error_code() );
+                self::assertSame( 403, $result->get_error_data()['status'] );
+            }
+            $GLOBALS['wp'] = (object) [ 'query_vars' => [ 'rest_route' => Config::ROUTE . '/' ] ];
+            self::assertNull( Bootstrap::refuse_other_route( null ) );
+            $earlier = new \WP_Error( 'earlier' );
+            self::assertSame( $earlier, Bootstrap::refuse_other_route( $earlier ) );
+        } finally {
+            $token_user->setValue( null, 0 );
+            unset( $GLOBALS['wp'] );
+        }
+    }
+
+    /** Signed in another way (cookie, application password): left to those checks. */
+    public function test_a_login_without_a_token_is_not_refused_here(): void {
+        WordPressState::select_user( 12, [ 'edit_posts' ] );
+        $GLOBALS['wp'] = (object) [ 'query_vars' => [ 'rest_route' => '/wp/v2/users/me' ] ];
+        try {
+            self::assertNull( Bootstrap::refuse_other_route( null ) );
+        } finally {
+            unset( $GLOBALS['wp'] );
+        }
+    }
+
+    /** As core's application passwords: no REST request, no token login, even on the MCP path. */
+    public function test_a_token_is_no_login_outside_a_rest_request(): void {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer fabrement_oauth_at_synthetic';
+        $_SERVER['REQUEST_URI'] = '/subsite/wp-json/fabrement/v1/mcp';
+        try {
+            self::assertFalse( Bootstrap::determine_user( false ) );
+            self::assertSame( [], $GLOBALS['wpdb']->queries );
+        } finally {
+            unset( $_SERVER['HTTP_AUTHORIZATION'], $_SERVER['REQUEST_URI'] );
+        }
     }
 
     public function test_cleanup_does_not_query_an_absent_table(): void {
@@ -143,7 +205,7 @@ final class McpOAuthLifecycleTest extends TestCase {
     }
 
     public function test_disconnect_does_not_read_an_absent_table(): void {
-        WordPressState::select_user( 12, [ 'manage_options' ] );
+        WordPressState::select_user( 12, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
         $GLOBALS['wpdb']->table_exists = false;
         $_POST = [ 'oauth_command' => 'revoke', 'family' => 'synthetic' ];
         $this->expectException( \RuntimeException::class );
@@ -153,7 +215,7 @@ final class McpOAuthLifecycleTest extends TestCase {
 
     /** @dataProvider failed_settings */
     public function test_disable_reports_failed_setting_writes( string $failed_option ): void {
-        WordPressState::select_user( 12, [ 'manage_options' ] );
+        WordPressState::select_user( 12, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
         update_option( Keys::OPTION_MCP_OAUTH_ENABLED, true );
         update_option( Keys::OPTION_MCP_OAUTH_GENERATION, 'previous-generation' );
         WordPressState::$failed_options[] = $failed_option;

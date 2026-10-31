@@ -1,5 +1,4 @@
-// Field forms and the built-in template slot; installed Gutenberg/ACF blocks own their editors.
-import './post-fields';
+// The built-in template slot and the template panels; installed Gutenberg/ACF blocks own their editors.
 import './content-source-block';
 import './template-width-panel';
 import './template-assign-panel';

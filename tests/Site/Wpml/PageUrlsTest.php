@@ -3,7 +3,7 @@
 namespace Fabrement\Tests\Site\Wpml;
 
 use Fabrement\Tests\Site\Support\SiteTestCase;
-use Fabrement\Tests\Site\Support\ThemeFields;
+use Fabrement\Tests\Site\Support\ThemePage;
 use Fabrement\Tests\Site\Support\WpmlSite;
 
 /** Actual page addresses across edits, translation linking and a change of the site's default. */
@@ -13,7 +13,7 @@ final class PageUrlsTest extends SiteTestCase {
 
     protected function setUp(): void {
         parent::setUp();
-        ThemeFields::install( $this->site() );
+        ThemePage::install( $this->site() );
     }
 
     private function page( string $slug, string $lang = 'en' ): int {
@@ -46,7 +46,7 @@ final class PageUrlsTest extends SiteTestCase {
     private function assert_page( string $url, int $id, string $lang ): void {
         $response = $this->get( $url );
         $this->assertSame( 200, $response['status'], $url );
-        $page = ThemeFields::read( $response['body'] );
+        $page = ThemePage::read( $response['body'] );
         $this->assertSame( $id, $page['id'] ?? null, 'the URL opens the intended record' );
         $this->assertSame( $lang, $page['lang'] ?? null, 'the URL opens the intended language' );
     }

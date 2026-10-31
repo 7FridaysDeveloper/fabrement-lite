@@ -3,12 +3,18 @@
 namespace Fabrement\Modules\Mcp\Ability;
 
 use Fabrement\Modules\Forms\Cf7FormWriter;
+use Fabrement\Modules\Forms\FormCatalog;
 
 /**
  * Create a Contact Form 7 form from the markup the caller writes. Thin adapter over
  * {@see Cf7FormWriter::create()} — the form shows up in list-forms exactly like a hand-made one.
  */
 final class CreateCf7FormAbility extends AbstractAbility {
+
+	/** CF7's own meta cap for adding a form (an inactive CF7 answers with its own error). */
+	public function check_permission() {
+		return parent::check_permission() && ( ! FormCatalog::is_cf7_active() || current_user_can( 'wpcf7_edit_contact_forms' ) );
+	}
 
 	public function name(): string {
 		return 'fabrement/create-cf7-form';

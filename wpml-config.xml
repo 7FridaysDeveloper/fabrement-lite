@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Template words/blocks vary by language; the source-rule manifest belongs to the group.
-     Per-site field preferences are registered by the translation bridge. -->
+<!-- Template words/blocks vary by language; the source-rule manifest belongs to the group. -->
 <wpml-config>
     <custom-types>
         <custom-type translate="1">fabrement_template</custom-type>

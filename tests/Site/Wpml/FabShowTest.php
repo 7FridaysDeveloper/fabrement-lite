@@ -8,7 +8,7 @@ use Fabrement\Tests\Site\Support\SiteTestCase;
  * What fabrement() shows of a stored id on a three-language WPML site (en default, fr, pl), as WPML
  * shows it: the published version in the page's language or in `lang`; without one, as WPML is set
  * for the type ("translate" → nothing, "fallback" → the site's default language). An object asked
- * for in a language reads everything inside it. Fields keep the original's id.
+ * for in a language reads everything inside it.
  */
 final class FabShowTest extends SiteTestCase {
 
@@ -240,24 +240,16 @@ final class FabShowTest extends SiteTestCase {
     }
 
     public function test_a_wrong_language_gives_an_empty_image_where_an_image_was_asked(): void {
-        $this->post_type( 'qa_fab_cover', [ 'translationMode' => 'translate', 'supports' => [ 'title', 'editor' ] ] );
-        $this->fields( 'qa_fab_cover', [ self::field( 'cover', 'image' ) ] );
-        $image  = $this->image( 'qa-fab-cover-lang.png' );
-        $record = $this->record( 'qa_fab_cover', 'Covered' );
-        $this->mcp( 'set-field-values', [ 'postId' => $record, 'values' => [ 'cover' => $image ] ] );
+        $image = $this->image( 'qa-fab-cover-lang.png' );
         $this->site()->exec( 'sh', '-c', 'rm -f /var/www/html/wp-content/debug.log' );
         $out = $this->in_french( "return [
             get_class( fabrement()->attachment( $image, kind: 'image', lang: 'xx' ) ),
             fabrement()->attachment( $image, kind: 'image', lang: 'xx' )->link()->not_empty(),
-            fabrement()->fields( $record )->get_image( 'cover', lang: 'xx' ) === null ? null : get_class( fabrement()->fields( $record )->get_image( 'cover', lang: 'xx' ) ),
-            fabrement()->fields( $record )->get_image( 'cover' )->not_empty(),
         ];" );
         $log = $this->site()->debug_log();
         $this->site()->exec( 'sh', '-c', 'rm -f /var/www/html/wp-content/debug.log' );
         $this->assertSame( 'Fabrement\Api\Media\Image', $out[0] );
         $this->assertFalse( $out[1] );
-        $this->assertContains( $out[2], [ null, 'Fabrement\Api\Media\Image' ], 'an image reader never hands out another class' );
-        $this->assertTrue( $out[3] );
         $this->assertStringContainsString( 'the site has no language "xx"', $log );
     }
 
@@ -375,15 +367,6 @@ final class FabShowTest extends SiteTestCase {
             \$after = fabrement()->post( $d )->id();
             wp_update_post( [ 'ID' => $d_fr, 'post_status' => 'draft' ] );
             return [ \$before, \$after, fabrement()->post( $d )->id() ];" ) );
-    }
-
-    public function test_fields_give_the_stored_id_in_every_language(): void {
-        [ 'alpha' => $a, 'alphaFr' => $a_fr ] = self::$ids;
-        $this->fields( self::TRANSLATED, [ self::field( 'related', 'post_object', [ 'postTypes' => [ self::TRANSLATED ] ] ) ] );
-        $this->mcp( 'set-field-values', [ 'postId' => self::$ids['beta'], 'values' => [ 'related' => $a_fr ] ] );
-        $this->assertSame( [ $a, $a_fr, $a, $a_fr ], $this->in_french( "\$f = fabrement()->fields( {$this->beta()} ); \$r = \$f->get( 'related' );
-            return [ \$r, fabrement()->post( \$r )->id(), fabrement()->post( \$r, lang: 'en' )->id(), \$f->get_post_object( 'related' )->id() ];" ),
-            'a French id chosen is stored as its original; fabrement()->post() and get_post_object() show the French one' );
     }
 
     /**
@@ -505,49 +488,5 @@ final class FabShowTest extends SiteTestCase {
 
     private function beta(): int {
         return self::$ids['beta'];
-    }
-
-    public function test_fields_reached_with_a_language_show_what_they_point_at_in_it(): void {
-        [ 'alpha' => $a, 'alphaFr' => $a_fr ] = self::$ids;
-        $type = self::TRANSLATED;
-        $this->fields( $type, [
-            self::field( 'related', 'post_object', [ 'postTypes' => [ $type ] ] ),
-            self::field( 'box', 'group', [ 'sub_fields' => [ self::field( 'ref', 'post_object', [ 'postTypes' => [ $type ] ] ) ] ] ),
-        ] );
-        $this->mcp( 'set-field-values', [ 'postId' => $a, 'values' => [ 'related' => $a, 'box' => [ 'ref' => $a ] ] ] );
-        $this->mcp( 'save-options-page', [ 'slug' => 'qa-lang-site', 'expectedRevision' => 0, 'page' => [ 'title' => 'QA lang site' ],
-            'fields' => [ self::field( 'pick', 'post_object', [ 'postTypes' => [ $type ] ] ) ] ] );
-        $this->mcp( 'set-field-values', [ 'options' => 'qa-lang-site', 'values' => [ 'pick' => $a ] ] );
-        // Each language of an options page holds its own values: the French one names the same record.
-        $this->mcp( 'set-field-values', [ 'options' => 'qa-lang-site', 'language' => 'fr', 'values' => [ 'pick' => $a ] ] );
-
-        // An English page.
-        $out = $this->site_runs( "
-            \$fr = fabrement()->post( $a, lang: 'fr' );
-            return [
-                'post'       => \$fr->id(),
-                'field'      => \$fr->fields()->get_post_object( 'related' )->id(),
-                'group'      => \$fr->fields()->get_group( 'box' )->get_post_object( 'ref' )->id(),
-                'chain'      => \$fr->fields()->get_post_object( 'related' )->fields()->get_post_object( 'related' )->id(),
-                'named'      => \$fr->fields()->get_post_object( 'related', lang: 'en' )->id(),
-                'pages'      => fabrement()->post( $a )->fields()->get_post_object( 'related' )->id(),
-                'byId'       => fabrement()->fields( $a_fr )->get_post_object( 'related' )->id(),
-                'options'    => fabrement()->options( 'qa-lang-site', lang: 'fr' )->get_post_object( 'pick' )->id(),
-                'optionsEn'  => fabrement()->options( 'qa-lang-site', lang: 'fr' )->get_post_object( 'pick', lang: 'en' )->id(),
-                'optionsPg'  => fabrement()->options( 'qa-lang-site' )->get_post_object( 'pick' )->id(),
-                'language'   => apply_filters( 'wpml_current_language', null ),
-            ];" );
-
-        $this->assertSame( $a_fr, $out['post'] );
-        $this->assertSame( $a_fr, $out['field'], 'as the Post\'s own terms and thumbnail: in the language it was read in' );
-        $this->assertSame( $a_fr, $out['group'], 'a group of those fields too' );
-        $this->assertSame( $a_fr, $out['chain'], 'and the fields of the record a field gave' );
-        $this->assertSame( $a, $out['named'], 'lang: on the reader names another' );
-        $this->assertSame( $a, $out['pages'], 'without a language asked: the page\'s, as before' );
-        $this->assertSame( $a, $out['byId'], 'fields( id ) reads that record and shows in the page\'s language, as before' );
-        $this->assertSame( $a_fr, $out['options'] );
-        $this->assertSame( $a, $out['optionsEn'] );
-        $this->assertSame( $a, $out['optionsPg'] );
-        $this->assertSame( 'en', $out['language'], 'the page stays English' );
     }
 }

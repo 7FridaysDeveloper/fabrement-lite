@@ -11,6 +11,8 @@ final class OAuthDatabase {
     public ?int $lock_result = 1;
     public ?\Closure $on_lock = null;
     public array $queries = [];
+    /** Users whose OAuth rows a revoke_user() query revoked. */
+    public array $revoked_users = [];
     private array $arguments = [];
 
     public function prepare( string $query, ...$arguments ): string {
@@ -35,6 +37,10 @@ final class OAuthDatabase {
 
     public function query( string $query ) {
         $this->queries[] = $query;
+        if ( 'UPDATE ' . $this->prefix . 'fabrement_mcp_oauth SET revoked = 1 WHERE user_id = %d' === $query ) {
+            $this->revoked_users[] = $this->arguments[0];
+            return 1;
+        }
         if ( ! str_starts_with( $query, 'INSERT IGNORE INTO ' . $this->options ) ) {
             throw new \RuntimeException( 'Unexpected OAuth write: ' . $query );
         }

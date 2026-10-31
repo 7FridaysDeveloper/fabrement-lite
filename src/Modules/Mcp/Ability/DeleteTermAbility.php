@@ -29,10 +29,10 @@ final class DeleteTermAbility extends DestructiveAbility {
 
     public function description(): string {
         return 'Delete a term; posts just lose that label, children move up to the parent. Check `count` in '
-            . 'list-terms first. Refused while a template is bound to its archive — unbind it first '
-            . '(assign-template-archive), because that binding would otherwise stay pointing at nothing. '
-            . 'Refused too while a template draws a BODY for this term (a content-source rule): decide whether '
-            . 'that body is still wanted, then remove the rule or pass force:true.'
+            . 'list-terms first. Refused while a template is bound to its archive: that binding is '
+            . 'released in wp-admin first. Refused too while a template draws a BODY for this term '
+            . '(a content-source rule): decide whether that body is still wanted, then pass force:true or '
+            . 'have the rule dropped in wp-admin.'
             . self::multilingual_text( ' Deleting an ORIGINAL leaves its other-language'
                 . ' versions in place, as WordPress does with a translated post; the answer says which.' );
     }
@@ -53,7 +53,7 @@ final class DeleteTermAbility extends DestructiveAbility {
                 ],
                 'force'    => [
                     'type'        => 'boolean',
-                    'description' => 'Delete even though a template draws a body for this term (a content-source rule), leaving that rule pointing at nothing. Not for the frame binding — that one is released with assign-template-archive and has no force.',
+                    'description' => 'Delete even though a template draws a body for this term (a content-source rule), leaving that rule pointing at nothing. Not for the frame binding — that is released in wp-admin; it has no force.',
                 ],
             ],
             'additionalProperties' => false,
@@ -97,6 +97,11 @@ final class DeleteTermAbility extends DestructiveAbility {
         // Resolve through the writer's OWN resolver, so the term this checks is the term it deletes.
         $term_id = TermWriter::term_id( $taxonomy, $input['term'] ?? '' );
 
+        // The capability first: usage and template messages are for those who may delete it.
+        if ( $term_id > 0 && ! current_user_can( 'delete_term', $term_id ) ) {
+            return new \WP_Error( 'forbidden', sprintf( 'You may not delete term %d (delete_term).', $term_id ) );
+        }
+
         if ( $term_id > 0 ) {
             $bridge = Translation::bridge();
 
@@ -110,27 +115,16 @@ final class DeleteTermAbility extends DestructiveAbility {
                 $used     = Usages::term( $term_id, $taxonomy );
 
                 if ( $used !== [] ) {
-                    // The call itself, filled in, not just the tool's name. This refusal is read by
-                    // an agent, and the difference decides what happens next: a NAME makes it look
-                    // up the context, guess its shape and often reach for the slug the tool does
-                    // not take, while a ready call is one step. The refusal stays a refusal — the
-                    // point is that a term's styling is given up out loud, not that it is hard.
-                    $unbind = [];
-                    foreach ( $contexts as $context ) {
-                        $unbind[] = sprintf( 'assign-template-archive {context:"%s", templateId:0}', $context );
-                    }
-
+                    // Archive bindings are set in wp-admin only, so the agent hands this to a person.
                     return ToolResult::error(
                         'term_in_use',
                         sprintf(
-                            'Still bound: %s. Release it first — %s — then delete the term. The template itself is NOT deleted by that call and stays available to everything else, and the archive of this term falls back to the taxonomy-wide frame. A binding left behind names a term id that no longer exists, and re-creating the term does not restore it, because the new one gets a new id.',
-                            implode( '; ', $used ),
-                            implode( ', ', $unbind )
+                            'Still bound: %s. Archive bindings are set in wp-admin (Fabrement → Templates): ask the user to release that binding there, then delete the term. A binding left behind names a term id that no longer exists, and re-creating the term does not restore it, because the new one gets a new id.',
+                            implode( '; ', $used )
                         ),
                         [
                             'usedBy'   => $used,
                             'contexts' => $contexts,
-                            'unbind'   => $unbind,
                         ]
                     );
                 }
@@ -141,15 +135,13 @@ final class DeleteTermAbility extends DestructiveAbility {
                 // DECISION — "this term gets that body" — and it is unrecoverable for the same
                 // reason the binding is: the term comes back with a new id.
                 //
-                // So it is refused, but with a way past. `force` belongs here and not on the binding above: releasing a binding
-                // is one call the refusal hands over ready to send, while a rule may be one of
-                // several in a template somebody has to look at first.
+                // So it is refused, but with a way past (`force`), unlike the binding above.
                 $orphaned = Usages::term_rules( $term_id, $taxonomy );
                 if ( $orphaned !== [] && empty( $input['force'] ) ) {
                     return ToolResult::error(
                         'term_body_in_use',
                         sprintf(
-                            'A template draws a body for this term: %s. Check whether that body is still wanted — ask whoever owns the site if it is not obvious — then either drop the rule from the template (save-template {templateId, contentSource} with the rule removed) or send this again with force:true. Left in place, the rule stays in the template naming a term id that no longer exists: harmless to render, because the view goes with the term, but the choice it records cannot be recovered — a re-created term gets a new id.',
+                            'A template draws a body for this term: %s. Check whether that body is still wanted — ask whoever owns the site if it is not obvious — then either have the rule dropped in wp-admin (Fabrement → Templates) or send this again with force:true. Left in place, the rule stays in the template naming a term id that no longer exists: harmless to render, because the view goes with the term, but the choice it records cannot be recovered — a re-created term gets a new id.',
                             implode( '; ', $orphaned )
                         ),
                         [ 'drawnBy' => $orphaned ]
@@ -179,8 +171,8 @@ final class DeleteTermAbility extends DestructiveAbility {
         if ( ! is_wp_error( $result ) && $orphaned !== [] ) {
             $result['orphanedRules'] = $orphaned;
             $result['note']          = 'Left pointing at the deleted term: ' . implode( '; ', $orphaned )
-                . '. Nothing renders it now, and a re-created term gets a new id, so drop the rule'
-                . ' (save-template {templateId, contentSource}) unless the body is wanted for another term.';
+                . '. Nothing renders it now, and a re-created term gets a new id: the rule can be dropped'
+                . ' in wp-admin (Fabrement → Templates) unless the body is wanted for another term.';
         }
 
         if ( ! is_wp_error( $result ) && $others !== [] ) {

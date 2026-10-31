@@ -5,8 +5,7 @@ namespace Fabrement\Modules\ContentSource;
 /**
  * The set of PHP files the Content Source block may render — every `.php` under
  * the active + parent theme's `templates/` folder, path RELATIVE to that folder.
- * The editor picker, list-theme-templates and the template writer share this
- * resolver. No source-code writing or generated-bundle loading is provided.
+ * The wp-admin pickers and the template writer share this resolver. No source-code writing or generated-bundle loading is provided.
  *
  * KIND — which view shape a file fills. A singular body assumes the queried post
  * is already set up (canvas.php ran the_post()); an archive body runs the main

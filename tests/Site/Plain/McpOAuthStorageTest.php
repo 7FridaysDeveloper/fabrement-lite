@@ -174,13 +174,13 @@ final class McpOAuthStorageTest extends SiteTestCase {
     public function test_cron_cleans_what_expired_or_was_revoked_and_keeps_live_connections(): void {
         $this->put( 'grant', 'qa-expired', time() - 1 );
         $this->put( 'grant', 'qa-active', time() + 600 );
-        $this->put( 'grant', 'qa-family', 0, 'qa-family', 123 );
-        $this->put( 'refresh', 'qa-refresh', 0, 'qa-family', 123 );
+        $this->put( 'grant', 'qa-family', time() + 90 * 86400, 'qa-family', 123 );
+        $this->put( 'refresh', 'qa-refresh', time() + 90 * 86400, 'qa-family', 123 );
         $this->assertSame( [ true, false ], $this->site_runs( "\$s = new \\Fabrement\\Modules\\Mcp\\OAuth\\Store(); return [ \$s->consume( 'refresh', 'qa-refresh' ), \$s->consume( 'refresh', 'qa-refresh' ) ];" ), 'consumed exactly once' );
         $this->site()->wp( 'cron', 'event', 'run', 'fabrement_mcp_oauth_cleanup' );
         $this->assertNull( $this->stored( 'grant', 'qa-expired' ) );
         $this->assertNotNull( $this->stored( 'grant', 'qa-active' ) );
-        $this->assertNotNull( $this->stored( 'grant', 'qa-family' ), 'a permanent grant stays' );
+        $this->assertNotNull( $this->stored( 'grant', 'qa-family' ), 'a grant inside its idle window stays' );
         $this->assertSame( 1, (int) $this->stored( 'refresh', 'qa-refresh' )['used'], 'a used refresh token stays, for replay detection' );
 
         $this->put( 'access', 'qa-access', time() + 3600, 'qa-family', 123 );
@@ -192,8 +192,8 @@ final class McpOAuthStorageTest extends SiteTestCase {
         $this->assertNotNull( $this->stored( 'grant', 'qa-active' ), 'another connection stays' );
     }
 
-    public function test_no_expiry_makes_no_short_lived_record_valid(): void {
-        foreach ( [ 'code', 'access', 'pending', 'client' ] as $kind ) {
+    public function test_zero_expiry_is_expired_for_every_kind(): void {
+        foreach ( [ 'code', 'access', 'pending', 'client', 'grant', 'refresh' ] as $kind ) {
             $this->put( $kind, 'qa-zero-' . $kind, 0 );
             $this->assertNull( $this->stored( $kind, 'qa-zero-' . $kind ), $kind );
         }

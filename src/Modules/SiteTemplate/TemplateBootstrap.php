@@ -29,11 +29,13 @@ final class TemplateBootstrap {
     }
 
     public static function register(): void {
-        \Fabrement\Modules\Fields\Admin\EditorAssets::register();
+        EditorAssets::register();
         \Fabrement\Modules\ContentSource\ContentSourceBlock::register();
+        // A template lays out pages for everyone, owned by no one: every cap is
+        // Capabilities::TEMPLATES (an Editor's), with no per-author meta caps.
         $caps = [];
         foreach ( [ 'edit_post', 'read_post', 'delete_post', 'edit_posts', 'edit_others_posts', 'publish_posts', 'read_private_posts', 'delete_posts', 'delete_private_posts', 'delete_published_posts', 'delete_others_posts', 'edit_private_posts', 'edit_published_posts', 'create_posts' ] as $cap ) {
-            $caps[ $cap ] = 'manage_options';
+            $caps[ $cap ] = \Fabrement\Capabilities::TEMPLATES;
         }
         register_post_type( SiteTemplatePostType::POST_TYPE, [
             'label' => __( 'Templates', 'fabrement-lite' ),

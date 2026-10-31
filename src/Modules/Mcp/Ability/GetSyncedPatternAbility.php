@@ -53,7 +53,9 @@ final class GetSyncedPatternAbility extends AbstractAbility {
                 'title'     => [ 'type' => 'string' ],
                 'status'    => [ 'type' => 'string' ],
                 'kind'      => [ 'type' => 'string', 'enum' => [ 'header', 'footer', 'section' ] ],
+                'categories' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                 'templates' => [ 'type' => 'array', 'items' => [ 'type' => 'object' ], 'description' => 'The templates placing it: {id, title}' . self::multilingual_text( ', `language`, and on a language version `originalId` — rows with an originalId are versions of ONE template; count templates by their originals' ) . '.' ],
+                'templatesHidden' => [ 'type' => 'integer', 'description' => 'Templates placing it that this user may not open.' ],
                 'blocks'    => [ 'type' => 'array', 'items' => [ 'type' => 'object' ] ],
                 'outline'   => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                 'hash'      => [ 'type' => 'string', 'description' => 'expectedHash for save-synced-pattern mode "edit".' ],
@@ -81,13 +83,16 @@ final class GetSyncedPatternAbility extends AbstractAbility {
         if ( $post === null ) {
             return new WP_Error( 'pattern_not_found', sprintf( 'No synced pattern with id %d — see list-synced-patterns.', $id ) );
         }
+        if ( ! current_user_can( 'read_post', $id ) ) {
+            return new WP_Error( 'forbidden', sprintf( 'You may not read pattern %d (read_post).', $id ) );
+        }
 
         $blocks = BlockEntry::of_post( $id );
         $info   = SyncedPatterns::describe( $post );
 
         // A language version is placed by nothing: it is shown wherever its original stands.
         $placed     = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::original_of( $id );
-        $placements = SyncedPatterns::placements( $placed, 100 );
+        $placements = SyncedPatterns::readable( SyncedPatterns::placements( $placed, 100 ) );
         $out        = [
             'patternId' => $id,
             'title'     => $info['title'],
@@ -102,7 +107,10 @@ final class GetSyncedPatternAbility extends AbstractAbility {
             'editUrl'   => (string) get_edit_post_link( $id, 'raw' ),
         ];
         if ( $info['kind'] !== 'section' ) {
-            $out['templates'] = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::templates_using( $placed );
+            // Only templates this user may read; the rest is a count.
+            $templates              = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::templates_using( $placed );
+            $out['templates']       = SyncedPatterns::readable( $templates );
+            $out['templatesHidden'] = count( $templates ) - count( $out['templates'] );
         }
         if ( $placed !== $id ) {
             $out['shownThrough'] = $placed;

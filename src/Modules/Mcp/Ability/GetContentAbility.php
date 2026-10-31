@@ -92,6 +92,10 @@ final class GetContentAbility extends AbstractAbility {
 
     public function execute( array $input ) {
         $id = (int) ( $input['contentId'] ?? 0 );
+        // Before the listing: it leaves out what this user may not read, which would read as "not found".
+        if ( get_post( $id ) instanceof \WP_Post && ! current_user_can( 'edit_post', $id ) ) {
+            return ( new McpAbilityException( sprintf( 'Content %d is not yours to read for editing.', $id ) ) )->to_error();
+        }
         // The listing already knows how to describe a record — its address in its own language,
         // its public terms, its language group. One row of it, rather than a second copy of that.
         $listed = ( new ListContentAbility() )->execute( [ 'id' => $id, 'postType' => 'any' ] );
@@ -101,9 +105,6 @@ final class GetContentAbility extends AbstractAbility {
         $row = $listed['items'][0] ?? null;
         if ( $row === null ) {
             return ( new McpAbilityException( ContentGuard::not_found_message( $id ) ) )->to_error();
-        }
-        if ( ! current_user_can( 'edit_post', $id ) ) {
-            return ( new McpAbilityException( sprintf( 'Content %d is not yours to read for editing.', $id ) ) )->to_error();
         }
 
         $thumb = (int) get_post_thumbnail_id( $id );

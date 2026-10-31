@@ -93,7 +93,7 @@ final class ArchiveTemplateBinding {
         return true;
     }
 
-    /** Every context bound to one template (for listings / delete cleanup). */
+    /** Every context bound to one template. */
     public static function contexts_for_template( int $template_id ): array {
         return array_keys( array_filter( self::all(), static fn( int $id ): bool => $id === $template_id ) );
     }

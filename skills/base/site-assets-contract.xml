@@ -1,5 +1,5 @@
 <skill id="site-assets-contract"><![CDATA[
-MEDIA AND WORDPRESS MENUS
+MEDIA AND NAVIGATION
 List/search media first; results are paginated. Reuse existing attachments.
 upload-media accepts exactly one of sourceUrl or base64; it reads nothing from the server's disk.
 Base64 requires a filename and is limited to 512 KB decoded.
@@ -12,10 +12,7 @@ usedBy reports detected references; it is not a blocking check or a complete dep
 Deleting a WPML original may affect its language copies; check the multilingual contract.
 Repoint known usages when replacing an image, and do not delete outside the user's requested scope.
 
-List menus before create-menu; use returned menu IDs with update-menu or delete-menu.
-update-menu items replaces the WHOLE tree, including children. Read, modify and resend the whole tree;
-omit items to rename only. Follow the schema for one link target per item (url/postId/termId/archive).
-Use real IDs and safe URLs. Keep attached object links attached rather than converting them to guessed URLs.
+Classic WordPress menus are not edited by these tools: the site administrator edits them in wp-admin.
 A classic WordPress menu does not automatically appear in a core/navigation block. Inspect the actual
 navigation block and its references/content. Theme menu locations and Gutenberg navigation content
 are different systems; do not invent a menu attribute for core or ACF blocks.
@@ -25,7 +22,7 @@ A core/navigation block carries its own links as inner blocks, written as commen
 <!-- wp:navigation-link {"label":"Visit us","type":"page","id":<pageId>,"url":"<its address>","kind":"post-type"} /-->
 <!-- wp:navigation-link {"label":"Shop","url":"https://example.com/","kind":"custom"} /-->
 <!-- /wp:navigation -->
-A link to a page keeps its id and address together; a submenu is wp:navigation-submenu with links inside.
+Use real IDs and safe URLs. A link to a page keeps its id and address together; a submenu is wp:navigation-submenu with links inside.
 
 Forms have their own rules: get-skill-doc {id:"forms-contract"}.
 ]]></skill>

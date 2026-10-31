@@ -59,6 +59,7 @@ final class CreateTermAbility extends AbstractAbility {
                 'parent'   => [ 'type' => 'integer' ],
                 'created'  => [ 'type' => 'boolean', 'description' => 'False when the term already existed.' ],
                 'url'      => [ 'type' => 'string' ],
+                'warnings' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
             ],
         ];
     }

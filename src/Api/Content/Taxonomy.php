@@ -3,7 +3,7 @@
 namespace Fabrement\Api\Content;
 
 use Fabrement\Api\Fabrement;
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Support\ReadResult;
 use Fabrement\Api\Support\OrElse;
 use Fabrement\Api\Support\Quietly;
@@ -64,7 +64,7 @@ final class Taxonomy {
         return Quietly::run( 'Taxonomy::terms()', function () use ( $hide_empty, $lang ): array {
             // A wrong option is a mistake in the code, an empty Taxonomy or not.
             if ( $hide_empty !== null && $hide_empty !== '' && ! is_bool( $hide_empty ) ) {
-                throw new FieldsException( 'hide_empty: true or false, not ' . esc_html( get_debug_type( $hide_empty ) ) . '.' );
+                throw new ApiException( 'hide_empty: true or false, not ' . esc_html( get_debug_type( $hide_empty ) ) . '.' );
             }
             $lang = Version::lang( $lang );
             Version::check_language( $lang );

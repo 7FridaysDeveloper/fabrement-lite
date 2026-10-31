@@ -14,7 +14,7 @@
 #   - PHP prod deps only, exactly as composer.lock pins them (composer install
 #     --no-dev --optimize-autoloader, run in the stage — the working tree's vendor/ is untouched)
 #   - all JS bundles rebuilt from their package-lock.json (npm ci)
-#   - the PHP unit tests and the JS test suite pass before anything is staged
+#   - the PHP unit tests pass before anything is staged
 #   - release checks before zipping: readme.txt and LICENSE present, the version agreeing
 #     in the header, FABREMENT_BLOCKS_VERSION and readme's Stable tag, nothing private staged
 #   - the JS SOURCES those bundles are built from ship beside them (wordpress.org
@@ -100,13 +100,12 @@ build_js() {
     npm ci --no-audit --no-fund
     npm run build )
 }
-build_js "assets/editor-plugin"   # Lite field forms only
+build_js "assets/editor-plugin"   # Content Source and the template panels
 build_js "assets/templates-app"   # Fabrement > Templates screen
 
 # --- 2a. Tests ---------------------------------------------------------------
 # A release is zipped only from code whose tests pass. PHP: the unit suite (no WordPress, no
-# database) on dev packages installed from composer.lock into this throwaway copy. JS: the field
-# editor's node suite (the Templates screen has none).
+# database) on dev packages installed from composer.lock into this throwaway copy.
 if [ "$RUN_TESTS" = 1 ]; then
   # PHP_INI only reaches this binary: composer keeps whatever PHP and ini it runs with.
   PHP_RUN=( "${PHP:-php}" )
@@ -119,8 +118,6 @@ if [ "$RUN_TESTS" = 1 ]; then
   # The suite loads a few core classes from WordPress: the core the dev packages just installed.
   ( cd "$ROOT" && WP_ROOT="${WP_ROOT:-$ROOT/vendor/johnpbloch/wordpress-core}" "${PHP_RUN[@]}" vendor/phpunit/phpunit/phpunit ) \
     || die "Unit tests failed."
-  log "tests: assets/editor-plugin"
-  ( cd "$ROOT/assets/editor-plugin" && npm test --silent ) || die "Tests failed in assets/editor-plugin."
 else
   log "tests skipped (--skip-tests)"
 fi
@@ -144,7 +141,7 @@ copy "composer.lock"
 copy "readme.txt"
 copy "LICENSE"
 copy "uninstall.php"
-# Translation declarations (site-specific fields/types use runtime hooks).
+# Translation declarations (site-specific types use runtime hooks).
 copy "wpml-config.xml"
 
 # PHP source + templates. vendor/ is installed below, into the stage, from composer.lock.
@@ -210,8 +207,15 @@ fi
 if [ -d "$STAGE/vendor" ]; then
   find "$STAGE/vendor" -type d \( -iname tests -o -iname test -o -name .github \
        -o -name .git -o -iname examples -o -iname doc -o -iname docs -o -name bin \) -prune -exec rm -rf {} +
-  # The adapter is loaded from its includes/ only: its own plugin file and readme are not used.
-  rm -f "$STAGE/vendor/wordpress/mcp-adapter/mcp-adapter.php" "$STAGE/vendor/wordpress/mcp-adapter/readme.txt"
+  # The adapter is loaded from its includes/ only: its own plugin file, the Jetpack autoloader
+  # bootstrap only that file requires, and its readme are not used.
+  rm -f "$STAGE/vendor/wordpress/mcp-adapter/mcp-adapter.php" "$STAGE/vendor/wordpress/mcp-adapter/includes/Autoloader.php" \
+    "$STAGE/vendor/wordpress/mcp-adapter/readme.txt"
+  # Third-party package manifests and Composer's install record: the autoloader runs from
+  # vendor/composer/autoload_*.php only. They list packages that are not shipped (mcp-adapter's
+  # automattic/jetpack-autoloader, replaced in our composer.json).
+  find "$STAGE/vendor" -mindepth 3 -maxdepth 3 -type f -name composer.json -delete
+  rm -f "$STAGE/vendor/composer/installed.json"
   find "$STAGE/vendor" -type f \( \
        -name 'package-lock.json' -o -name 'package.json' -o -name 'yarn.lock' \
     -o -name 'composer.lock' -o -name 'phpunit.xml*' -o -name '*.dist' \

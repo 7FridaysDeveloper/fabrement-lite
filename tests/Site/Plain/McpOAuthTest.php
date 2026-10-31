@@ -51,7 +51,7 @@ final class McpOAuthTest extends SiteTestCase {
             'resource' => $this->site()->url( '/wp-json/fabrement/v1/mcp' ), 'code_challenge_method' => 'S256', 'code_challenge' => $this->challenge(), 'state' => 'qa',
         ] ) );
         $this->assertSame( 200, $consent['status'], substr( $consent['body'], 0, 500 ) );
-        $this->assertStringContainsString( 'Access remains active until disconnected.', $consent['body'] );
+        $this->assertStringContainsString( 'Access ends when disconnected, after 90 days unused, or when this account', $consent['body'] );
         $allowed = $browser->post( $this->site()->url( '/wp-admin/admin-post.php' ), Browser::form( $consent['body'] ) + [ 'decision' => 'allow' ] );
         $this->assertSame( 302, $allowed['status'] );
         parse_str( (string) parse_url( $allowed['headers']['location'], PHP_URL_QUERY ), $query );
@@ -73,7 +73,7 @@ final class McpOAuthTest extends SiteTestCase {
         $tokens = $this->connect();
         $this->assertLessThanOrEqual( 3600, $tokens['expires_in'], 'an access token lasts at most an hour' );
         $mcp = new McpClient( $this->site(), bearer: $tokens['access_token'] );
-        $this->assertContains( 'fabrement-set-field-values', array_column( $mcp->tools(), 'name' ) );
+        $this->assertContains( 'fabrement-save-content', array_column( $mcp->tools(), 'name' ) );
 
         $rows = (string) json_encode( $this->site()->rows( 'SELECT key_hash, payload FROM wp_fabrement_mcp_oauth' ) );
         $this->assertStringNotContainsString( $tokens['access_token'], $rows, 'tokens are stored hashed' );

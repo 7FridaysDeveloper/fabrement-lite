@@ -34,24 +34,8 @@ final class NullSeoBridge implements SeoBridge {
         return [];
     }
 
-    public function separators(): array {
-        return [];
-    }
-
-    public function knowledge_graph(): ?array {
-        return null;
-    }
-
     public function has_variables( string $text ): bool {
         return false;
-    }
-
-    public function default_fields( string $scope ): array {
-        return [];
-    }
-
-    public function translatable_fields( string $scope ): array {
-        return [];
     }
 
     public function read_post( int $post_id ): array {
@@ -94,15 +78,15 @@ final class NullSeoBridge implements SeoBridge {
         return '';
     }
 
+    public function not_allowed( array $fields ): array {
+        return [];
+    }
+
     public function not_kept_post( string $post_type, array $fields ): array {
         return [];
     }
 
     public function not_kept_term( \WP_Term $term, array $fields ): array {
-        return [];
-    }
-
-    public function not_kept_defaults( array $fields ): array {
         return [];
     }
 
@@ -133,30 +117,6 @@ final class NullSeoBridge implements SeoBridge {
     }
 
     public function term_listing( array $terms ): array {
-        return [];
-    }
-
-    public function read_defaults( string $scope, string $slug = '' ): array {
-        return [];
-    }
-
-    public function write_defaults( string $scope, string $slug, array $fields ): array {
-        return [];
-    }
-
-    public function read_defaults_translations( string $scope, string $slug = '' ): array {
-        return [];
-    }
-
-    public function write_defaults_translation( string $scope, string $slug, string $lang, array $fields ): array {
-        return [ 'written' => [], 'emptyOriginal' => [] ];
-    }
-
-    public function read_archive_defaults( string $post_type ): array {
-        return [];
-    }
-
-    public function write_archive_defaults( string $post_type, array $fields ): array {
         return [];
     }
 }

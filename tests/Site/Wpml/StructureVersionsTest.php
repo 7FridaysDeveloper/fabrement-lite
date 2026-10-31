@@ -6,9 +6,8 @@ use Fabrement\Tests\Site\Support\SiteTestCase;
 
 /**
  * What changes a record's structure reaches every language version whatever its status and
- * whoever runs it: a copied field written by site code on the front end reaches a draft
- * translation and a type that is not public, translate-content offers a version in the trash back
- * instead of copying again, and a reader of a type that is not public is shown its version.
+ * whoever runs it: translate-content offers a version in the trash back instead of copying again,
+ * and a reader of a type that is not public is shown its version.
  */
 final class StructureVersionsTest extends SiteTestCase {
 
@@ -30,25 +29,8 @@ final class StructureVersionsTest extends SiteTestCase {
         return json_decode( $page['body'], true );
     }
 
-    private function value( int $id ) {
-        return $this->mcp( 'get-field-values', [ 'postId' => $id ] )['values']['code'] ?? null;
-    }
-
-    public function test_a_copied_field_saved_on_the_front_end_reaches_a_draft_translation(): void {
-        $this->post_type( 'qa_sv_talk', [ 'translationMode' => 'translate', 'supports' => [ 'title', 'editor' ] ] );
-        $this->fields( 'qa_sv_talk', [ self::field( 'code', 'text', [ 'translation' => 'copy' ] ) ] );
-        $original = $this->record( 'qa_sv_talk', 'Talk' );
-        $fr       = (int) $this->mcp( 'translate-content', [ 'contentId' => $original, 'language' => 'fr' ] )['contentId'];
-        $this->assertSame( 'draft', $this->site()->value( 'SELECT post_status FROM wp_posts WHERE ID = ?', [ $fr ] ) );
-
-        $this->as_visitor( "fabrement()->fields( $original )->set( 'code', 'FRONT' )->save(); return true;" );
-        $this->assertSame( 'FRONT', $this->value( $original ) );
-        $this->assertSame( 'FRONT', $this->value( $fr ), 'the draft translation gets the copied value too' );
-    }
-
-    public function test_a_copied_field_of_a_type_that_is_not_public_reaches_its_translation(): void {
+    public function test_a_reader_of_a_type_that_is_not_public_is_shown_its_version(): void {
         $this->post_type( 'qa_sv_hidden', [ 'translationMode' => 'translate', 'public' => false, 'supports' => [ 'title', 'editor' ] ] );
-        $this->fields( 'qa_sv_hidden', [ self::field( 'code', 'text', [ 'translation' => 'copy' ] ) ] );
         [ $original, $fr ] = $this->site_runs( "
             \$bridge   = \Fabrement\Modules\Translation\Translation::bridge();
             \$original = (int) wp_insert_post( [ 'post_type' => 'qa_sv_hidden', 'post_status' => 'publish', 'post_title' => 'Hidden' ] );
@@ -57,8 +39,6 @@ final class StructureVersionsTest extends SiteTestCase {
             \$bridge->link_translation( \$fr, \$original, 'fr', 'qa_sv_hidden' );
             return [ \$original, \$fr ];" );
 
-        $this->as_visitor( "fabrement()->fields( $original )->set( 'code', 'HIDDEN' )->save(); return true;" );
-        $this->assertSame( 'HIDDEN', $this->value( $fr ) );
         $this->assertSame( [ 'id' => $fr, 'state' => 'translated' ], $this->as_visitor( "return [ 'id' => fabrement()->post( $original, lang: 'fr' )->id(), 'state' => 'translated' ];" ), 'a visitor reading it in French is shown the French version' );
     }
 
@@ -120,12 +100,13 @@ final class StructureVersionsTest extends SiteTestCase {
     public function test_a_template_given_to_a_record_reaches_its_translation_in_the_trash(): void {
         $this->post_type( 'qa_sv_story', [ 'translationMode' => 'translate', 'supports' => [ 'title', 'editor' ] ] );
         $header   = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Frame head', 'kind' => 'header', 'blocks' => [ [ 'markup' => '<!-- wp:paragraph --><p>Head</p><!-- /wp:paragraph -->' ] ] ] )['patternId'];
-        $template = $this->mcp( 'save-template', self::frame( 'Frame', $header ) )['template'];
+        $template = $this->new_template( 'Frame', $header );
         $page     = $this->record( 'qa_sv_story', 'Framed' );
         $fr       = (int) $this->mcp( 'translate-content', [ 'contentId' => $page, 'language' => 'fr' ] )['contentId'];
         $this->mcp( 'set-content-status', [ 'contentId' => $fr, 'status' => 'trash' ] );
 
-        $this->mcp( 'assign-template-pages', [ 'templateId' => (int) $template['id'], 'pageIds' => [ $page ], 'mode' => 'add' ] );
+        // As the Templates screen gives it.
+        $this->assign_template( $template, [ $page ] );
         $this->mcp( 'set-content-status', [ 'contentId' => $fr, 'status' => 'restore' ] );
         $picked = fn( int $id ) => $this->site()->value( "SELECT meta_value FROM wp_postmeta WHERE post_id = ? AND meta_key = '_wp_page_template'", [ $id ] );
         $this->assertNotSame( '', (string) $picked( $page ) );

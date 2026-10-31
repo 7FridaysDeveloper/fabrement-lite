@@ -72,8 +72,8 @@ foreach ($report['files'] ?? [] as $file) {
     }
 }
 $expected = [
-    'Unused Fabrement\\Api\\Fields\\Probe::deadPrivate',
-    'Unused Fabrement\\Api\\Fields\\Probe::internalOnly',
+    'Unused Fabrement\\Api\\Content\\Probe::deadPrivate',
+    'Unused Fabrement\\Api\\Content\\Probe::internalOnly',
     'Unused Fabrement\\Sdk\\ProbePage::generatedSubclassOnly',
     'Unused Fabrement\\Sdk\\ProbePage::deadPrivate',
     'Unused Fabrement\\Route\\InternalPostsRestController::deadPrivate',

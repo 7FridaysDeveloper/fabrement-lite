@@ -91,6 +91,9 @@ final class UpdateCf7FormAbility extends AbstractAbility {
 
 	public function execute( array $input ) {
 		$id     = (int) ( $input['formId'] ?? 0 );
+		if ( class_exists( '\WPCF7_ContactForm' ) && ! current_user_can( 'wpcf7_edit_contact_form', $id ) ) {
+			return new \WP_Error( 'forbidden', sprintf( 'You may not edit form %d (wpcf7_edit_contact_form).', $id ) );
+		}
 		$result = Cf7FormWriter::update( $id, $input );
 		if ( is_wp_error( $result ) ) {
 			return $result;

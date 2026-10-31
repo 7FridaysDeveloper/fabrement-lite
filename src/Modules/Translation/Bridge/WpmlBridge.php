@@ -5,7 +5,7 @@ namespace Fabrement\Modules\Translation\Bridge;
 use Fabrement\Modules\Translation\Contract\TranslationBridge;
 
 /**
- * WPML behind {@see TranslationBridge}. Provider-specific field hooks live under Bridge/Wpml.
+ * WPML behind {@see TranslationBridge}.
  *
  * Reached through WPML's public filters and actions wherever possible, so most of this is inert
  * without it — an unheard filter hands its argument back. The two places that touch a WPML CLASS
@@ -17,8 +17,6 @@ use Fabrement\Modules\Translation\Contract\TranslationBridge;
  * the plain name.
  */
 final class WpmlBridge implements TranslationBridge {
-
-    private bool $field_hooks_registered = false;
 
     private const MODE_TRANSLATE = 1; // WPML_CONTENT_TYPE_TRANSLATE — show only translated items
     private const MODE_FALLBACK  = 2; // WPML_CONTENT_TYPE_DISPLAY_AS_IF_TRANSLATED
@@ -75,7 +73,7 @@ final class WpmlBridge implements TranslationBridge {
         // whole feature would then switch itself off exactly where it matters: an empty list
         // means "one language", every record counts as its own original, and the guards built
         // on originals() quietly stop guarding.
-        $raw = apply_filters( 'wpml_active_languages', null, 'skip_missing=0' );
+        $raw = apply_filters( 'wpml_active_languages', null, 'skip_missing=0' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         // Fewer than two is not a multilingual site yet, whatever is installed: a picker with one
         // option is a control that cannot change anything, and offering it suggests otherwise.
@@ -121,7 +119,7 @@ final class WpmlBridge implements TranslationBridge {
         $has_query = array_key_exists( 'wp_query', $GLOBALS );
         $query     = $GLOBALS['wp_query'] ?? null;
         try {
-            $raw = apply_filters( 'wpml_active_languages', null, $translated_only ? 'skip_missing=1' : 'skip_missing=0' );
+            $raw = apply_filters( 'wpml_active_languages', null, $translated_only ? 'skip_missing=1' : 'skip_missing=0' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
         } finally {
             if ( $has_query ) {
                 $GLOBALS['wp_query'] = $query; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- restore provider side effect.
@@ -151,7 +149,7 @@ final class WpmlBridge implements TranslationBridge {
     }
 
     public function current_language(): string {
-        $code = apply_filters( 'wpml_current_language', null );
+        $code = apply_filters( 'wpml_current_language', null ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         return is_string( $code ) ? $code : '';
     }
@@ -168,11 +166,11 @@ final class WpmlBridge implements TranslationBridge {
         // here. permalinks_of_many() in this same class documents the hazard and orders it correctly;
         // this method did not.
         try {
-            do_action( 'wpml_switch_language', $lang );
+            do_action( 'wpml_switch_language', $lang ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
 
             return $fn();
         } finally {
-            do_action( 'wpml_switch_language', $current !== '' ? $current : null );
+            do_action( 'wpml_switch_language', $current !== '' ? $current : null ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
         }
     }
 
@@ -197,14 +195,14 @@ final class WpmlBridge implements TranslationBridge {
     }
 
     /** The WordPress locale of a language ("fr" → "fr_FR"), or "" when WPML does not know it. */
-    private function locale_of( string $lang ): string {
+    public function locale_of( string $lang ): string {
         // skip_missing=0: the whole list, not the switcher's (see read_languages()).
         // The language switcher API replaces wp_query with a clone. Looking up a locale must
         // preserve query identity, otherwise later is_main_query() checks change their answer.
         $has_query = array_key_exists( 'wp_query', $GLOBALS );
         $query     = $GLOBALS['wp_query'] ?? null;
         try {
-            $raw = apply_filters( 'wpml_active_languages', null, 'skip_missing=0' );
+            $raw = apply_filters( 'wpml_active_languages', null, 'skip_missing=0' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
         } finally {
             if ( $has_query ) {
                 $GLOBALS['wp_query'] = $query; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- restore provider side effect.
@@ -217,7 +215,7 @@ final class WpmlBridge implements TranslationBridge {
     }
 
     public function default_language(): string {
-        $code = apply_filters( 'wpml_default_language', null );
+        $code = apply_filters( 'wpml_default_language', null ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         return is_string( $code ) ? $code : '';
     }
@@ -230,8 +228,8 @@ final class WpmlBridge implements TranslationBridge {
         // The 3rd argument is "return the original when there is no translation" — true while
         // following the reader, false for a NAMED language. See the interface for why.
         $mapped = $lang === ''
-            ? apply_filters( 'wpml_object_id', $object_id, $type, true )
-            : apply_filters( 'wpml_object_id', $object_id, $type, false, $lang );
+            ? apply_filters( 'wpml_object_id', $object_id, $type, true ) // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
+            : apply_filters( 'wpml_object_id', $object_id, $type, false, $lang ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         if ( is_numeric( $mapped ) && (int) $mapped > 0 ) {
             return (int) $mapped;
@@ -249,7 +247,7 @@ final class WpmlBridge implements TranslationBridge {
         // `wpml_permalink` converts an ADDRESS to a language and switches nothing — unlike
         // running home_url() inside a language switch, which fires WPML's own hooks and every
         // listener on them, twice, for every language in the switcher.
-        $translated = apply_filters( 'wpml_permalink', $home, $lang );
+        $translated = apply_filters( 'wpml_permalink', $home, $lang ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         return is_string( $translated ) && $translated !== '' ? $translated : $home;
     }
@@ -258,7 +256,7 @@ final class WpmlBridge implements TranslationBridge {
         if ( $url === '' || $lang === '' ) {
             return $url;
         }
-        $translated = apply_filters( 'wpml_permalink', $url, $lang );
+        $translated = apply_filters( 'wpml_permalink', $url, $lang ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         return is_string( $translated ) && $translated !== '' ? $translated : $url;
     }
@@ -313,7 +311,7 @@ final class WpmlBridge implements TranslationBridge {
                     // to prevent. Claiming a switch that then failed costs one redundant restore;
                     // missing one costs the request.
                     $active = $want;
-                    do_action( 'wpml_switch_language', $want );
+                    do_action( 'wpml_switch_language', $want ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
                 }
 
                 foreach ( $ids as $id ) {
@@ -327,7 +325,7 @@ final class WpmlBridge implements TranslationBridge {
                 // `$current` of '' — which is what an unanswered filter gives — would not restore
                 // anything and would leave the site in the last language switched to, for the
                 // rest of the request. null is its documented reset.
-                do_action( 'wpml_switch_language', $current !== '' ? $current : null );
+                do_action( 'wpml_switch_language', $current !== '' ? $current : null ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
             }
         }
 
@@ -448,12 +446,12 @@ final class WpmlBridge implements TranslationBridge {
         }
 
         $element = 'post_' . $type;
-        $trid    = apply_filters( 'wpml_element_trid', null, $post_id, $element );
+        $trid    = apply_filters( 'wpml_element_trid', null, $post_id, $element ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
         if ( ! $trid ) {
             return [];
         }
 
-        $found = apply_filters( 'wpml_get_element_translations', null, $trid, $element );
+        $found = apply_filters( 'wpml_get_element_translations', null, $trid, $element ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
         if ( ! is_array( $found ) ) {
             return [];
         }
@@ -470,7 +468,7 @@ final class WpmlBridge implements TranslationBridge {
     }
 
     public function all_versions( int $post_id, string $type ): array {
-        global $wpml_post_translations;
+        $wpml_post_translations = $GLOBALS['wpml_post_translations'] ?? null; // WPML's object, read only.
         if ( $post_id <= 0 || ! $wpml_post_translations instanceof \WPML_Post_Translation || get_post_type( $post_id ) !== $type ) {
             return [];
         }
@@ -484,60 +482,15 @@ final class WpmlBridge implements TranslationBridge {
     }
 
     public function load_versions( array $post_ids ): void {
-        global $wpml_post_translations;
+        $wpml_post_translations = $GLOBALS['wpml_post_translations'] ?? null; // WPML's object, read only.
         $ids = array_values( array_filter( $post_ids, static fn( $id ): bool => is_int( $id ) && $id > 0 ) );
         if ( $ids !== [] && $wpml_post_translations instanceof \WPML_Post_Translation ) {
             $wpml_post_translations->prefetch_ids( $ids );
         }
     }
 
-    public function original_changed( int $post_id ): void {
-        $post = get_post( $post_id );
-        if ( ! $post || ! $this->is_original( $post_id, $post->post_type ) ) {
-            return;
-        }
-        // WPML's post-save boundary compares its own content hash (including our translated
-        // field texts). Calling it on a translation would instead mark that translation complete.
-        do_action( 'wpml_tm_save_post', $post_id, $post, false );
-    }
-
-    public function register_field_hooks(): void {
-        if ( ! $this->field_hooks_registered ) {
-            $this->field_hooks_registered = true;
-            Wpml\FieldHooks::init();
-        }
-    }
-
-    public function pending_original( int $post_id ): int {
-        $post = get_post( $post_id );
-        // phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only discovery, validated against WPML's group and the user's access.
-        $trid = isset( $_GET['trid'] ) ? absint( wp_unslash( $_GET['trid'] ) ) : 0;
-        $lang = isset( $_GET['lang'] ) ? sanitize_key( wp_unslash( $_GET['lang'] ) ) : '';
-        // phpcs:enable WordPress.Security.NonceVerification.Recommended
-        if ( ! $post || ! $trid || $lang === '' || $post->post_status !== 'auto-draft'
-            || $this->is_post_type_translatable( $post->post_type ) !== true
-            || ! in_array( $lang, array_column( $this->languages(), 'code' ), true ) ) {
-            return 0;
-        }
-        $original = 0;
-        foreach ( (array) apply_filters( 'wpml_get_element_translations', null, $trid, 'post_' . $post->post_type ) as $code => $row ) {
-            if ( (string) $code === $lang && ! empty( $row->element_id ) ) {
-                return 0;
-            }
-            if ( ! empty( $row->original ) && ! empty( $row->element_id ) ) {
-                $original = (int) $row->element_id;
-            }
-        }
-        return $original && get_post_type( $original ) === $post->post_type && current_user_can( 'read_post', $original )
-            ? $original : 0;
-    }
-
-    public function duplicate_of( int $post_id ): int {
-        return max( 0, (int) get_post_meta( $post_id, '_icl_lang_duplicate_of', true ) );
-    }
-
     public function writes_translations_manually( int $post_id ): bool {
-        global $sitepress;
+        $sitepress = $GLOBALS['sitepress'] ?? null; // WPML's object, read only.
 
         // WPML's own answer, not a copy of it. The setting has THREE levels — a flag on the
         // original post, then one per post type, then the global one — and their method also
@@ -578,71 +531,6 @@ final class WpmlBridge implements TranslationBridge {
             foreach ( (array) $rows as $row ) {
                 $out[ (int) $row->id ] = (int) $row->original;
             }
-        }
-        return $out;
-    }
-
-    /**
-     * id => original, for this request: every id once asked, answered from here after. Emptied
-     * whenever WPML writes a translation row (wpml_translation_update — a version linked, a
-     * language set, a group deleted), so a page that translates and then reads in one request
-     * does not read the group as it was.
-     *
-     * @var array<int,int>
-     */
-    private array $originals = [];
-
-    private static bool $originals_hooked = false;
-
-    public function originals_of_any( array $post_ids ): array {
-        if ( ! self::$originals_hooked ) {
-            self::$originals_hooked = true;
-            add_action( 'wpml_translation_update', static function (): void {
-                $bridge = \Fabrement\Modules\Translation\Translation::bridge();
-                if ( $bridge instanceof self ) {
-                    $bridge->originals = [];
-                }
-            } );
-        }
-
-        $ids     = array_values( array_unique( array_filter( array_map( 'intval', $post_ids ), static fn( int $id ): bool => $id > 0 ) ) );
-        $missing = array_values( array_filter( $ids, fn( int $id ): bool => ! isset( $this->originals[ $id ] ) ) );
-
-        global $wpdb;
-        // The type comes with the row — WPML files a post as post_<type> — so no question about
-        // types goes before this one; whether a type is translated TODAY is a setting, not a query.
-        $modes = [];
-        foreach ( array_chunk( $missing, 1000 ) as $chunk ) {
-            $placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-            // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- WPML's icl_translations table has no batch API; $placeholders is a run of %d built with array_fill() from count( $chunk ), matched by $chunk.
-            $rows = $wpdb->get_results(
-                $wpdb->prepare(
-                    "SELECT t.element_id AS id, t.element_type AS type, MIN( o.element_id ) AS original
-                       FROM {$wpdb->prefix}icl_translations t
-                       INNER JOIN {$wpdb->prefix}icl_translations o
-                         ON o.trid = t.trid AND o.element_type = t.element_type
-                       INNER JOIN {$wpdb->posts} p ON p.ID = o.element_id
-                      WHERE t.element_id IN ( $placeholders )
-                        AND t.element_type LIKE %s
-                        AND NULLIF( o.source_language_code, '' ) IS NULL
-                      GROUP BY t.element_id, t.element_type",
-                    array_merge( $chunk, [ $wpdb->esc_like( 'post_' ) . '%' ] )
-                )
-            );
-            // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-            foreach ( (array) $rows as $row ) {
-                $type = substr( (string) $row->type, 5 );
-                // A type switched to "none" keeps WPML's old rows: reading them would name another,
-                // independent record as the original. Read by the type's setting as it is now.
-                $modes[ $type ] ??= $this->translation_mode( 'post', $type );
-                if ( in_array( $modes[ $type ], [ 'translate', 'fallback' ], true ) ) {
-                    $this->originals[ (int) $row->id ] = (int) $row->original;
-                }
-            }
-        }
-        $out = [];
-        foreach ( $ids as $id ) {
-            $out[ $id ] = $this->originals[ $id ] ??= $id;
         }
         return $out;
     }
@@ -713,7 +601,7 @@ final class WpmlBridge implements TranslationBridge {
 
         // THE ROW DECIDES, not the filter. `wpml_original_element_id` is served from WPML's own
         // per-request cache, and that cache goes stale the moment anything in this request
-        // creates a translation: measured here, a template created AFTER translate-template ran
+        // creates a translation: measured here, a template created AFTER a template translation ran
         // came back with a neighbouring template's id, so is_original() answered false for a
         // record whose row says source_language_code IS NULL. Everything downstream then refused
         // it — find_assignable() returned null and every assign answered "Template not found"
@@ -747,7 +635,7 @@ final class WpmlBridge implements TranslationBridge {
         }
 
         do_action(
-            'wpml_set_element_language_details',
+            'wpml_set_element_language_details', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
             [
                 'element_id'    => $post_id,
                 'element_type'  => 'post_' . $type,
@@ -772,20 +660,20 @@ final class WpmlBridge implements TranslationBridge {
         // original knows nothing about, that no reader is ever handed, while the original
         // goes on offering "add a version" — and gets another orphan each time. Write the
         // default language down first, which is the answer WPML already gives for it.
-        if ( ! apply_filters( 'wpml_element_trid', null, $original_id, $element ) ) {
+        if ( ! apply_filters( 'wpml_element_trid', null, $original_id, $element ) ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
             $this->set_language( $original_id, $this->default_language(), $type );
         }
 
-        $source = apply_filters( 'wpml_element_language_code', null, [ 'element_id' => $original_id, 'element_type' => $element ] );
+        $source = apply_filters( 'wpml_element_language_code', null, [ 'element_id' => $original_id, 'element_type' => $element ] ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
 
         do_action(
-            'wpml_set_element_language_details',
+            'wpml_set_element_language_details', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
             [
                 'element_id'           => $post_id,
                 'element_type'         => $element,
                 // The original's group. Passing null would start a NEW one, leaving the two
                 // records unrelated — a translation nobody can reach from its source.
-                'trid'                 => apply_filters( 'wpml_element_trid', null, $original_id, $element ),
+                'trid'                 => apply_filters( 'wpml_element_trid', null, $original_id, $element ), // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
                 'language_code'        => $lang,
                 'source_language_code' => is_string( $source ) ? $source : null,
             ]
@@ -831,38 +719,8 @@ final class WpmlBridge implements TranslationBridge {
         return strtoupper( $code );
     }
 
-    /**
-     * String Translation keeps an "admin text" as a string of context `admin_texts_<option>`
-     * named `[<option>]<key>`, and translates the option on read ONLY for keys listed in its
-     * `_icl_admin_option_names` registry — a key it has never seen (a post type created after
-     * WPML scanned the option) is stored but never swapped in. So: list the key, register the
-     * string, store the translation. The compiled .mo it serves from is rebuilt by
-     * icl_add_string_translation itself; a direct table write would leave a stale file.
-     */
-    public function translate_option( string $option, string $key, string $original, string $lang, string $value ): bool {
-        if ( ! function_exists( 'icl_register_string' ) || ! function_exists( 'icl_add_string_translation' ) ) {
-            return false;
-        }
-
-        $names = get_option( '_icl_admin_option_names', [] );
-        $names = is_array( $names ) ? $names : [];
-        if ( ! isset( $names[ $option ][ $key ] ) ) {
-            $names[ $option ][ $key ] = 0;
-            update_option( '_icl_admin_option_names', $names, 'no' );
-        }
-
-        $string_id = (int) icl_register_string( 'admin_texts_' . $option, '[' . $option . ']' . $key, $original, true );
-        if ( $string_id <= 0 ) {
-            return false;
-        }
-        $translation = icl_add_string_translation( $string_id, $lang, $value, defined( 'ICL_TM_COMPLETE' ) ? ICL_TM_COMPLETE : 10 );
-
-        return is_numeric( $translation ) && (int) $translation > 0;
-    }
-
     public function forget_languages(): void {
         $this->languages = null;
-        $this->originals = [];
     }
 
     public function term_language( int $term_id, string $taxonomy ): string {
@@ -872,7 +730,7 @@ final class WpmlBridge implements TranslationBridge {
         }
 
         $lang = apply_filters(
-            'wpml_element_language_code',
+            'wpml_element_language_code', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
             null,
             array( 'element_id' => $ttid, 'element_type' => 'tax_' . $taxonomy )
         );
@@ -907,7 +765,7 @@ final class WpmlBridge implements TranslationBridge {
 
         $type = 'tax_' . $taxonomy;
 
-        $trid = apply_filters( 'wpml_element_trid', null, $ttid, $type );
+        $trid = apply_filters( 'wpml_element_trid', null, $ttid, $type ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
         if ( ! is_numeric( $trid ) ) {
             return $term_id;
         }
@@ -919,7 +777,7 @@ final class WpmlBridge implements TranslationBridge {
         //
         // Its ids are NOT language-adjusted, which is why this is safe where get_term() is not:
         // the rows describe the group, not the request.
-        foreach ( (array) apply_filters( 'wpml_get_element_translations', null, $trid, $type ) as $row ) {
+        foreach ( (array) apply_filters( 'wpml_get_element_translations', null, $trid, $type ) as $row ) { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
             if ( ! empty( $row->original ) && ! empty( $row->term_id ) ) {
                 return (int) $row->term_id;
             }
@@ -941,7 +799,7 @@ final class WpmlBridge implements TranslationBridge {
         // The group the original already belongs to. Everything below hangs off this: a translation
         // that lands outside it is not a translation, it is a second term that happens to look
         // similar, and nothing will ever map between them.
-        $trid = apply_filters( 'wpml_element_trid', null, $ttid, 'tax_' . $taxonomy );
+        $trid = apply_filters( 'wpml_element_trid', null, $ttid, 'tax_' . $taxonomy ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter, read through the translation bridge.
         $trid = is_numeric( $trid ) ? (int) $trid : 0;
         if ( $trid <= 0 ) {
             return 0;
@@ -997,7 +855,7 @@ final class WpmlBridge implements TranslationBridge {
         // Join it to the original's group. The insert above gave the term a language and a trid of
         // its OWN; this is what makes it the same term in another language instead.
         do_action(
-            'wpml_set_element_language_details',
+            'wpml_set_element_language_details', // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own action, called through the translation bridge.
             array(
                 'element_id'           => (int) $result['term_taxonomy_id'],
                 'element_type'         => 'tax_' . $taxonomy,
@@ -1009,11 +867,11 @@ final class WpmlBridge implements TranslationBridge {
             )
         );
 
-        // WPML serves this core option per language for a translated taxonomy, so a new term in a
-        // language invalidates the copy built without it.
-        delete_option( $taxonomy . '_children' );
+        // A new term in a language invalidates the taxonomy's caches, its hierarchy (which WPML
+        // serves per language) included: core's own cleanup, as after a term change in wp-admin.
+        clean_taxonomy_cache( $taxonomy );
 
-        global $wpml_term_translations;
+        $wpml_term_translations = $GLOBALS['wpml_term_translations'] ?? null; // WPML's object, read only.
         if ( is_object( $wpml_term_translations ) && method_exists( $wpml_term_translations, 'invalidate_cache' ) ) {
             $wpml_term_translations->invalidate_cache();
         }
@@ -1060,7 +918,7 @@ final class WpmlBridge implements TranslationBridge {
     private array $translatable_memo = array();
 
     public function is_post_type_translatable( string $post_type ): ?bool {
-        return $this->asks_plugin( 'post:' . $post_type, 'is_translated_post_type', $post_type );
+        return $this->asks_plugin( 'post:' . $post_type, 'wpml_is_translated_post_type', $post_type );
     }
 
     /**
@@ -1085,65 +943,39 @@ final class WpmlBridge implements TranslationBridge {
     }
 
     /**
-     * One of SitePress's two `is_translated_*` methods, memoised, or null when it cannot answer.
+     * One of WPML's two `wpml_is_translated_*` filters, memoised, or null when it cannot answer.
      *
-     * Null covers a WPML that is present but older than the method, and the moment before it has
-     * booted. A caller that turned that into `false` would report "this is not translated" about a
-     * site it simply had not asked yet.
+     * Null covers the moment before WPML has booted (nothing hooked yet: the default comes back).
+     * A caller that turned that into `false` would report "this is not translated" about a site it
+     * simply had not asked yet.
      */
-    private function asks_plugin( string $key, string $method, string $name ): ?bool {
+    private function asks_plugin( string $key, string $filter, string $name ): ?bool {
         if ( array_key_exists( $key, $this->translatable_memo ) ) {
             return $this->translatable_memo[ $key ];
         }
 
-        global $sitepress;
+        $answer = $name !== '' ? apply_filters( $filter, null, $name ) : null; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound, WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- WPML's own wpml_is_translated_* filter.
 
-        $answer = ( $name !== '' && is_object( $sitepress ) && method_exists( $sitepress, $method ) )
-            ? (bool) $sitepress->{$method}( $name )
-            : null;
-
-        return $this->translatable_memo[ $key ] = $answer;
+        return $this->translatable_memo[ $key ] = $answer === null ? null : (bool) $answer;
     }
 
     public function translation_mode( string $kind, string $name ): ?string {
-        global $sitepress;
-        if ( $name === '' || ! $sitepress instanceof \SitePress ) {
+        if ( $name === '' || ! $this->is_active() ) {
             return null;
         }
         $is_post = $kind === 'post';
         // WPML's own "is it translated" first: it also counts a type declared in a wpml-config.xml
         // (locked on its screen) that has no row in the settings array.
-        $translated = $is_post ? $sitepress->is_translated_post_type( $name ) : $sitepress->is_translated_taxonomy( $name );
+        $translated = apply_filters( $is_post ? 'wpml_is_translated_post_type' : 'wpml_is_translated_taxonomy', null, $name ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound, WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- WPML's own filter.
+        if ( $translated === null ) {
+            return null;
+        }
         if ( ! $translated ) {
             return 'none';
         }
-        $sync = $sitepress->get_setting( $is_post ? 'custom_posts_sync_option' : 'taxonomies_sync_option', array() );
+        $sync = apply_filters( 'wpml_setting', array(), $is_post ? 'custom_posts_sync_option' : 'taxonomies_sync_option' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML's own filter.
         $row  = is_array( $sync ) && isset( $sync[ $name ] ) ? (int) $sync[ $name ] : self::MODE_TRANSLATE;
         return $row === self::MODE_FALLBACK ? 'fallback' : 'translate';
-    }
-
-    public function option_translations( string $option, string $key, string $original ): array {
-        if ( ! function_exists( 'icl_get_string_id' ) || ! function_exists( 'icl_get_string_translations_by_id' ) ) {
-            return [];
-        }
-        $string_id = (int) icl_get_string_id( $original, 'admin_texts_' . $option, '[' . $option . ']' . $key );
-        if ( $string_id <= 0 ) {
-            return [];
-        }
-        $out = [];
-        foreach ( (array) icl_get_string_translations_by_id( $string_id ) as $code => $row ) {
-            $value = is_array( $row ) ? (string) ( $row['value'] ?? '' ) : '';
-            if ( $value !== '' ) {
-                $out[ (string) $code ] = $value;
-            }
-        }
-        return $out;
-    }
-
-    public function supports_strings(): bool {
-        return $this->languages() !== []
-            && function_exists( 'icl_register_string' )
-            && function_exists( 'icl_add_string_translation' );
     }
 
     public function without_language( string $post_type ): array {

@@ -2,7 +2,10 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
+use Fabrement\Modules\SiteTemplate\Service\ArchiveTemplateBinding;
+use Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplatePages;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateTranslator;
@@ -10,12 +13,14 @@ use Fabrement\Modules\Translation\Translation;
 use WP_Error;
 
 /**
- * Read-only: one template's FULL state, including its content-slot config (contentSource) and
- * its frame (blocks) — all of which list-templates omits. Read it
- * before editing any of them,
- * since save-template REPLACES the slot with whatever you send.
+ * Read-only: one template's FULL state — its frame (blocks, outline, hash) and, read-only, its
+ * theme-file rules (contentSource) and site-wide assignments. Read it before editing the frame.
  */
 final class GetTemplateAbility extends AbstractAbility {
+
+    public function check_permission() {
+        return parent::check_permission() && current_user_can( Capabilities::TEMPLATES );
+    }
 
     public function name(): string {
         return 'fabrement/get-template';
@@ -27,7 +32,8 @@ final class GetTemplateAbility extends AbstractAbility {
 
     public function description(): string {
         return 'One block template in full, answered as {template:{…}}: contentWidth, '
-            . 'blocks (its frame as save-template takes it back), outline, hash, problem, archiveContexts. '
+            . 'blocks (its frame as save-template takes it back), outline, hash, problem. '
+            . 'Read-only here: contentSource (theme files the slot draws), defaultFor and archiveContexts — set in wp-admin. '
             . 'A {name:"core/block", attributes:{ref}} entry is a GLOBAL BLOCK — the header and the footer usually are: its words are read and '
             . 'changed with get-synced-pattern / save-synced-pattern {patternId: ref} (every template placing it changes). '
             . 'Read it before you change the frame: save-template mode "edit" needs its hash, '
@@ -45,7 +51,7 @@ final class GetTemplateAbility extends AbstractAbility {
             'type'                 => 'object',
             'required'             => [ 'templateId' ],
             'properties'           => [
-                'templateId' => [ 'type' => 'integer', 'minimum' => 1, 'description' => 'Template id from list-templates, or a language version\'s id.' ],
+                'templateId' => [ 'type' => 'integer', 'minimum' => 1, 'description' => 'Template id from list-templates' . self::multilingual_text( ', or a language version\'s id' ) . '.' ],
             ],
             'additionalProperties' => false,
         ];
@@ -75,14 +81,13 @@ final class GetTemplateAbility extends AbstractAbility {
         }
 
         $summary = $record->to_summary( SiteTemplatePostType::type_defaults() )
-            + [ 'contentSource' => \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::read( $template_id ) ]
+            + [ 'contentSource' => ContentSourceConfig::read( $template_id ) ]
             + [ 'pageCount' => SiteTemplatePages::counts()[ $record->slug ] ?? 0 ]
             // The frame as save-template takes it back.
             + SiteTemplateTranslator::fill( $record )
-            + [ 'archiveContexts' => \Fabrement\Modules\SiteTemplate\Service\ArchiveTemplateBinding::contexts_for_template( $template_id ) ];
+            + [ 'archiveContexts' => ArchiveTemplateBinding::contexts_for_template( $template_id ) ];
 
-        // Only where the site has languages: on the rest the answer is byte-for-byte what it
-        // always was, and no agent meets a `translation` key it then has to reason about.
+        // Only where the site has languages.
         if ( Translation::is_multilingual() ) {
             $summary['translation'] = self::translation( $record );
         }
@@ -93,14 +98,8 @@ final class GetTemplateAbility extends AbstractAbility {
     /**
      * Where this record stands among the template's languages, and who owns its translation.
      *
-     * `editor` is asked of the ORIGINAL: the translation plugin decides per record whether its
-     * own editor holds the words, and it is the original's setting that governs its versions.
-     * `screenUrl` rides along only where that editor is the plugin's, because that is the only
-     * case in which the agent has somewhere else to send the person.
-     *
-     * No "stale" flag: a version is a record of its own, edited on its own, and a header swapped
-     * on the original is not a defect in the version — the same as a translated page that kept
-     * its own blocks when the original changed.
+     * `editor` is asked of the ORIGINAL: its setting governs its versions. `screenUrl` rides
+     * along only where that editor is the translation plugin's.
      *
      * @return array<string,mixed>
      */
@@ -116,23 +115,16 @@ final class GetTemplateAbility extends AbstractAbility {
             if ( (int) $id === $record->id ) {
                 continue;
             }
-            $versions[ (string) $code ] = [
-                'id' => (int) $id,
-            ];
+            $versions[ (string) $code ] = [ 'id' => (int) $id ];
         }
 
         $out = [
-            'language'     => (string) ( $facts['language'] ?? $bridge->default_language() ),
-            'isOriginal'   => $original->id === $record->id,
-            'originalId'   => $original->id,
-            // Named for the ROLE, not for the product: "plugin" is whichever translation plugin
-            // this site runs. An agent that reads "wpml" learns a brand it would then repeat to
-            // the user — and be wrong about on a site running another one. The bridge is the
-            // only thing here allowed to know which it is.
-            'editor'       => $manual ? 'manual' : 'plugin',
-            'translations' => (object) $versions,
-            // The group's gaps, from the group — asked on a version, the answer is the same as
-            // on its original, so "what is left to translate" reads the same from either id.
+            'language'         => (string) ( $facts['language'] ?? $bridge->default_language() ),
+            'isOriginal'       => $original->id === $record->id,
+            'originalId'       => $original->id,
+            // Named for the role, not the product: whichever translation plugin the site runs.
+            'editor'           => $manual ? 'manual' : 'plugin',
+            'translations'     => (object) $versions,
             'missingLanguages' => Translation::missing_languages( $facts['translations'] ?? [] ),
         ];
         if ( ! $manual ) {
@@ -141,5 +133,4 @@ final class GetTemplateAbility extends AbstractAbility {
 
         return $out;
     }
-
 }

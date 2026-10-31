@@ -195,6 +195,35 @@ final class SyncedPatterns {
     }
 
     /**
+     * Placements a listing may SHOW: only records this user may read (read_post). The guards
+     * that refuse a change keep the full set.
+     *
+     * @param list<array{id:int,title:string,postType:string,status:string}> $placements
+     * @return list<array{id:int,title:string,postType:string,status:string}>
+     */
+    public static function readable( array $placements ): array {
+        return array_values( array_filter( $placements, static fn( array $p ): bool => current_user_can( 'read_post', (int) $p['id'] ) ) );
+    }
+
+    /**
+     * A guard's refusal names only what this user may read; the rest is a count. The guard
+     * itself still decides on the full set.
+     *
+     * @param list<array{id:int,title:string}> $placements
+     * @param callable(array):string           $name
+     * @return array{text:string,readable:list<array>,hidden:int}
+     */
+    public static function refusal_list( array $placements, callable $name ): array {
+        $readable = self::readable( $placements );
+        $hidden   = count( $placements ) - count( $readable );
+        $names    = array_map( $name, array_slice( $readable, 0, 5 ) );
+        if ( $hidden > 0 ) {
+            $names[] = sprintf( $names === [] ? '%d you cannot open' : 'and %d you cannot open', $hidden );
+        }
+        return [ 'text' => implode( '; ', $names ), 'readable' => $readable, 'hidden' => $hidden ];
+    }
+
+    /**
      * The post types whose content is blocks — the only ones a global block can be placed in: every
      * type with the editor, the patterns themselves and the templates. The search for placements
      * reads these alone, by the index on the type: orders, menu items, attachments and the like
@@ -278,6 +307,55 @@ final class SyncedPatterns {
     }
 
     /**
+     * The term of a kind: the one WordPress's editor would use (slug `header`), else one of that
+     * name under another slug — never a second one. Null when the site has none yet.
+     */
+    private static function kind_term( string $kind ): ?\WP_Term {
+        $taxonomy = self::CATEGORY_TAXONOMY;
+        $term     = get_term_by( 'slug', $kind, $taxonomy ) ?: get_term_by( 'name', self::KINDS[ $kind ], $taxonomy ) ?: get_term_by( 'name', self::OLD_NAMES[ $kind ], $taxonomy );
+        return $term instanceof \WP_Term ? $term : null;
+    }
+
+    /** The term of a category: by its slug, else one a person made under WordPress's name for it. */
+    private static function category_term( string $slug ): ?\WP_Term {
+        $taxonomy = self::CATEGORY_TAXONOMY;
+        $term     = get_term_by( 'slug', $slug, $taxonomy ) ?: ( isset( self::CATEGORIES[ $slug ] ) ? get_term_by( 'name', self::CATEGORIES[ $slug ], $taxonomy ) : false );
+        return $term instanceof \WP_Term ? $term : null;
+    }
+
+    /** Whether the user may make or rename pattern categories, as the editor asks: the taxonomy's edit_terms. */
+    public static function may_edit_categories(): bool {
+        $taxonomy = get_taxonomy( self::CATEGORY_TAXONOMY );
+        return $taxonomy instanceof \WP_Taxonomy && current_user_can( $taxonomy->cap->edit_terms );
+    }
+
+    /**
+     * The category terms filing under `$kind` / `$slugs` would make or rename, by name: WordPress's
+     * own ones the site does not have yet, and an old Header / Footer name.
+     *
+     * @param list<string>|null $slugs
+     * @return list<string>
+     */
+    public static function terms_to_write( ?string $kind, ?array $slugs ): array {
+        if ( ! taxonomy_exists( self::CATEGORY_TAXONOMY ) ) {
+            return [];
+        }
+        $out = [];
+        if ( $kind !== null && isset( self::KINDS[ $kind ] ) ) {
+            $term = self::kind_term( $kind );
+            if ( $term === null || $term->name === self::OLD_NAMES[ $kind ] ) {
+                $out[] = self::KINDS[ $kind ];
+            }
+        }
+        foreach ( $slugs ?? [] as $slug ) {
+            if ( isset( self::CATEGORIES[ $slug ] ) && self::category_term( $slug ) === null ) {
+                $out[] = self::CATEGORIES[ $slug ];
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Mark a pattern as a header, a footer, or neither ("section"): WordPress's pattern category of
      * that name, which the admin's Patterns screen filters by too. Other categories it has stay.
      */
@@ -296,13 +374,13 @@ final class SyncedPatterns {
         }
 
         if ( isset( self::KINDS[ $kind ] ) ) {
-            // The term WordPress's editor would use (slug `header`), else one of that name under
-            // another slug — never a second one.
-            $term = get_term_by( 'slug', $kind, $taxonomy ) ?: get_term_by( 'name', self::KINDS[ $kind ], $taxonomy ) ?: get_term_by( 'name', self::OLD_NAMES[ $kind ], $taxonomy );
-            if ( ! $term instanceof \WP_Term ) {
+            $term = self::kind_term( $kind );
+            // Making or renaming a term is edit_terms ({@see terms_to_write()}).
+            $may = self::may_edit_categories();
+            if ( ! $term instanceof \WP_Term && $may ) {
                 $made = wp_insert_term( self::KINDS[ $kind ], $taxonomy, [ 'slug' => $kind ] );
                 $term = is_wp_error( $made ) ? null : get_term( (int) $made['term_id'], $taxonomy );
-            } elseif ( $term->name === self::OLD_NAMES[ $kind ] ) {
+            } elseif ( $term instanceof \WP_Term && $term->name === self::OLD_NAMES[ $kind ] && $may ) {
                 // The name this plugin gave it once: WordPress's own now, so the editor's
                 // suggestion is this very term. Its slug, and what is filed under it, stay.
                 wp_update_term( (int) $term->term_id, $taxonomy, [ 'name' => self::KINDS[ $kind ] ] );
@@ -379,10 +457,10 @@ final class SyncedPatterns {
                 $keep[] = (int) $term->term_id;
             }
         }
+        $may = self::may_edit_categories();
         foreach ( $slugs as $slug ) {
-            // The term the editor would use: by its slug, else one a person made under that name.
-            $term = get_term_by( 'slug', $slug, $taxonomy ) ?: ( isset( self::CATEGORIES[ $slug ] ) ? get_term_by( 'name', self::CATEGORIES[ $slug ], $taxonomy ) : false );
-            if ( ! $term instanceof \WP_Term && isset( self::CATEGORIES[ $slug ] ) ) {
+            $term = self::category_term( $slug );
+            if ( ! $term instanceof \WP_Term && isset( self::CATEGORIES[ $slug ] ) && $may ) {
                 $made = wp_insert_term( self::CATEGORIES[ $slug ], $taxonomy, [ 'slug' => $slug ] );
                 $term = is_wp_error( $made ) ? null : get_term( (int) $made['term_id'], $taxonomy );
             }

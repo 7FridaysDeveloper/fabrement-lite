@@ -20,8 +20,7 @@ use WP_Error;
  *
  * Two doors start the same version: the Templates screen's language control
  * ({@see \Fabrement\Route\SiteTemplate\TranslateSiteTemplateRestRoute}) and the agent's
- * translate-template tool. Both call {@see open()} — one set of refusals, in one place, so a
- * language the button will not start is a language the tool will not start either.
+ * translate-template tool. Both call {@see open()}: one set of refusals, in one place.
  */
 final class SiteTemplateTranslator {
 
@@ -185,7 +184,7 @@ final class SiteTemplateTranslator {
 
             return new WP_Error(
                 'fabrement_st_link_failed',
-                __( 'The translation could not be linked to this template — the translation plugin does not treat templates as translatable yet. Open WP Admin → Plugins once so it re-reads its configuration, then try again.', 'fabrement-lite' ),
+                __( 'The translation could not be linked to this template — the translation plugin does not treat templates as translatable yet. Ask a site administrator to open WP Admin → Plugins once so it re-reads its configuration, then try again.', 'fabrement-lite' ),
                 [ 'status' => 409 ]
             );
         }
@@ -210,9 +209,7 @@ final class SiteTemplateTranslator {
 
     /**
      * What a template's read adds to its summary: its frame (`blocks`, with the `outline` and
-     * `hash` an edit is pinned by). A global block in it is a {name:"core/block", attributes:{ref}}
-     * entry; its words are the synced-pattern tools'. The same read serves get-template and
-     * translate-template.
+     * `hash` an edit is pinned by). The same read serves get-template and translate-template.
      *
      * @return array{blocks:list<array<string,mixed>>,outline:list<string>,hash:string}
      */

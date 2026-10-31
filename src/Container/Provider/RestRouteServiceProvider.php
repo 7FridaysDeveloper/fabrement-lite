@@ -2,14 +2,9 @@
 namespace Fabrement\Container\Provider;
 use Pimple\Container;
 use Pimple\ServiceProviderInterface;
-use Fabrement\Modules\Fields\Write\FieldWrite;
-use Fabrement\Route\Fields\PostFieldsRestRoute;
-use Fabrement\Route\Fields\OptionsFieldsRestRoute;
 final class RestRouteServiceProvider implements ServiceProviderInterface {
     public function register( Container $pimple ): void {
-        $pimple[ PostFieldsRestRoute::class ] = static fn( Container $c ) => new PostFieldsRestRoute( $c[ FieldWrite::class ] );
-        $pimple[ OptionsFieldsRestRoute::class ] = static fn( Container $c ) => new OptionsFieldsRestRoute( $c[ FieldWrite::class ] );
-        foreach ( [ \Fabrement\Route\Editor\PostRefsRestRoute::class, \Fabrement\Route\Editor\MediaRefsRestRoute::class, \Fabrement\Route\SiteTemplate\AssignSiteTemplateArchiveRestRoute::class,
+        foreach ( [ \Fabrement\Route\SiteTemplate\AssignSiteTemplateArchiveRestRoute::class,
             \Fabrement\Route\SiteTemplate\AssignSiteTemplatePagesRestRoute::class,
             \Fabrement\Route\SiteTemplate\ContentSourceFilesRestRoute::class,
             \Fabrement\Route\SiteTemplate\DefaultSiteTemplateRestRoute::class,

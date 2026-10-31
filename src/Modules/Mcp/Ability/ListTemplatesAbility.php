@@ -2,6 +2,7 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplatePages;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;
@@ -13,6 +14,10 @@ use Fabrement\Modules\Translation\Translation;
  */
 final class ListTemplatesAbility extends AbstractAbility {
 
+    public function check_permission() {
+        return parent::check_permission() && current_user_can( Capabilities::TEMPLATES );
+    }
+
     public function name(): string {
         return 'fabrement/list-templates';
     }
@@ -23,7 +28,7 @@ final class ListTemplatesAbility extends AbstractAbility {
 
     public function description(): string {
         return 'List the site templates (the frames around pages): id, title, '
-            . 'contentWidth, problem (what is wrong with it, "" when nothing — no content slot, or a global block in it that was deleted or is not published), pageCount, defaultFor. What a template holds — its header and footer global blocks among it — is in get-template `blocks`. Call FIRST when the user may mean an EXISTING '
+            . 'contentWidth, problem (what is wrong with it, "" when nothing — no content slot, or a global block in it that was deleted or is not published), pageCount, defaultFor (read-only: site-wide defaults are set in wp-admin). What a template holds — its header and footer global blocks among it — is in get-template `blocks`. Call FIRST when the user may mean an EXISTING '
             . 'template — update it by id instead of creating a duplicate.'
             . self::multilingual_text( ' Originals only, each with language, translations {code: version id} and missingLanguages.' );
     }
@@ -79,8 +84,7 @@ final class ListTemplatesAbility extends AbstractAbility {
     public function execute( array $input ) {
         $defaults = SiteTemplatePostType::type_defaults();
         $counts   = SiteTemplatePages::counts();
-        // The same batch originals() already ran — one query for every template's languages.
-        // Empty on a single-language site, and then nothing below adds a key.
+        // One query for every template's languages; empty on a single-language site.
         $langs = Translation::is_multilingual() ? SiteTemplateRegistry::languages_of_all() : [];
 
         $templates = array_map(
@@ -91,8 +95,7 @@ final class ListTemplatesAbility extends AbstractAbility {
                     'translations'     => (object) $langs[ $record->id ]['translations'],
                     'missingLanguages' => Translation::missing_languages( $langs[ $record->id ]['translations'] ),
                 ] ),
-            // originals(): a language version holds no role on the site — it is reached through
-            // the original it belongs to — and an agent shown one would assign it as a second frame.
+            // A language version is reached through its original, never assigned itself.
             SiteTemplateRegistry::originals()
         );
 

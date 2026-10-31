@@ -24,6 +24,7 @@ final class GetRegisteredBlockSchemaAbility extends AbstractAbility {
                 'supports' => [ 'type' => 'object' ], 'writeMode' => [ 'type' => 'string', 'enum' => [ 'attributes', 'markup', 'unsupported' ] ],
                 'themeSettings' => [ 'type' => 'object', 'description' => 'Only the features this block supports: color, typography, spacing, dimensions, border, shadow, layout, align, styles, variations. Presets are {slug, name, value}; use the slug.' ],
                 'guide' => [ 'type' => 'string', 'description' => 'Notes for this block: markup the editor accepts, how it behaves, pitfalls. Read it before writing the block.' ],
+                'note' => [ 'type' => 'string' ],
                 'acf' => [ 'type' => 'object' ] ] ];
     }
     public function execute( array $input ) {

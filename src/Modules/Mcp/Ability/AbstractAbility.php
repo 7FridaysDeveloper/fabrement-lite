@@ -24,12 +24,13 @@ abstract class AbstractAbility implements AbilityInterface {
 
     /**
      * Second permission rubicon (the first gates the whole server transport).
-     * Override only for tools with a different capability profile.
+     * The default lets in whoever may connect; a tool that needs more overrides it, and a
+     * check on one object (edit_post, edit_term…) goes in execute().
      *
      * @return bool|\WP_Error
      */
     public function check_permission() {
-        return current_user_can( Capabilities::ADMIN );
+        return Capabilities::can_connect();
     }
 
     /**

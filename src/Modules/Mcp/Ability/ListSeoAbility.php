@@ -238,9 +238,14 @@ final class ListSeoAbility extends AbstractAbility {
         $posts     = (array) $wpdb->get_results( $wpdb->prepare( "SELECT ID, post_type, post_title, post_status FROM {$wpdb->posts} WHERE post_type IN ($in_types) AND post_status IN ($in_statuses) ORDER BY post_title ASC, ID ASC LIMIT %d", ...array_merge( $types, $statuses, [ self::SCAN ] ) ) );
         $truncated = count( $posts ) >= self::SCAN;
 
+        // read_post loads each record: one query for all of them first, as WP_Query does.
+        _prime_post_caches( array_map( static fn( $post ) => (int) $post->ID, $posts ), false, false );
         $by_type = [];
         foreach ( $posts as $post ) {
-            $by_type[ (string) $post->post_type ][ (int) $post->ID ] = $post;
+            // Only what this user may read: another's draft, pending or private record stays out (read_post).
+            if ( current_user_can( 'read_post', (int) $post->ID ) ) {
+                $by_type[ (string) $post->post_type ][ (int) $post->ID ] = $post;
+            }
         }
 
         $multi = Translation::is_multilingual();

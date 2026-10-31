@@ -2,8 +2,8 @@
 /** wp eval-file tests/Integration/lite-runtime.php — no content/schema writes. */
 use Fabrement\Framework\App;
 use Fabrement\Modules\Mcp\Roster;
-use Fabrement\Modules\Fields\Admin\EditorAssets;
 use Fabrement\Modules\Mcp\Ability\PreviewAbility;
+use Fabrement\Modules\SiteTemplate\EditorAssets;
 use Fabrement\Page\McpConnectionPage;
 
 if ( ! defined( 'WP_CLI' ) || ! WP_CLI || wp_get_environment_type() !== 'local'
@@ -33,6 +33,7 @@ try {
     foreach ( Roster::instantiate( App::container() ) as $ability ) {
         $contract = wp_json_encode( [ $ability->description(), $ability->input_schema(), $ability->output_schema() ] );
         $assert( ! preg_match( '/\b(?:save|get|list|delete)-(?:archive-page|single-page|archive-pages|single-pages)\b/', $contract ), 'Tool contracts must not direct clients to removed code authoring: ' . $ability->name() );
+        $assert( ! preg_match( '/\b(?:set-default-template|assign-template-archive|list-archives|list-theme-templates)\b/', $contract ), 'Site-wide template assignments are wp-admin only: ' . $ability->name() );
     }
     $forms = wp_get_ability( 'fabrement/list-forms' )->execute( [] );
     $assert( is_array( $forms ) && isset( $forms['cf7'] ) && ! isset( $forms['wpforms'] ), 'list-forms answers Contact Form 7 only.' );
@@ -54,6 +55,10 @@ try {
     ] as $removed ) { $assert( ! class_exists( $removed ), 'Removed implementation still shipped: ' . $removed ); }
     $assert( ! post_type_exists( 'fabrement_gb_block' ) && post_type_exists( 'fabrement_template' ), 'Block generation is absent; editable block templates remain.' );
     $assert( WP_Block_Type_Registry::get_instance()->is_registered( 'fabrement/content-source' ), 'The built-in template content slot remains registered.' );
+    $listed = wp_get_ability( 'fabrement/list-blocks' )->execute( [ 'source' => 'registered', 'search' => 'fabrement/', 'limit' => 25 ] );
+    $assert( in_array( 'fabrement/content-source', array_column( $listed['blocks'], 'name' ), true ), 'The template content slot is listed for templates.' );
+    $slot = wp_get_ability( 'fabrement/get-block-source' )->execute( [ 'name' => 'fabrement/content-source' ] );
+    $assert( is_array( $slot ) && str_contains( (string) ( $slot['guide'] ?? '' ), 'FABREMENT/CONTENT-SOURCE' ), 'get-block-source returns the slot with its guide.' );
     foreach ( [ 'fabrement/archive-list' ] as $block ) {
         $assert( ! WP_Block_Type_Registry::get_instance()->is_registered( $block ), 'Generated layout block is not registered: ' . $block );
     }
@@ -63,9 +68,9 @@ try {
     $routes = rest_get_server()->get_routes();
     foreach ( $routes as $route => $definition ) {
         if ( strpos( $route, '/fabrement/v1/' ) !== 0 ) { continue; }
-        $assert( (bool) preg_match( '~^/fabrement/v1/(?:mcp$|fields/|post-refs$|media-refs$|site-templates(?:$|/)|content-source/files$)~', $route ), 'Unexpected Lite REST route: ' . $route );
+        $assert( (bool) preg_match( '~^/fabrement/v1/(?:mcp$|site-templates(?:$|/)|content-source/files$)~', $route ), 'Unexpected Lite REST route: ' . $route );
     }
-    foreach ( [ '/fabrement/v1/post-refs', '/fabrement/v1/media-refs', '/fabrement/v1/mcp', '/fabrement/v1/site-templates', '/fabrement/v1/site-templates/pages', '/fabrement/v1/site-templates/archives', '/fabrement/v1/site-templates/default', '/fabrement/v1/site-templates/translate', '/fabrement/v1/content-source/files' ] as $route ) {
+    foreach ( [ '/fabrement/v1/mcp', '/fabrement/v1/site-templates', '/fabrement/v1/site-templates/pages', '/fabrement/v1/site-templates/archives', '/fabrement/v1/site-templates/default', '/fabrement/v1/site-templates/translate', '/fabrement/v1/content-source/files' ] as $route ) {
         $assert( isset( $routes[$route] ), 'Retained route missing: ' . $route );
     }
     $preview = new PreviewAbility();
@@ -88,12 +93,12 @@ try {
     wp_set_current_user( (int) $ids[0] );
     $assert( rest_do_request( new WP_REST_Request( 'GET', '/fabrement/v1/site-templates' ) )->get_status() === 200, 'Administrator reads the template list.' );
     EditorAssets::register();
-    $assert( wp_script_is( 'fabrement-editor-plugin', 'registered' ), 'Field form bundle is registered independently.' );
+    $assert( wp_script_is( 'fabrement-editor-plugin', 'registered' ), 'The template editor bundle is registered independently.' );
     $asset = wp_scripts()->registered['fabrement-editor-plugin'];
-    $assert( ! in_array( 'fabrement-runtime', $asset->deps, true ), 'Field forms have no generated runtime dependency.' );
+    $assert( ! in_array( 'fabrement-runtime', $asset->deps, true ), 'The template editor bundle has no generated runtime dependency.' );
     $assert( $http === 0, 'Local UI/discovery made an outbound HTTP request.' );
     wp_set_current_user( 0 );
-    $assert( wp_get_ability( 'fabrement/get-fields' )->check_permissions( [ 'postType' => 'page' ] ) !== true, 'Anonymous field access is refused.' );
+    $assert( wp_get_ability( 'fabrement/get-content' )->check_permissions( [ 'contentId' => 1 ] ) !== true, 'Anonymous tool access is refused.' );
 } finally {
     wp_set_current_user( $old_user );
     remove_filter( 'pre_http_request', $block_http, PHP_INT_MAX );

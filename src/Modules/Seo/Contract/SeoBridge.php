@@ -15,7 +15,6 @@ namespace Fabrement\Modules\Seo\Contract;
  * {@see SeoIntegration}. A new plugin is one of each.
  *
  * Field values: `null` or "" clears a field on write. Reads list only fields that hold something.
- * Scopes of defaults: 'postType' and 'taxonomy' (with a slug) and 'site'.
  */
 interface SeoBridge {
 
@@ -39,17 +38,8 @@ interface SeoBridge {
     /** @return list<string> Values of the `robotsAdvanced` list. */
     public function robots_advanced(): array;
 
-    /** @return list<string> Codes of the title separators the plugin offers. */
-    public function separators(): array;
-
     /** Whether a text holds the plugin's variables, so its printed length is not its own. */
     public function has_variables( string $text ): bool;
-
-    /** @return list<string> The default fields a scope takes. */
-    public function default_fields( string $scope ): array;
-
-    /** @return list<string> Of those, the ones that hold text per language. */
-    public function translatable_fields( string $scope ): array;
 
     // ── a record ────────────────────────────────────────────────────────────────────────────
 
@@ -115,8 +105,16 @@ interface SeoBridge {
     public function breadcrumb_taxonomy( string $post_type ): string;
 
     /**
+     * Fields among these the current user may not set, as the plugin's own metabox decides.
+     *
+     * @param list<string> $fields
+     * @return list<string>
+     */
+    public function not_allowed( array $fields ): array;
+
+    /**
      * Fields the plugin would not keep as sent — its own cleaning run without writing — each with
-     * what it would store instead. One call per store: a record's fields, a term's, or defaults.
+     * what it would store instead. One call per store: a record's fields or a term's.
      *
      * @param array<string,mixed> $fields
      * @return array<string,string>
@@ -128,14 +126,6 @@ interface SeoBridge {
      * @return array<string,string>
      */
     public function not_kept_term( \WP_Term $term, array $fields ): array;
-
-    /**
-     * Defaults of any scope, and an archive's site-wide values.
-     *
-     * @param array<string,mixed> $fields
-     * @return array<string,string>
-     */
-    public function not_kept_defaults( array $fields ): array;
 
     /** The stored main term id, 0 when none — whether the record still holds it is not checked. */
     public function primary_term( int $post_id, string $taxonomy ): int;
@@ -172,50 +162,4 @@ interface SeoBridge {
      * @return array<int, array{seo: array{title:string, metaDesc:string, noindex:bool, canonical:string}, texts: array{title:string, metaDesc:string}}>
      */
     public function term_listing( array $terms ): array;
-
-    // ── defaults ────────────────────────────────────────────────────────────────────────────
-
-    /** @return array<string,mixed> */
-    public function read_defaults( string $scope, string $slug = '' ): array;
-
-    /**
-     * @param array<string,mixed> $fields
-     * @return list<string> the fields written
-     */
-    public function write_defaults( string $scope, string $slug, array $fields ): array;
-
-    /**
-     * The node the site setting asks for (Organization or Person), the fields it still lacks before
-     * the plugin prints it, and those the plugin fills from elsewhere with where from:
-     * companyName ← websiteName | siteTitle | filter, companyLogoId ← siteLogo | filter.
-     * Null when the node is printed from the setting alone, or none is asked for.
-     *
-     * @return array{node:string, missing:list<string>, borrowed:array<string,string>}|null
-     */
-    public function knowledge_graph(): ?array;
-
-    /** @return array<string,array<string,string>> language → { field → text } */
-    public function read_defaults_translations( string $scope, string $slug = '' ): array;
-
-    /**
-     * @param array<string,string> $fields
-     * @return array{written:list<string>, emptyOriginal:list<string>}
-     */
-    public function write_defaults_translation( string $scope, string $slug, string $lang, array $fields ): array;
-
-    // ── the archive of a post type ───────────────────────────────────────────────────────────
-
-    /**
-     * The archive's title / metaDesc / noindex as the plugin keeps them — one value for the whole
-     * site.
-     *
-     * @return array<string,mixed>
-     */
-    public function read_archive_defaults( string $post_type ): array;
-
-    /**
-     * @param array<string,mixed> $fields title, metaDesc, noindex
-     * @return list<string> the fields written
-     */
-    public function write_archive_defaults( string $post_type, array $fields ): array;
 }

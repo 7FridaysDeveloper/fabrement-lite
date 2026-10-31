@@ -1,7 +1,7 @@
 <?php
 
 /** Synthetic code is analysed, never executed; unused cases must remain in the report. */
-namespace Fabrement\Api\Fields {
+namespace Fabrement\Api\Content {
     final class Probe {
         public function generatedOnly(): void { $this->helper(); }
         private function helper(): void {}

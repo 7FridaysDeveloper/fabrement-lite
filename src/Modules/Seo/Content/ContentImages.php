@@ -2,17 +2,13 @@
 
 namespace Fabrement\Modules\Seo\Content;
 
-use Fabrement\Api\Fields\Fields;
-use Fabrement\Api\Fields\Place;
-
 /**
  * The images a record SHOWS that an SEO plugin cannot see: the ones inside the global blocks it
- * places and in its Fabrement fields.
+ * places.
  *
  * SEO plugins look for images in the stored post_content — a featured image, `<img>` tags,
- * `[gallery]`. A global block's images are in another record, and a field's image is an
- * attachment id in meta. This finds them, in the order a visitor meets them: blocks top to
- * bottom, then the record's fields.
+ * `[gallery]`. A global block's images are in another record. This finds them, in the order a
+ * visitor meets them: blocks top to bottom.
  */
 final class ContentImages {
 
@@ -21,8 +17,6 @@ final class ContentImages {
 
     /** Ids gathered before the image check; some may be files or gone. */
     private const CANDIDATES = 200;
-
-    private const IMAGE_TYPES = [ 'image', 'gallery' ];
 
     /** @var array<int,list<int>> post id => its images (all of them, up to MAX), for this request */
     private static array $memo = [];
@@ -48,25 +42,14 @@ final class ContentImages {
     }
 
     /**
-     * A record saved, or a field of it written, in this request is read afresh. Hooked by the memo
-     * itself the first time it holds something — whoever asks, and only then.
+     * A record saved in this request is read afresh. Hooked by the memo itself the first time it
+     * holds something — whoever asks, and only then.
      */
     private static function hook(): void {
         if ( has_action( 'clean_post_cache', [ self::class, 'forget' ] ) !== false ) {
             return;
         }
         add_action( 'clean_post_cache', [ self::class, 'forget' ] );
-        foreach ( [ 'added_post_meta', 'updated_post_meta', 'deleted_post_meta' ] as $hook ) {
-            add_action( $hook, [ self::class, 'meta_changed' ], 10, 2 );
-        }
-    }
-
-    /**
-     * @param mixed $meta_ids
-     * @param mixed $object_id
-     */
-    public static function meta_changed( $meta_ids, $object_id ): void {
-        self::forget( (int) $object_id );
     }
 
     /** @param mixed $post_id */
@@ -88,7 +71,6 @@ final class ContentImages {
         // Candidates first (ids only), then one query primes every attachment, then only images stay.
         $ids = [];
         self::from_blocks( parse_blocks( (string) $post->post_content ), $post_id, $ids );
-        self::from_fields( $post_id, $ids );
         $ids = array_keys( $ids );
         if ( $ids === [] ) {
             return [];
@@ -120,76 +102,6 @@ final class ContentImages {
             }
             $id = $block['attrs']['id'] ?? null;
             self::add( is_int( $id ) || ( is_string( $id ) && ctype_digit( $id ) ) ? (int) $id : 0, $ids );
-        }
-    }
-
-    /** @param array<int,true> $ids */
-    private static function from_fields( int $post_id, array &$ids ): void {
-        $object = \Fabrement\Modules\Fields\Values\FieldObject::post( $post_id );
-        if ( ! $object ) {
-            return;
-        }
-        self::from_place( new Fields( $object ), $object->all_fields(), $ids );
-    }
-
-    /** @param array<int,true> $ids */
-    private static function from_place( Place $reader, array $fields, array &$ids ): void {
-        foreach ( $fields as $field ) {
-            // Only fields that can hold a picture are read; a text field costs nothing here.
-            if ( ! empty( $field['retired'] ) || ! self::holds_images( $field ) ) {
-                continue;
-            }
-            self::from_field( $reader, $field, $ids );
-            if ( count( $ids ) >= self::CANDIDATES ) {
-                return;
-            }
-        }
-    }
-
-    /** An image or gallery field, or a group / repeater with one somewhere inside. */
-    private static function holds_images( array $field ): bool {
-        if ( in_array( $field['type'] ?? '', self::IMAGE_TYPES, true ) ) {
-            return true;
-        }
-        foreach ( $field['sub_fields'] ?? [] as $sub ) {
-            if ( is_array( $sub ) && empty( $sub['retired'] ) && self::holds_images( $sub ) ) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * @param array<int,true> $ids
-     */
-    private static function from_field( Place $reader, array $field, array &$ids ): void {
-        $name = (string) $field['name'];
-        switch ( $field['type'] ?? '' ) {
-            case 'image':
-                self::add( $reader->get_image( $name )->id(), $ids );
-                return;
-            case 'gallery':
-                foreach ( $reader->get_gallery( $name ) as $image ) {
-                    self::add( $image->id(), $ids );
-                    if ( count( $ids ) >= self::CANDIDATES ) {
-                        return;
-                    }
-                }
-                return;
-            case 'group':
-                $group = $reader->get_group( $name );
-                if ( $group !== null ) {
-                    self::from_place( $group, $field['sub_fields'] ?? [], $ids );
-                }
-                return;
-            case 'repeater':
-                foreach ( $reader->get_rows( $name ) as $row ) {
-                    self::from_place( $row, $field['sub_fields'] ?? [], $ids );
-                    if ( count( $ids ) >= self::CANDIDATES ) {
-                        return;
-                    }
-                }
-                return;
         }
     }
 

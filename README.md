@@ -5,7 +5,7 @@ you already use — Claude, ChatGPT, Codex, Cursor or any other MCP client — s
 words, and it is done on your site with the blocks, theme and plugins it already has.
 
 - Website: [fabrement.com](https://fabrement.com/)
-- Requires WordPress 6.9+, PHP 8.0+ and an administrator account
+- Requires WordPress 6.9+, PHP 8.0+ and an Administrator account
 - MCP endpoint: `/wp-json/fabrement/v1/mcp`
 - Text domain: `fabrement-lite`
 - License: GPL-2.0-or-later
@@ -38,7 +38,8 @@ Download `fabrement-lite.zip` from the
 
 1. Open **Fabrement → MCP Connection**.
 2. Choose your AI client and follow the steps shown.
-3. Approve the access as an administrator.
+3. Approve the access with your WordPress account. The client then acts as you, with an Editor's
+   permissions at most: each tool checks the permission WordPress asks for in wp-admin.
 
 Claude and ChatGPT sign in with OAuth (HTTPS). Claude Code, Codex, Cursor and local sites can use an
 application password instead; the one the plugin issues works **only** on the MCP endpoint — every
@@ -54,39 +55,29 @@ telemetry, no licence check and no update service.
 | Pages, posts, custom post types | list, read, create (always as a draft), edit one block, publish, delete, preview |
 | Gutenberg blocks | find installed core, ACF and third-party blocks, read their schema and checked markup guides |
 | Theme styles | read how the theme draws text, headings, links and buttons (theme.json) |
-| Templates | a header, the content slot and a footer from blocks; assign to pages, post types, archives |
 | Synced patterns | shared headers, footers and sections |
-| Fabrement fields | custom fields for a post type or an options page, and their values |
-| Menus, media, terms | create, edit, delete; upload media from a URL or inline |
-| Site settings | title, tagline, site icon, 404 page |
-| SEO (Yoast SEO) | titles, descriptions, defaults per post type, schema.org data |
+| Templates | build a header, the content slot and a footer from blocks; assign to pages (post-type defaults, 404 and archives are set in wp-admin) |
+| Media | upload (from a URL or inline), list, delete |
+| Terms | create, edit, delete |
+| Site settings | read only |
+| SEO (Yoast SEO) | titles and descriptions of records and terms; schema.org data of records |
 | Forms (Contact Form 7) | create, edit, delete |
 | Translations (WPML) | language versions of pages, terms, templates, patterns and forms |
 
-61 tools, 6 more with WPML. Every tool requires `manage_options`. No tool installs or changes
-plugins, themes or users, changes post types, taxonomies, the front page or permalinks, or writes
-code. Every text a client sends is checked first: scripts, event handlers, `<iframe>`/`<style>` and
+41 tools, 6 more with WPML. The client acts as the Administrator who approved it, with an
+Editor's permissions only. Content an Editor cannot edit, such as WooCommerce products, is edited in
+wp-admin. Templates take an Editor. No tool installs or changes
+plugins, themes or users, sets site-wide template assignments, changes menus, site settings,
+site-wide SEO settings, post types, taxonomies or permalinks, or writes code. Every text a client sends is checked first: scripts, event handlers, `<iframe>`/`<style>` and
 executable links are refused, and nothing is saved.
 
 The instructions that teach the client how to use the tools ship with the plugin (`skills/`) and are
 read through the `get-skill-doc` tool.
 
-## Fabrement fields in a theme
-
-```php
-fabrement()->fields( $post_id )->get_text( 'subtitle' );
-fabrement()->options( 'contacts' )->get_text( 'phone' );
-```
-
-Readers return values and objects (Image, Link, Post, Term) and print nothing; the theme escapes its
-own output. Field definitions are JSON files in `uploads/fabrement-lite/fields/`; a value is stored
-as post meta `fab_<field name>`.
-
 ## Admin screens
 
 - **MCP Connection** — setup for each client, the connected clients and a Disconnect button.
-- **Templates** — create, rename, delete and assign templates; edit them in the block editor.
-- **Site General Settings** — options pages.
+- **Templates** — create, rename, delete and assign templates; build them from blocks in the block editor.
 
 ## Files
 
@@ -97,11 +88,10 @@ readme.txt               the WordPress.org readme
 src/                     PHP (namespace Fabrement\)
   Modules/Mcp/           MCP server, tools (Roster.php lists them), OAuth, password scope
   Modules/ContentSource/ the content slot block of templates
-  Modules/Fields/        Fabrement fields: definitions, values, editor
   Modules/Seo/           Yoast SEO bridge
   Modules/Translation/   WPML bridge
 templates/               admin screens and the OAuth consent page
-assets/editor-plugin/    field editor (TypeScript, Vite)
+assets/editor-plugin/    template editor: Content Source and panels (TypeScript, Vite)
 assets/templates-app/    Templates screen (React, Vite)
 skills/                  instructions for the AI client; skills/blocks/ holds per-block guides
 tests/                   Unit (no WordPress), Integration, Site (Docker), Wp, Wpml

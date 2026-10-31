@@ -3,7 +3,7 @@
 namespace Fabrement\Modules\Mcp\Support;
 
 /**
- * Text a client sends for a block, a title, a menu label, a field value or a form template is
+ * Text a client sends for a block, a title, a field value or a form template is
  * refused when it carries a script, an event handler, an iframe or style tag, or an executable
  * address. Never rewritten: the caller is told what and where, and nothing is saved.
  */
@@ -60,7 +60,7 @@ final class ContentSafety {
     }
 
     /**
-     * Every text a writing tool was sent: a title, a menu label, a form template, a field value.
+     * Every text a writing tool was sent: a title, a form template, a field value.
      * The same rule as for blocks, for every caller — an administrator's client included.
      */
     public static function input( array $input, string $tool = '' ): void {

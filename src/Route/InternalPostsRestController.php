@@ -2,7 +2,6 @@
 
 namespace Fabrement\Route;
 
-use Fabrement\Capabilities;
 use WP_Error;
 use WP_REST_Posts_Controller;
 
@@ -10,7 +9,7 @@ use WP_REST_Posts_Controller;
 final class InternalPostsRestController extends WP_REST_Posts_Controller {
 
     public function get_items_permissions_check( $request ) {
-        if ( ! current_user_can( Capabilities::ADMIN ) ) {
+        if ( ! $this->may_edit() ) {
             return $this->read_error();
         }
 
@@ -18,7 +17,7 @@ final class InternalPostsRestController extends WP_REST_Posts_Controller {
     }
 
     public function get_item_permissions_check( $request ) {
-        if ( ! current_user_can( Capabilities::ADMIN ) ) {
+        if ( ! $this->may_edit() ) {
             return $this->read_error();
         }
 
@@ -26,7 +25,13 @@ final class InternalPostsRestController extends WP_REST_Posts_Controller {
     }
 
     public function check_read_permission( $post ) {
-        return current_user_can( Capabilities::ADMIN ) && parent::check_read_permission( $post );
+        return $this->may_edit() && parent::check_read_permission( $post );
+    }
+
+    /** Reading an internal record takes its type's own edit cap (a template: Capabilities::TEMPLATES). */
+    private function may_edit(): bool {
+        $type = get_post_type_object( $this->post_type );
+        return $type !== null && current_user_can( $type->cap->edit_posts );
     }
 
     private function read_error(): WP_Error {

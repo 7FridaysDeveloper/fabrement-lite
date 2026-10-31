@@ -7,8 +7,6 @@ use Fabrement\Framework\Keys;
 /** Site-local durable storage. Codes and refresh tokens are consumed with a compare-and-set. */
 class Store {
     public const SCHEMA_VERSION = 1;
-    // Only grants and refresh tokens may have no expiry; access tokens and codes remain short-lived.
-    public const NO_EXPIRY = 0;
 
     private function table(): string {
         global $wpdb;
@@ -100,7 +98,7 @@ class Store {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- OAuth tokens and codes, read live from the plugin's own table: a cached row would outlive its consumption, revocation or expiry.
         $row = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM %i WHERE key_hash = %s AND kind = %s AND (expires > %d OR (expires = 0 AND kind IN ('grant', 'refresh')))",
+            'SELECT * FROM %i WHERE key_hash = %s AND kind = %s AND expires > %d',
             $this->table(), hash( 'sha256', $key ), $kind, time()
         ), ARRAY_A );
         if ( ! $row ) {
@@ -115,7 +113,7 @@ class Store {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic compare-and-set on the plugin's own OAuth table; no WordPress API, nothing cached to clear.
         return 1 === $wpdb->query( $wpdb->prepare(
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table() is $wpdb->prefix plus a fixed suffix; every value is a placeholder.
-            "UPDATE {$this->table()} SET used = 1 WHERE key_hash = %s AND kind = %s AND used = 0 AND revoked = 0 AND (expires > %d OR (expires = 0 AND kind = 'refresh'))",
+            "UPDATE {$this->table()} SET used = 1 WHERE key_hash = %s AND kind = %s AND used = 0 AND revoked = 0 AND expires > %d",
             hash( 'sha256', $key ), $kind, time()
         ) );
     }
@@ -128,6 +126,25 @@ class Store {
         }
     }
 
+    /** Every connection one user authorized: after their password changes. */
+    public function revoke_user( int $user_id ): void {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix.
+        if ( false === $wpdb->query( $wpdb->prepare( "UPDATE {$this->table()} SET revoked = 1 WHERE user_id = %d", $user_id ) ) ) {
+            throw new OAuthError( 'server_error', 'Could not revoke OAuth access.', 500 );
+        }
+    }
+
+    /** Moves a live grant's end to $expires: the idle window starts again. */
+    public function extend( string $family, int $expires ): void {
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the plugin's own OAuth table (no WordPress API, nothing cached to clear).
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE {$this->table()} SET expires = %d WHERE key_hash = %s AND kind = 'grant' AND revoked = 0 AND expires > %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table() is $wpdb->prefix plus a fixed suffix; every value is a placeholder.
+            $expires, hash( 'sha256', $family ), time()
+        ) );
+    }
+
     public function revoke_all(): void {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix and the query has no values.
@@ -136,14 +153,18 @@ class Store {
         }
     }
 
-    /** Every live connection on the site, whoever authorized it: any administrator may see and revoke them. */
+    /** Every live connection on the site, whoever authorized it: what an administrator sees and may revoke. */
     public function grants(): array {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- OAuth grants, read live from the plugin's own table: a cached list would still show revoked connections.
         $rows = $wpdb->get_results( $wpdb->prepare(
-            "SELECT family, payload, expires, user_id FROM %i WHERE kind = 'grant' AND revoked = 0 AND (expires = 0 OR expires > %d) ORDER BY id DESC LIMIT 100",
+            "SELECT family, payload, expires, user_id FROM %i WHERE kind = 'grant' AND revoked = 0 AND expires > %d ORDER BY id DESC LIMIT 100",
             $this->table(), time()
         ), ARRAY_A );
+        return self::decoded( $rows );
+    }
+
+    private static function decoded( array $rows ): array {
         foreach ( $rows as &$row ) {
             $row['payload'] = json_decode( $row['payload'], true );
         }
@@ -172,9 +193,9 @@ class Store {
         if ( ! $this->ready() ) {
             return;
         }
-        // Keep consumed refresh tokens for replay detection until their connection is revoked.
+        // Consumed refresh tokens stay for replay detection until they expire or their connection is revoked.
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- bulk cleanup of the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix.
-        $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table()} WHERE (expires > 0 AND expires <= %d) OR revoked = 1", time() ) );
+        $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table()} WHERE expires <= %d OR revoked = 1", time() ) );
     }
 
     public function uninstall(): void {

@@ -10,7 +10,8 @@ class Clients {
     }
 
     public function resolve( string $id ): array {
-        if ( strlen( $id ) > 512 ) {
+        // A client registered here, or a metadata document URL (checked below).
+        if ( strlen( $id ) > 512 || ( ! preg_match( '/\Afabrement_client_[a-f0-9]{48}\z/D', $id ) && ! str_starts_with( $id, 'https://' ) ) ) {
             throw new OAuthError( 'invalid_client', 'Invalid client ID.' );
         }
         $saved = $this->store->get( 'client', $id );
@@ -40,7 +41,7 @@ class Clients {
 
     public function register( array $data ): array {
         $client = $this->validate( $data );
-        $client['client_id'] = 'fb_client_' . bin2hex( random_bytes( 24 ) );
+        $client['client_id'] = 'fabrement_client_' . bin2hex( random_bytes( 24 ) );
         $client['client_id_issued_at'] = time();
         $client['grant_types'] = [ 'authorization_code', 'refresh_token' ];
         $client['response_types'] = [ 'code' ];

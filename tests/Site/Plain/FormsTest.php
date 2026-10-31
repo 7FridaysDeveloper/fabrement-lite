@@ -143,10 +143,12 @@ final class FormsTest extends SiteTestCase {
         $made = $this->mcp( 'create-cf7-form', [ 'title' => 'QA words', 'template' => self::TEMPLATE, 'recipient' => 'qa@example.org' ] );
         $id   = (int) $made['form']['id'];
 
-        $updated = $this->mcp( 'update-cf7-form', [ 'formId' => $id, 'title' => 'QA words 2', 'messages' => [ 'mail_sent_ok' => 'Thanks <you> & bye, kids <12' ] ] );
+        // An unknown tag is refused; a tag shown as words is written with &lt; and &gt;.
+        $this->assertStringContainsString( 'the you element', $this->mcp_error( 'update-cf7-form', [ 'formId' => $id, 'messages' => [ 'mail_sent_ok' => 'Thanks <you>' ] ] ) );
+        $updated = $this->mcp( 'update-cf7-form', [ 'formId' => $id, 'title' => 'QA words 2', 'messages' => [ 'mail_sent_ok' => 'Thanks &lt;you&gt; & bye, kids <12' ] ] );
         $this->assertSame( $made['form']['fields'], $updated['form']['fields'], 'the fields as they stand, not an empty list' );
-        $this->assertSame( 'Thanks <you> & bye, kids <12', $this->cf7_meta( $id, '_messages' )['mail_sent_ok'], 'as Contact Form 7 keeps a message' );
-        $this->assertSame( 'Thanks <you> & bye, kids <12', $this->mcp( 'get-cf7-form', [ 'formId' => $id ] )['form']['messages']['mail_sent_ok']['text'] );
+        $this->assertSame( 'Thanks &lt;you&gt; & bye, kids <12', $this->cf7_meta( $id, '_messages' )['mail_sent_ok'], 'as Contact Form 7 keeps a message' );
+        $this->assertSame( 'Thanks &lt;you&gt; & bye, kids <12', $this->mcp( 'get-cf7-form', [ 'formId' => $id ] )['form']['messages']['mail_sent_ok']['text'] );
         $this->assertSame( self::TEMPLATE, $this->cf7_meta( $id, '_form' ), 'the template untouched' );
         $this->assertSame( 'QA words 2', $this->site()->value( 'SELECT post_title FROM wp_posts WHERE ID = ?', [ $id ] ) );
     }

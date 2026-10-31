@@ -244,6 +244,7 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
         }
     }
 
+
     public function test_each_connection_has_its_own_escaped_disconnect_action(): void {
         $html = \fabrement_render_connection_access(
             [ [ 'payload' => [ 'client_name' => 'Claude <script>alert(1)</script>' ], 'family' => 'family-1', 'expires' => time() + 3600, 'user_id' => 7 ],
@@ -270,9 +271,9 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
         self::assertSame( 1, $xpath->query( '//li/a[contains(@href,"fabrement_revoke_mcp_password") and contains(@href,"password-1")]' )->length );
         self::assertStringNotContainsString( '<script>', $html );
         self::assertStringContainsString( 'Application passwords will stay active.', $html );
-        // Every OAuth connection lasts until disconnected, a legacy row with an end included.
-        self::assertSame( 1, $xpath->query( '//li[1]//span[text()="Until disconnected"]' )->length );
-        self::assertSame( 1, $xpath->query( '//li[2]//span[text()="Until disconnected"]' )->length );
+        // Every OAuth connection lasts until disconnected or 90 days unused, whatever end the row stores.
+        self::assertSame( 1, $xpath->query( '//li[1]//span[text()="Until disconnected, unused for 90 days, or the password changes"]' )->length );
+        self::assertSame( 1, $xpath->query( '//li[2]//span[text()="Until disconnected, unused for 90 days, or the password changes"]' )->length );
         self::assertSame( 0, $xpath->query( '//span[starts-with(text(),"Expires ")]' )->length );
     }
 

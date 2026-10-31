@@ -13,7 +13,8 @@ use Fabrement\Modules\Mcp\McpPasswordScope;
 final class McpConnectionPage extends AbstractAdminPage {
 
     public function get_capability(): string {
-        return Capabilities::ADMIN;
+        // Whoever may connect; the application password is always the current user's own.
+        return Capabilities::CONNECT;
     }
 
     public function get_page_title(): string {

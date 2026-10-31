@@ -2,7 +2,7 @@
 CORE/SITE-LOGO (Site Logo)
 Draws the site's logo image, linked to the home page by default. The image is a site setting
 (the custom logo), not part of the block: one logo for every site-logo block on the site.
-These tools do not set it (update-site-settings sets the favicon, siteIcon, not the logo). A
+These tools do not set it. A
 person sets it in the WordPress editor, with the block's own upload button.
 Places: a header or footer global block, or a template frame.
 

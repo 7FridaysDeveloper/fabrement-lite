@@ -15,8 +15,11 @@ trait McpCalls {
 
     private ?string $mcp_session = null;
 
+    /** The protocol version the session is opened with; sent again as MCP-Protocol-Version afterwards. */
+    private static string $mcp_protocol_version = '2025-06-18';
+
     /**
-     * Run one tool, named without the server's prefix ('set-field-values'). On success the tool's answer (decoded from the JSON the agent reads); on a
+     * Run one tool, named without the server's prefix ('save-content'). On success the tool's answer (decoded from the JSON the agent reads); on a
      * refusal the test fails with the message the agent would have seen, unless $expect_error.
      *
      * @return mixed
@@ -53,7 +56,7 @@ trait McpCalls {
         if ( $this->mcp_session === null && $method !== 'initialize' ) {
             $this->mcp_session = '';
             $this->mcp_rpc( 'initialize', [
-                'protocolVersion' => '2025-06-18',
+                'protocolVersion' => self::$mcp_protocol_version,
                 'capabilities'    => (object) [],
                 'clientInfo'      => [ 'name' => 'fabrement-tests', 'version' => '1.0' ],
             ] );
@@ -64,6 +67,7 @@ trait McpCalls {
         $request->set_header( 'accept', 'application/json, text/event-stream' );
         if ( $this->mcp_session ) {
             $request->set_header( 'mcp-session-id', $this->mcp_session );
+            $request->set_header( 'mcp-protocol-version', self::$mcp_protocol_version );
         }
         $call = [ 'jsonrpc' => '2.0', 'method' => $method, 'params' => (object) $params ];
         if ( strpos( $method, 'notifications/' ) !== 0 ) {

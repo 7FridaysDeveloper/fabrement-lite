@@ -3,7 +3,6 @@
 namespace Fabrement\Tests\Wp;
 
 use Fabrement\Modules\Mcp\Ability\ListSeoAbility;
-use Fabrement\Modules\PostType\ArchivePageStore;
 use Fabrement\Modules\Seo\Bridge\NullSeoBridge;
 use Fabrement\Modules\Seo\Seo;
 use WP_Error;
@@ -11,7 +10,7 @@ use WP_UnitTestCase;
 
 /**
  * list-seo on a one-language site: where each row's title and description come from, the audit
- * filters, the three kinds — and not a word about languages, which this site does not have.
+ * filters, both kinds — and not a word about languages, which this site does not have.
  */
 final class ListSeoTest extends WP_UnitTestCase {
 
@@ -94,16 +93,7 @@ final class ListSeoTest extends WP_UnitTestCase {
         $this->assertFalse( $this->rows( [ 'postType' => 'qa_lnote' ] )[ $note ]['seo']['noindex'], 'the record\'s own setting wins' );
     }
 
-    public function test_archives_are_listed_as_archives_and_terms_as_terms(): void {
-        register_post_type( 'qa_lnote', [ 'public' => true, 'has_archive' => 'qa-lnotes', 'label' => 'Notes' ] );
-        $record = ArchivePageStore::ensure( 'qa_lnote', 'Notes', 'qa-lnotes' );
-        $this->assertGreaterThan( 0, $record );
-
-        $this->assertArrayNotHasKey( $record, $this->rows( [ 'postType' => 'page' ] ), 'the record is its archive, not a page' );
-        $archive = $this->rows( [ 'kind' => 'archive' ] )[ $record ] ?? null;
-        $this->assertSame( 'qa_lnote', $archive['postType'] ?? null );
-        $this->assertSame( 'archive', $archive['kind'] );
-
+    public function test_terms_are_listed_as_terms(): void {
         $term = self::factory()->term->create( [ 'taxonomy' => 'category', 'name' => 'QA list' ] );
         Seo::bridge()->write_term( \WP_Term::get_instance( $term ), [ 'metaDesc' => 'About QA' ] );
         $row = $this->rows( [ 'kind' => 'term', 'taxonomy' => 'category' ] )[ $term ] ?? null;

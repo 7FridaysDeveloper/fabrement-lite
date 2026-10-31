@@ -36,7 +36,7 @@ final class ListTermsAbility extends AbstractAbility {
                 'language' => [
                     'type'        => 'string',
                     'description' => 'Language code (list-languages) to list the terms of ONE language. Omit for every'
-                        . ' once — which is the default, because a term and its versions are different terms with'
+                        . ' language at once — which is the default, because a term and its versions are different terms with'
                         . ' different ids, and listing only one language silently hides the rest.',
                 ],
             ] ),

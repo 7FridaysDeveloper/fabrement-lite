@@ -2,7 +2,7 @@
 
 namespace Fabrement\Api\Media;
 
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Support\ReadResult;
 use Fabrement\Api\Support\OrElse;
 use Fabrement\Api\Support\Quietly;
@@ -66,7 +66,7 @@ abstract class Attachment {
             return MediaKind::parse( $kind );
         } catch ( \InvalidArgumentException $e ) {
             // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- MediaKind::parse() escapes what it quotes.
-            throw new FieldsException( 'kind: ' . $e->getMessage() );
+            throw new ApiException( 'kind: ' . $e->getMessage() );
         }
     }
 
@@ -203,7 +203,7 @@ abstract class Attachment {
      * An image size name, as wp_get_attachment_image_src() takes one.
      *
      * @param mixed $size
-     * @throws FieldsException Anything that is not a name.
+     * @throws ApiException Anything that is not a name.
      */
     protected static function size_name( $size ): string {
         // Not given: the default, which nobody wrote — a site without it gets the original quietly.
@@ -213,7 +213,7 @@ abstract class Attachment {
         if ( is_string( $size ) && $size !== '' ) {
             return self::known_size( $size, self::short_name( static::class ) . '()' );
         }
-        throw new FieldsException( 'size: give an image size name (thumbnail, medium, large, full…), not ' . ( is_string( $size ) ? '""' : esc_html( get_debug_type( $size ) ) ) . '.' );
+        throw new ApiException( 'size: give an image size name (thumbnail, medium, large, full…), not ' . ( is_string( $size ) ? '""' : esc_html( get_debug_type( $size ) ) ) . '.' );
     }
 
     /**

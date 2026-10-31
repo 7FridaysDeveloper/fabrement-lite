@@ -6,62 +6,26 @@ use Fabrement\Tests\Site\Support\SeoPage;
 use Fabrement\Tests\Site\Support\SiteTestCase;
 
 /**
- * Structured data an agent writes with set-schema, as a piece of Yoast's graph: {{field:…}} and
- * {{option:…}} read as the page shows them, the page's own values as Yoast has them, what a template
- * may never read (protected meta, the body, anything behind a password), and Yoast's own nodes —
+ * Structured data an agent writes with set-schema, as a piece of Yoast's graph: the page's own
+ * values as Yoast has them, what a template may never read (protected meta, the body, anything
+ * behind a password), and Yoast's own nodes —
  * which ours point at but never replace or extend. Every graph is checked where it lands: in the
  * preview the tool answers with and in the JSON-LD a crawler fetches. Then Yoast switched off.
  */
 final class SchemaTest extends SiteTestCase {
 
-    private const COURSE  = 'qa_course';
-    private const TEACHER = 'qa_steacher';
+    private const COURSE = 'qa_course';
 
     private static bool $ready = false;
 
-    /** @var array{teacher:int, course:int, photo:int, photoUrl:string} */
+    /** @var array{course:int} */
     private static array $ids = [];
 
     protected function setUp(): void {
         parent::setUp();
         if ( ! self::$ready ) {
-            $this->site()->wp( 'option', 'update', 'timezone_string', 'Europe/Kyiv' );
-            $this->post_type( self::TEACHER, [ 'singular' => 'Teacher', 'supports' => [ 'title', 'editor', 'thumbnail' ] ] );
             $this->post_type( self::COURSE, [ 'singular' => 'Course', 'supports' => [ 'title', 'editor', 'thumbnail' ] ] );
-            $this->fields( self::TEACHER, [ self::field( 'position', 'text' ) ] );
-            $this->fields( self::COURSE, [
-                self::field( 'price', 'number', [ 'format' => 'decimal' ] ),
-                self::field( 'level', 'select', [ 'choices' => [ [ 'value' => 'beginner', 'label' => 'For beginners' ], [ 'value' => 'pro', 'label' => 'For pros' ] ], 'default' => 'beginner' ] ),
-                self::field( 'starts', 'date_time_picker' ),
-                self::field( 'day', 'date_picker' ),
-                self::field( 'free', 'true_false' ),
-                self::field( 'photo', 'image' ),
-                self::field( 'site', 'link' ),
-                self::field( 'notes', 'wysiwyg' ),
-                self::field( 'teacher', 'post_object', [ 'postTypes' => [ self::TEACHER ] ] ),
-                self::field( 'venue', 'group', [ 'sub_fields' => [ self::field( 'city', 'text' ), self::field( 'kind', 'select', [ 'choices' => [ [ 'value' => 'hall', 'label' => 'Concert hall' ] ] ] ) ] ] ),
-                self::field( 'modules', 'repeater', [ 'sub_fields' => [ self::field( 'title', 'text' ) ] ] ),
-            ] );
-            $png   = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-            $photo = $this->mcp( 'upload-media', [ 'base64' => $png, 'filename' => 'qa-canola.png', 'altText' => 'A canola field' ] );
-
-            $teacher = $this->record( self::TEACHER, 'Olena' );
-            $this->mcp( 'save-content', [ 'mode' => 'add', 'contentId' => $teacher, 'blocks' => [], 'featuredImage' => (int) $photo['id'] ] );
-            $this->mcp( 'set-field-values', [ 'postId' => $teacher, 'values' => [ 'position' => 'Lead designer' ] ] );
-
-            $course = $this->record( self::COURSE, 'UX basics' );
-            $this->mcp( 'set-field-values', [ 'postId' => $course, 'values' => [
-                'price'   => 59.9,
-                'starts'  => '2026-07-15T18:00',
-                'day'     => '2026-07-01',
-                'free'    => false,
-                'photo'   => (int) $photo['id'],
-                'site'    => [ 'url' => 'https://example.com/ux', 'label' => 'Course site' ],
-                'notes'   => '<p>Bring a <strong>laptop</strong>.</p>',
-                'teacher' => $teacher,
-                'venue'   => [ 'city' => 'Lviv', 'kind' => 'hall' ],
-            ] ] );
-            self::$ids   = [ 'teacher' => $teacher, 'course' => $course, 'photo' => (int) $photo['id'], 'photoUrl' => (string) $photo['url'] ];
+            self::$ids   = [ 'course' => $this->record( self::COURSE, 'UX basics' ) ];
             self::$ready = true;
         }
     }
@@ -89,22 +53,6 @@ final class SchemaTest extends SiteTestCase {
         return (string) ( $this->site()->meta( $id, '_fabrement_schema' )[0] ?? '' );
     }
 
-    /** Resolve one Course node on the course; the node from the tool's preview, checked against the page. */
-    private function on_course( array $props ): array {
-        $out  = $this->mcp( 'set-schema', [ 'contentId' => self::$ids['course'], 'graph' => [ [ '@type' => 'Course', '@id' => '{{url}}#course' ] + $props ] ] );
-        $url  = $this->url( self::$ids['course'] );
-        $node = null;
-        foreach ( $out['preview']['graph'] as $n ) {
-            if ( is_array( $n ) && ( $n['@id'] ?? '' ) === $url . '#course' ) {
-                $node = $n;
-            }
-        }
-        $this->assertNotNull( $node, 'the preview holds the node' );
-        $this->assertSame( $node, $this->head( $url )->node_by_id( $url . '#course' ), 'the page prints what the preview showed' );
-        unset( $node['@id'] );
-        return $node;
-    }
-
     /** A post another plugin gave a SKU: an excerpt, its description in Yoast, a category. */
     private function chair( string $title = 'Chair', bool $locked = false ): int {
         $id = $this->record( 'post', $title );
@@ -127,137 +75,16 @@ final class SchemaTest extends SiteTestCase {
         $this->site()->exec( 'rm', '-f', '/var/www/html/wp-content/mu-plugins/' . $name . '.php' );
     }
 
-    // ── {{field:…}} and {{option:…}} ─────────────────────────────────────────────────────────
-
-    public function test_each_field_type_as_schema_text(): void {
-        $node = $this->on_course( [
-            'price'  => '{{field:price}}',
-            'level'  => '{{field:level}}',
-            'label'  => '{{field:level.label}}',
-            'free'   => '{{field:free}}',
-            'day'    => '{{field:day}}',
-            'image'  => '{{field:photo}}',
-            'alt'    => '{{field:photo.alt}}',
-            'url'    => '{{field:site}}',
-            'anchor' => '{{field:site.label}}',
-            'notes'  => '{{field:notes}}',
-            'city'   => '{{field:venue.city}}',
-            'kind'   => '{{field:venue.kind.label}}',
-        ] );
-        $this->assertSame( [
-            '@type'  => 'Course',
-            'price'  => '59.9',
-            'level'  => 'beginner',
-            'label'  => 'For beginners',
-            'free'   => 'false',
-            'day'    => '2026-07-01',
-            'image'  => self::$ids['photoUrl'],
-            'alt'    => 'A canola field',
-            'url'    => 'https://example.com/ux',
-            'anchor' => 'Course site',
-            'notes'  => 'Bring a laptop.',
-            'city'   => 'Lviv',
-            'kind'   => 'Concert hall',
-        ], $node, 'a select never set: the default, as the page shows it; rich text as plain words' );
-
-        // The value changes, the graph follows on the next view.
-        $this->mcp( 'set-field-values', [ 'postId' => self::$ids['course'], 'values' => [ 'level' => 'pro', 'price' => 70 ] ] );
-        $url  = $this->url( self::$ids['course'] );
-        $page = $this->head( $url )->node_by_id( $url . '#course' );
-        $this->assertSame( [ 'pro', 'For pros', '70' ], [ $page['level'], $page['label'], $page['price'] ] );
-    }
-
-    public function test_a_date_time_carries_the_sites_offset_on_that_date(): void {
-        $summer = $this->on_course( [ 'startDate' => '{{field:starts}}', 'd' => '{{field:starts.date}}', 't' => '{{field:starts.time}}', 'u' => '{{field:starts.utc}}' ] );
-        $this->assertSame( '2026-07-15T18:00:00+03:00', $summer['startDate'] );
-        $this->assertSame( '2026-07-15', $summer['d'] );
-        $this->assertSame( '18:00', $summer['t'] );
-        $this->assertSame( '2026-07-15T15:00:00Z', $summer['u'] );
-
-        $this->mcp( 'set-field-values', [ 'postId' => self::$ids['course'], 'values' => [ 'starts' => '2026-12-15T18:00' ] ] );
-        $winter = $this->on_course( [ 'startDate' => '{{field:starts}}' ] );
-        $this->assertSame( '2026-12-15T18:00:00+02:00', $winter['startDate'], 'winter time: another offset' );
-        $this->mcp( 'set-field-values', [ 'postId' => self::$ids['course'], 'values' => [ 'starts' => '2026-07-15T18:00' ] ] );
-    }
-
-    public function test_a_picked_record_by_its_url_title_image_and_fields_while_it_is_public(): void {
-        $teacher = self::$ids['teacher'];
-        $node    = $this->on_course( [ 'instructor' => [
-            '@type'    => 'Person',
-            'url'      => '{{field:teacher}}',
-            'name'     => '{{field:teacher.title}}',
-            'image'    => '{{field:teacher.image}}',
-            'jobTitle' => '{{field:teacher.fields.position}}',
-        ] ] );
-        $this->assertSame( [
-            '@type'    => 'Person',
-            'url'      => $this->url( $teacher ),
-            'name'     => 'Olena',
-            'image'    => self::$ids['photoUrl'],
-            'jobTitle' => 'Lead designer',
-        ], $node['instructor'] );
-
-        $this->mcp( 'set-content-status', [ 'contentId' => $teacher, 'status' => 'draft' ] );
-        $node = $this->on_course( [ 'instructor' => [ '@type' => 'Person', 'name' => '{{field:teacher.title}}', 'url' => '{{field:teacher}}' ] ] );
-        $this->assertSame( [ '@type' => 'Person' ], $node['instructor'], 'a draft is not named in a public graph' );
-
-        $this->mcp( 'set-content-status', [ 'contentId' => $teacher, 'status' => 'publish' ] );
-        $this->site()->wp( 'post', 'update', (string) $teacher, '--post_password=x' );
-        $node = $this->on_course( [ 'instructor' => [ '@type' => 'Person', 'name' => '{{field:teacher.title}}', 'jobTitle' => '{{field:teacher.fields.position}}' ] ] );
-        $this->assertSame( 'Olena', $node['instructor']['name'] );
-        $this->assertArrayNotHasKey( 'jobTitle', $node['instructor'], 'its fields stay behind its password' );
-        $this->site()->wp( 'post', 'update', (string) $teacher, '--post_password=' );
-    }
-
     public function test_a_mistyped_token_is_refused_rather_than_printed(): void {
         $course = self::$ids['course'];
         $this->mcp( 'set-schema', [ 'contentId' => $course, 'graph' => [ [ '@type' => 'Course', 'name' => '{{title}}' ] ] ] );
         $before = $this->stored( $course );
-        foreach ( [ '{{Title}}' => '{{Title}}', 'Course {{field :price}}' => '{{field :price}}', '{{ title }' => '{{ title }', 'Price }}' => '}}' ] as $value => $fragment ) {
+        foreach ( [ '{{Title}}' => '{{Title}}', 'Course {{meta :price}}' => '{{meta :price}}', '{{ title }' => '{{ title }', 'Price }}' => '}}' ] as $value => $fragment ) {
             $error = $this->mcp_error( 'set-schema', [ 'contentId' => $course, 'graph' => [ [ '@type' => 'Course', 'name' => $value ] ] ] );
             $this->assertStringContainsString( '"' . $fragment . '" is not a token', $error, $value );
         }
         $this->assertSame( $before, $this->stored( $course ), 'the graph it had is kept' );
-        $this->mcp( 'set-schema', [ 'contentId' => $course, 'graph' => [ [ '@type' => 'Course', 'name' => '{{ title }} — {{field:price}}' ] ] ] );
-    }
-
-    public function test_unknown_paths_are_refused_with_what_exists_and_nothing_is_saved(): void {
-        $course = self::$ids['course'];
-        $this->mcp( 'set-schema', [ 'contentId' => $course, 'graph' => [ [ '@type' => 'Course', 'name' => '{{title}}' ] ] ] );
-        $before = $this->stored( $course );
-        $cases  = [
-            '{{field:prise}}'                 => 'has no field "prise"',
-            '{{field:venue.town}}'            => 'group "venue" has no sub-field "town"',
-            '{{field:modules}}'               => '"modules" is a repeater',
-            '{{field:venue}}'                 => '"venue" is a group',
-            '{{field:price.label}}'           => 'not ".label"',
-            '{{field:starts.year}}'           => 'not ".year"',
-            '{{field:teacher.fields.salary}}' => 'has no field "salary"',
-            '{{option:nope.phone}}'           => 'there is no options page "nope"',
-        ];
-        foreach ( $cases as $token => $message ) {
-            $this->assertStringContainsString( $message, $this->mcp_error( 'set-schema', [ 'contentId' => $course, 'graph' => [ [ '@type' => 'Course', 'name' => $token ] ] ] ), $token );
-        }
-        $this->assertSame( $before, $this->stored( $course ), 'the graph it had is kept' );
-
-        $error = $this->mcp_error( 'set-schema', [ 'postType' => self::COURSE, 'graph' => [ [ '@type' => 'Course', 'name' => '{{field:prise}}' ] ] ] );
-        $this->assertStringContainsString( 'price', $error, 'the message lists the real fields' );
-        $this->assertSame( [], $this->mcp( 'get-seo', [ 'postType' => self::COURSE ] )['postType']['schemaTemplate'] );
-    }
-
-    public function test_options_page_values_and_an_unset_image_drops_out(): void {
-        $this->mcp( 'save-options-page', [ 'slug' => 'qa-site', 'expectedRevision' => 0, 'page' => [ 'title' => 'QA site' ], 'fields' => [ self::field( 'phone', 'text' ), self::field( 'logo', 'image' ) ] ] );
-        $this->mcp( 'set-field-values', [ 'options' => 'qa-site', 'values' => [ 'phone' => '+380 44 000 00 00' ] ] );
-
-        $node = $this->on_course( [ 'provider' => [ '@type' => 'Organization', 'telephone' => '{{option:qa-site.phone}}', 'logo' => '{{option:qa-site.logo}}' ] ] );
-        $this->assertSame( [ '@type' => 'Organization', 'telephone' => '+380 44 000 00 00' ], $node['provider'], 'an unset image drops out' );
-
-        $this->mcp( 'set-field-values', [ 'options' => 'qa-site', 'values' => [ 'logo' => self::$ids['photo'], 'phone' => '+380 44 111 11 11' ] ] );
-        $url  = $this->url( self::$ids['course'] );
-        $page = $this->head( $url )->node_by_id( $url . '#course' );
-        $this->assertSame( [ '@type' => 'Organization', 'telephone' => '+380 44 111 11 11', 'logo' => self::$ids['photoUrl'] ], $page['provider'], 'the options page changed: so did every page' );
-
-        $this->assertStringContainsString( 'has no field "fax"', $this->mcp_error( 'set-schema', [ 'contentId' => self::$ids['course'], 'graph' => [ [ '@type' => 'Course', 'name' => '{{option:qa-site.fax}}' ] ] ] ) );
+        $this->mcp( 'set-schema', [ 'contentId' => $course, 'graph' => [ [ '@type' => 'Course', 'name' => '{{ title }} — {{meta:price}}' ] ] ] );
     }
 
     // ── what a template may read ─────────────────────────────────────────────────────────────
@@ -293,15 +120,11 @@ final class SchemaTest extends SiteTestCase {
             $this->assertStringContainsString( 'reads a protected key', $this->mcp_error( 'set-schema', [ 'contentId' => $id, 'graph' => [ [ '@type' => 'Thing', 'name' => '{{meta:' . $key . '}}' ] ] ] ), $key );
         }
         $this->assertStringContainsString( 'unknown token {{content_text}}', $this->mcp_error( 'set-schema', [ 'contentId' => $id, 'graph' => [ [ '@type' => 'Article', 'articleBody' => '{{content_text}}' ] ] ] ), 'the page body is not a token' );
-        $this->assertStringContainsString( '{{field:price}}', $this->mcp_error( 'set-schema', [ 'contentId' => $id, 'graph' => [ [ '@type' => 'Product', 'sku' => '{{meta:fab_price}}' ] ] ] ), 'a Fabrement field is a field token' );
-        foreach ( [ 'site_name', 'author_name', 'author_url', 'post_id', 'post_type', 'featured_image_id' ] as $gone ) {
+        foreach ( [ 'site_name', 'author_name', 'author_url', 'post_id', 'post_type', 'featured_image_id', 'field:price', 'option:site.phone' ] as $gone ) {
             $this->assertStringContainsString( 'unknown token', $this->mcp_error( 'set-schema', [ 'contentId' => $id, 'graph' => [ [ '@type' => 'Thing', 'name' => '{{' . $gone . '}}' ] ] ] ), $gone );
         }
         $this->assertStringContainsString( 'is not a public taxonomy', $this->mcp_error( 'set-schema', [ 'contentId' => $id, 'graph' => [ [ '@type' => 'Thing', 'name' => '{{term:qa_private_tax}}' ] ] ] ) );
         $this->assertSame( '', $this->stored( $id ), 'nothing saved on the record' );
-
-        $this->assertStringContainsString( 'reads a protected key', $this->mcp_error( 'set-schema', [ 'postType' => 'post', 'graph' => [ [ '@type' => 'Thing', 'name' => '{{meta:_edit_last}}' ] ] ] ) );
-        $this->assertSame( [], $this->mcp( 'get-seo', [ 'postType' => 'post' ] )['postType']['schemaTemplate'], 'nor on the type' );
     }
 
     public function test_a_protected_key_stored_before_the_check_still_prints_nothing(): void {
@@ -366,9 +189,6 @@ final class SchemaTest extends SiteTestCase {
             $this->assertStringContainsString( 'is the id of a node Yoast SEO already prints', $this->mcp_error( 'set-schema', [ 'contentId' => $page, 'graph' => [ [ '@type' => 'Product', '@id' => $id, 'name' => 'x' ] ] ] ), $id );
         }
         $this->assertSame( '', $this->stored( $page ), 'nothing saved' );
-        foreach ( [ '{{url}}', $home . '#organization', $home . '#/schema/logo/image/' ] as $id ) {
-            $this->assertStringContainsString( 'is the id of a node Yoast SEO already prints', $this->mcp_error( 'set-schema', [ 'postType' => self::COURSE, 'graph' => [ [ '@type' => 'Course', '@id' => $id, 'name' => '{{title}}' ] ] ] ), 'the type template too: ' . $id );
-        }
 
         // On a static front page the page URL is the site URL: {{url}}#organization is Yoast's.
         $front = $this->record( 'page', 'Home' );
@@ -430,43 +250,26 @@ final class SchemaTest extends SiteTestCase {
         $this->assertStringNotContainsString( 'Swapped', (string) json_encode( $head->graph() ) );
     }
 
-    public function test_the_posts_page_takes_its_own_nodes_not_the_page_template(): void {
+    public function test_the_posts_page_takes_its_own_nodes(): void {
         $posts = $this->record( 'page', 'Blog' );
         $plain = $this->record( 'page', 'About' );
         $this->reading( $plain, $posts );
         try {
-            $this->mcp( 'set-schema', [ 'postType' => 'page', 'graph' => [ [ '@type' => 'Thing', '@id' => '{{url}}#page-template', 'name' => 'Template' ] ] ] );
             $this->mcp( 'set-schema', [ 'contentId' => $posts, 'graph' => [ [ '@type' => 'Blog', '@id' => '{{url}}#blog', 'name' => 'Own' ] ] ] );
 
-            $url  = $this->url( $posts );
-            $blog = $this->head( $url );
-            $this->assertSame( 'Own', $blog->node_by_id( $url . '#blog' )['name'] ?? null );
-            $this->assertNull( $blog->node_by_id( $url . '#page-template' ), 'not the page template' );
-
-            $home    = $this->head( '/' );
-            $webpage = (string) ( $home->node_of_type( 'WebPage' )['@id'] ?? '' );
-            $this->assertNotSame( '', $webpage, 'the WebPage id Yoast gives the front page' );
-            $this->assertSame( 'Template', $home->node_by_id( $webpage . '#page-template' )['name'] ?? null, 'an ordinary page takes it, on that WebPage id' );
+            $url = $this->url( $posts );
+            $this->assertSame( 'Own', $this->head( $url )->node_by_id( $url . '#blog' )['name'] ?? null );
         } finally {
-            $this->mcp( 'set-schema', [ 'postType' => 'page', 'graph' => [] ] );
             $this->reading( 0 );
         }
     }
 
-    public function test_the_type_template_follows_the_same_rules_and_warns_what_will_be_thin(): void {
-        $open   = $this->chair( 'Open chair' );
-        $locked = $this->chair( 'Closed chair', true );
-        $this->mcp( 'set-schema', [ 'postType' => 'post', 'graph' => self::product_template() ] );
-        $this->assertSame( 'CH-1', $this->head( $this->url( $open ) )->node_by_id( $this->url( $open ) . '#product' )['sku'] ?? null );
-        $this->assertArrayNotHasKey( 'sku', $this->head( $this->url( $locked ) )->node_by_id( $this->url( $locked ) . '#product' ) ?? [] );
-
-        // A course whose link was cleared: the template warns it comes out empty there.
-        $this->mcp( 'set-field-values', [ 'postId' => self::$ids['course'], 'values' => [ 'site' => null ] ] );
-        $out = $this->mcp( 'set-schema', [ 'postType' => self::COURSE, 'graph' => [ [ '@type' => 'Event', 'name' => '{{title}}', 'startDate' => '{{field:starts}}', 'url' => '{{field:site}}' ] ] ] );
+    public function test_a_graph_warns_what_will_be_thin(): void {
+        // A course without the meta the graph reads: it warns it comes out empty there.
+        $out = $this->mcp( 'set-schema', [ 'contentId' => self::$ids['course'], 'graph' => [ [ '@type' => 'Event', 'name' => '{{title}}', 'url' => '{{meta:qa_site}}' ] ] ] );
         $all = implode( "\n", $out['warnings'] ?? [] );
         $this->assertStringContainsString( 'Event has no location', $all );
         $this->assertStringContainsString( 'graph[0].url resolved empty on record ' . self::$ids['course'], $all );
-        $this->assertStringNotContainsString( 'startDate', $all, 'present and filled: nothing to say' );
     }
 
     /** Last in this class: Yoast is switched off for good (the next class restores the snapshot). */

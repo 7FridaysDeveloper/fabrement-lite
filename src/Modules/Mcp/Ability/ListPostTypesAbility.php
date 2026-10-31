@@ -22,9 +22,9 @@ final class ListPostTypesAbility extends AbstractAbility {
     }
 
     public function description(): string {
-        return 'Post types on the site: `available` (every public type) and `defaults` (post type -> the template its records wear automatically, with its title '
-            . 'and whether it is ready). Any public type can be given one with set-default-template; a record '
-            . 'of any type can also pick a template for itself, which outranks the default.';
+        return 'Post types on the site: `available` (every public type) and `defaults` (post type -> the template its records '
+            . 'wear automatically; read-only — defaults are set in wp-admin). A record can pick its own template '
+            . '(assign-template-pages), which outranks the default.';
     }
 
     public function input_schema(): array {
@@ -49,7 +49,7 @@ final class ListPostTypesAbility extends AbstractAbility {
                 ],
                 'defaults'  => [
                     'type'        => 'object',
-                    'description' => 'Post type -> { templateId, title }: the template records of that type wear unless they picked one themselves. Empty when no type has a default.',
+                    'description' => 'Post type -> { templateId, title }: the template records of that type wear unless a record has its own. Empty when no type has a default, or this user may not open templates.',
                 ],
             ],
         ];
@@ -70,12 +70,13 @@ final class ListPostTypesAbility extends AbstractAbility {
             ];
         }
 
-        // Which types take a template BY DEFAULT is simply which types HAVE one — the map is the
-        // list. There used to be a second list beside it ("covered types"), and the two could
-        // disagree: a default stored for a type missing from that list was invisible here, could
-        // not be removed, and still blocked its template's deletion.
+        // Which types take a template BY DEFAULT is simply which types HAVE one — the map is the list.
         $defaults = [];
         foreach ( SiteTemplatePostType::type_defaults() as $type => $template_id ) {
+            // Only templates this user may read (Capabilities::TEMPLATES).
+            if ( ! current_user_can( 'read_post', (int) $template_id ) ) {
+                continue;
+            }
             $record = SiteTemplateRegistry::find( (int) $template_id );
             $defaults[ (string) $type ] = [
                 'templateId' => (int) $template_id,

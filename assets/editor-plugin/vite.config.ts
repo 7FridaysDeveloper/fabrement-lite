@@ -46,8 +46,7 @@ const i18nForTools = {
 
 /**
  * Single-bundle build that compiles every TSX component + hook in src/ into
- * one IIFE at build/editor-plugin.js, and the .css files they import into
- * build/editor-plugin.css. The bundle reads wp.element (and other
+ * one IIFE at build/editor-plugin.js. The bundle reads wp.element (and other
  * WP globals) at runtime — no React is bundled, no externals to declare.
  *
  * JSX is transformed by esbuild to `wp.element.createElement(...)` calls via
@@ -75,7 +74,6 @@ export default defineConfig({
             name:    'FabrementEditorPlugin',   // required by Rollup IIFE; not actually consumed
             fileName: () => 'editor-plugin.js',
         },
-        rollupOptions: { output: { assetFileNames: 'editor-plugin[extname]' } },
     },
     esbuild: {
         jsx:         'transform',

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Fabrement Lite
  * Plugin URI:        https://fabrement.com/
- * Description:       Turn WordPress into an MCP server. Manage content, installed Gutenberg and ACF blocks, fields and site settings with an external AI client.
+ * Description:       Turn WordPress into an MCP server. Manage content, installed Gutenberg and ACF blocks, templates and SEO with an external AI client.
  * Version:           1.5.0
  * Requires at least: 6.9
  * Requires PHP:      8.0
@@ -65,28 +65,19 @@ require_once __DIR__ . '/src/Api/helpers.php';
 
 \Fabrement\Framework\App::boot( __FILE__ );
 
-// Plugins-screen action links — give admins an obvious way to open the connection
-// screen right after install (the only entry points are admin menu
-// items otherwise, which are easy to miss).
+// Plugins-screen action link — an obvious way to open the connection screen right after
+// install (the admin menu entry is easy to miss).
 add_filter(
     'plugin_action_links_' . plugin_basename( __FILE__ ),
     static function ( array $links ): array {
-        $connection_url     = admin_url( 'admin.php?page=fabrement' );
-        $credentials_url = admin_url( 'admin.php?page=fabrement-credentials' );
-
         $connection_link = sprintf(
             '<a href="%s">%s</a>',
-            esc_url( $connection_url ),
+            esc_url( admin_url( 'admin.php?page=fabrement-credentials' ) ),
             esc_html__( 'MCP Connection', 'fabrement-lite' )
         );
-        $settings_link = sprintf(
-            '<a href="%s">%s</a>',
-            esc_url( $credentials_url ),
-            esc_html__( 'Settings', 'fabrement-lite' )
-        );
 
-        // Prepend ours so they appear first (before Deactivate).
-        return array_merge( [ 'connection' => $connection_link, 'settings' => $settings_link ], $links );
+        // Prepend ours so it appears first (before Deactivate).
+        return array_merge( [ 'connection' => $connection_link ], $links );
     }
 );
 
@@ -102,6 +93,14 @@ register_activation_hook(
         // The network refusal is registered at the top of this file and runs first; on a network
         // it wp_die()s, so nothing below is reached. This hook only ever runs on a single site.
         \Fabrement\Modules\Updates\DatabaseUpdater::activate();
+    }
+);
+
+// Deactivation: stop the OAuth cleanup event; activation schedules it again.
+register_deactivation_hook(
+    __FILE__,
+    static function (): void {
+        wp_clear_scheduled_hook( 'fabrement_mcp_oauth_cleanup' );
     }
 );
 
@@ -139,7 +138,7 @@ add_action(
         \Fabrement\Modules\ContentPreview\ContentPreview::init();
 
         // The SEO plugin's own output (Yoast today) told about what Fabrement builds: images in
-        // blocks and fields, fields as title variables.
+        // blocks.
         \Fabrement\Modules\Seo\SeoIntegrations::init();
 
         // MCP server for external agents. Inert without the Abilities API or a compatible adapter.
@@ -147,9 +146,6 @@ add_action(
         \Fabrement\Modules\SiteTemplate\TemplateBootstrap::init();
 
         \Fabrement\Modules\Translation\Version::init();
-
-        // Custom fields: the edit-screen box, its REST route and the template API.
-        \Fabrement\Modules\Fields\FieldsBootstrap::init();
     },
     1
 );

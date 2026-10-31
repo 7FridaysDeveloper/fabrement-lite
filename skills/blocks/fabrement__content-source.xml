@@ -26,9 +26,9 @@ then becomes a narrow column and full-width sections cannot leave it. Use a "def
 
 THEME FILES
 Never send templateId or rules as attributes: such a block is refused. The slot learns its
-template when drawn and reads the theme-file rules from that template's saved JSON; choose files
-with save-template contentSource. With no matching rule it shows the page content; on an archive
-or the blog index, that view's own content.
+template when drawn and reads the theme-file rules from that template's saved JSON; those are
+set in wp-admin (get-template shows them as contentSource). With no matching rule it shows the
+page content; on an archive or the blog index, that view's own content.
 
 PITFALLS
 - A frame with two slots (or a slot plus core/post-content) is refused; none is refused too.

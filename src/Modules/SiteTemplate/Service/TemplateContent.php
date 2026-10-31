@@ -23,10 +23,10 @@ use Fabrement\Modules\Translation\Translation;
  * unassigned page, never a missing header.
  *
  * DELIBERATELY NOT in {@see SiteTemplateRegistry}. The registry feeds the Templates screen
- * and the MCP abilities as well as the front end, and every one of those wants
- * the record it was asked for: `get-template {id}` shows an agent what to edit, and handing it
- * the Polish version for the original's id would have the agent's next save write Polish into
- * the original. Only rendering wants the reader's language, so only rendering asks for it.
+ * and the template tools as well as the front end, and each wants the record it was asked for:
+ * handing get-template the Polish version for the original's id would have the next save write
+ * Polish into the original.
+ * Only rendering wants the reader's language, so only rendering asks for it.
  */
 final class TemplateContent {
 

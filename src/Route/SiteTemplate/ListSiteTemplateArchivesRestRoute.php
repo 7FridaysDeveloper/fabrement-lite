@@ -36,7 +36,7 @@ final class ListSiteTemplateArchivesRestRoute extends AbstractRestRoute {
     }
 
     public function permission_callback( WP_REST_Request $request ): bool {
-        return current_user_can( Capabilities::ADMIN );
+        return current_user_can( Capabilities::TEMPLATES );
     }
 
     public function handle( WP_REST_Request $request ) {

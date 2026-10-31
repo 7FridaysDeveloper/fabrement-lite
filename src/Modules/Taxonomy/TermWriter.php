@@ -20,7 +20,7 @@ final class TermWriter {
      * Only taxonomies with an admin screen (show_ui): the same terms a person can edit in
      * wp-admin. The rest is WordPress's own plumbing — a menu is a `nav_menu` term, block
      * templates hang on `wp_theme` and `wp_template_part_area` — where a term edit deletes a menu
-     * past delete-menu or detaches a theme's templates.
+     * or detaches a theme's templates.
      */
     public static function refuse_term_taxonomy( string $taxonomy ): ?WP_Error {
         $object = get_taxonomy( $taxonomy );
@@ -31,8 +31,18 @@ final class TermWriter {
             return new WP_Error(
                 'taxonomy_not_editable',
                 sprintf( 'Taxonomy "%s" has no admin screen: its terms are WordPress or plugin internals, not a classification.', $taxonomy )
-                    . ( $taxonomy === 'nav_menu' ? ' Menus: list-menus, update-menu, delete-menu.' : '' )
+                    . ( $taxonomy === 'nav_menu' ? ' Menus are edited in wp-admin (Appearance → Menus).' : '' )
             );
+        }
+
+        return null;
+    }
+
+    /** Adding a term takes the taxonomy's edit_terms, as the wp-admin terms screen asks. */
+    public static function refuse_create( string $taxonomy ): ?WP_Error {
+        $object = get_taxonomy( $taxonomy );
+        if ( $object instanceof \WP_Taxonomy && ! current_user_can( $object->cap->edit_terms ) ) {
+            return new WP_Error( 'forbidden', sprintf( 'You may not add "%s" terms (edit_terms).', $taxonomy ) );
         }
 
         return null;
@@ -90,6 +100,10 @@ final class TermWriter {
     public static function create_term( string $taxonomy, array $input ) {
         $taxonomy = sanitize_key( $taxonomy );
         $refused  = self::refuse_term_taxonomy( $taxonomy );
+        if ( $refused !== null ) {
+            return $refused;
+        }
+        $refused = self::refuse_create( $taxonomy );
         if ( $refused !== null ) {
             return $refused;
         }
@@ -169,6 +183,9 @@ final class TermWriter {
         $id = self::term_id( $taxonomy, $term );
         if ( $id === 0 ) {
             return new WP_Error( 'term_not_found', sprintf( 'No term "%s" in taxonomy "%s".', is_scalar( $term ) ? (string) $term : '', $taxonomy ) );
+        }
+        if ( ! current_user_can( 'edit_term', $id ) ) {
+            return new WP_Error( 'forbidden', sprintf( 'You may not edit term %d (edit_term).', $id ) );
         }
 
         $args = array();
@@ -285,6 +302,9 @@ final class TermWriter {
         $id = self::term_id( $taxonomy, $term );
         if ( $id === 0 ) {
             return new WP_Error( 'term_not_found', sprintf( 'No term "%s" in taxonomy "%s".', is_scalar( $term ) ? (string) $term : '', $taxonomy ) );
+        }
+        if ( ! current_user_can( 'delete_term', $id ) ) {
+            return new WP_Error( 'forbidden', sprintf( 'You may not delete term %d (delete_term).', $id ) );
         }
 
         // IN THE TERM'S OWN LANGUAGE. wp_delete_term() is language-adjusted like everything else

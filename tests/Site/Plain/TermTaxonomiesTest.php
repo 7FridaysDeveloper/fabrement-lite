@@ -6,7 +6,7 @@ use Fabrement\Tests\Site\Support\SiteTestCase;
 
 /**
  * The term tools work only in taxonomies with an admin screen. The rest is WordPress plumbing: a
- * menu is a nav_menu term, so delete-term would remove it past delete-menu.
+ * menu is a nav_menu term, so delete-term would remove a menu.
  */
 final class TermTaxonomiesTest extends SiteTestCase {
 
@@ -14,7 +14,7 @@ final class TermTaxonomiesTest extends SiteTestCase {
         $menu = (int) $this->site_runs( "return wp_create_nav_menu( 'QA Plumbing Menu' );" );
         $post = $this->record( 'post', 'QA Plumbing Post' );
 
-        $this->assertStringContainsString( 'delete-menu', $this->mcp_error( 'delete-term', [ 'taxonomy' => 'nav_menu', 'term' => $menu ] ) );
+        $this->assertStringContainsString( 'Appearance → Menus', $this->mcp_error( 'delete-term', [ 'taxonomy' => 'nav_menu', 'term' => $menu ] ) );
         $this->assertStringContainsString( 'no admin screen', $this->mcp_error( 'update-term', [ 'taxonomy' => 'nav_menu', 'term' => $menu, 'name' => 'QA Renamed' ] ) );
         $this->assertStringContainsString( 'no admin screen', $this->mcp_error( 'create-term', [ 'taxonomy' => 'wp_theme', 'name' => 'qa-theme' ] ) );
         $this->assertStringContainsString( 'no admin screen', $this->mcp_error( 'list-terms', [ 'taxonomy' => 'wp_template_part_area' ] ) );

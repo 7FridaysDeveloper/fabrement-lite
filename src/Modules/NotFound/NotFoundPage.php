@@ -152,7 +152,7 @@ final class NotFoundPage {
         }
     }
 
-    /** Settings → Reading: the same choice the MCP tool makes, for a person. */
+    /** Settings → Reading: where an administrator chooses the not-found page. */
     public static function register_reading_setting(): void {
         register_setting( 'reading', Keys::OPTION_NOT_FOUND_PAGE, [ 'type' => 'integer', 'sanitize_callback' => [ self::class, 'sanitize' ], 'default' => 0 ] );
         add_settings_field(

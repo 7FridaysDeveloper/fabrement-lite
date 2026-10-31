@@ -13,8 +13,6 @@ An edit changes the selected language only. Apply an intended shared change to t
 explicitly and report variants left unchanged.
 
 Use the available translation tools for terms, synced patterns and CF7 forms.
-Respect copy/translate/copy-once field behavior from the schema. Options values may be language-specific;
-read and write the intended language using the exposed parameters.
 Do not assume every ACF block or custom field is automatically configured for WPML translation.
 Deleting a language's record does not automatically mean deleting every language version.
 Media has different semantics: deleting an original may delete its language copies and shared file;

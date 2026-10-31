@@ -25,7 +25,7 @@ use WP_REST_Server;
  * is code that serves every language, so there is nothing here a translator could translate —
  * but it is not something a caller should have to infer, which is why the answer says so.
  *
- * Rules are validated exactly as save-template validates them
+ * Rules are validated exactly as the template save validates them
  * ({@see ContentSourceConfig::validate()}): a known view context (a term by id), an existing
  * theme file written for that view, one rule per view. A changed set with a rule that could
  * never render is refused with the reason; an unchanged set is kept as stored. Rows the screen
@@ -44,7 +44,7 @@ final class SaveContentSourceRestRoute extends AbstractRestRoute {
     }
 
     public function permission_callback( WP_REST_Request $request ): bool {
-        return current_user_can( Capabilities::ADMIN );
+        return current_user_can( Capabilities::TEMPLATES );
     }
 
     public function get_route_args(): array {

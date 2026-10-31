@@ -88,7 +88,7 @@ final class ListContentAbility extends AbstractAbility {
                         ] ),
                     ],
                 ],
-                'total' => [ 'type' => 'integer', 'description' => 'Matches before the limit.' ],
+                'total' => [ 'type' => 'integer', 'description' => 'Matches before the limit. May still count records this user cannot read on later pages (as WordPress\'s own REST total does).' ],
             ],
         ];
     }
@@ -207,10 +207,20 @@ final class ListContentAbility extends AbstractAbility {
         $query = new WP_Query( $args );
         remove_filter( 'wp_query_search_exclusion_prefix', $literal );
 
+        // Only what this user may read, as the REST API's own listing does: another's draft,
+        // pending or private record needs read_post. Per row: `perm` hides only private records.
+        $posts = [];
+        foreach ( $query->posts as $post ) {
+            if ( current_user_can( 'read_post', $post->ID ) ) {
+                $posts[] = $post;
+            }
+        }
+        $hidden = count( $query->posts ) - count( $posts );
+
         // One lookup per post type for the whole page of results, rather than two per row.
         // Grouped because "any" returns a mix, and a record's language is keyed by its type.
         $by_type = [];
-        foreach ( $query->posts as $post ) {
+        foreach ( $posts as $post ) {
             $by_type[ (string) $post->post_type ][] = (int) $post->ID;
         }
         $languages = [];
@@ -222,7 +232,7 @@ final class ListContentAbility extends AbstractAbility {
         // language is switched once per language rather than once per row.
         $permalinks = $bridge->permalinks_of_many(
             array_reduce(
-                $query->posts,
+                $posts,
                 static function ( array $carry, $post ) use ( $languages ): array {
                     $carry[ (int) $post->ID ] = $languages[ (int) $post->ID ]['language'] ?? '';
                     return $carry;
@@ -232,7 +242,7 @@ final class ListContentAbility extends AbstractAbility {
         );
 
         $items = [];
-        foreach ( $query->posts as $post ) {
+        foreach ( $posts as $post ) {
             $terms = [];
             // Public taxonomies only. Plugins register private ones to keep their own state on a
             // post — WPML's `translation_priority` is one — and those are not classifications of
@@ -273,18 +283,22 @@ final class ListContentAbility extends AbstractAbility {
             if ( isset( $languages[ (int) $post->ID ] ) ) {
                 $facts               = $languages[ (int) $post->ID ];
                 $row['language']     = $language;
-                $row['translations'] = (object) $facts['translations'];
+                // Ids the user may not read are left out, as wp-admin would not show them.
+                $row['translations'] = (object) array_filter( $facts['translations'], static fn( $other ): bool => (int) $other === (int) $post->ID || current_user_can( 'read_post', (int) $other ) );
                 // Which id is the source of truth in this group, and what it still lacks — the two
                 // facts a "create this page in Polish" task needs, spelled out rather than left
                 // to be inferred from a map of ids that says nothing about which one came first.
-                $row['originalId']       = $facts['isOriginal'] ? (int) $post->ID : self::original_id( $facts, $post->post_type );
+                $original = $facts['isOriginal'] ? (int) $post->ID : self::original_id( $facts, $post->post_type );
+                if ( $original <= 0 || $original === (int) $post->ID || current_user_can( 'read_post', $original ) ) {
+                    $row['originalId'] = $original;
+                }
                 $row['missingLanguages'] = Translation::missing_languages( $facts['translations'] );
             }
 
             $items[] = $row;
         }
 
-        return [ 'items' => $items, 'total' => (int) $query->found_posts ];
+        return [ 'items' => $items, 'total' => (int) $query->found_posts - $hidden ];
     }
 
     /**

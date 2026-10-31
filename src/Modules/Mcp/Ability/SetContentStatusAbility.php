@@ -90,9 +90,10 @@ final class SetContentStatusAbility extends DestructiveAbility {
             return $this->restore( $post, $asked );
         }
 
-        $capability = $target === 'publish' ? 'publish_post' : 'edit_post';
-        if ( ! current_user_can( $capability, $id ) ) {
-            return new WP_Error( 'forbidden', sprintf( 'You are not allowed to change the status of content %d.', $id ) );
+        // As the editor: edit_post on the record, and publish_post on top to publish it
+        // (publish_post alone is the type's publish_posts, which says nothing about whose it is).
+        if ( ! current_user_can( 'edit_post', $id ) || ( $target === 'publish' && ! current_user_can( 'publish_post', $id ) ) ) {
+            return new WP_Error( 'forbidden', sprintf( 'You are not allowed to change the status of content %d (%s).', $id, $target === 'publish' ? 'edit_post, publish_post' : 'edit_post' ) );
         }
 
         if ( $target === 'draft' ) {

@@ -9,24 +9,6 @@ use Fabrement\Tests\Site\Support\TemplateSides;
 final class TemplateSidesStatesTest extends SiteTestCase {
     use TemplateSides;
 
-    private function dressed( string $title, array $sides ): array {
-        $ref      = static fn( int $id ): array => $id > 0 ? [ [ 'name' => 'core/block', 'attributes' => [ 'ref' => $id ] ] ] : [];
-        $template = (int) $this->mcp( 'save-template', [ 'mode' => 'create', 'title' => $title, 'blocks' => array_merge(
-            $ref( (int) ( $sides['headerPatternId'] ?? 0 ) ),
-            $sides['beforeSlot'] ?? [],
-            [ [ 'name' => 'fabrement/content-source' ] ],
-            $sides['afterSlot'] ?? [],
-            $ref( (int) ( $sides['footerPatternId'] ?? 0 ) )
-        ) ] )['template']['id'];
-        $page     = $this->record( 'page', $title . ' page' );
-        $this->mcp( 'assign-template-pages', [ 'templateId' => $template, 'pageIds' => [ $page ], 'mode' => 'add' ] );
-        return [ $template, (string) $this->mcp( 'get-content', [ 'contentId' => $page ] )['url'] ];
-    }
-
-    private function listed( int $template ): array {
-        return $this->listed_with_sides( $template );
-    }
-
     private function content_of( int $post ): string {
         return (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $post ] );
     }
@@ -35,52 +17,33 @@ final class TemplateSidesStatesTest extends SiteTestCase {
         $this->site_runs( 'wp_update_post( [ "ID" => ' . $pattern . ', "post_status" => ' . var_export( $status, true ) . ' ] ); return true;' );
     }
 
-    public function test_an_agent_places_only_a_global_block_that_is_drawn_and_one_is_found_however_it_is_written(): void {
-        $own  = $this->own_global_block( 'header', 'Draft placed' );
-        $slot = [ 'name' => 'fabrement/content-source' ];
-        $this->set_status( $own, 'draft' );
+    public function test_a_placed_global_block_is_found_however_it_is_written_and_its_draft_is_said(): void {
+        $own = $this->own_global_block( 'header', 'Draft placed' );
 
-        // A draft draws nothing: refused by name, as markup, and inside another block.
-        $this->assertStringContainsString( 'is not published (draft)', $this->mcp_error( 'save-template', self::frame( 'Draft placed', $own ) ) );
-        $nested = [ 'markup' => '<!-- wp:group --><div class="wp-block-group"><!-- wp:block {"ref":' . $own . '} /--></div><!-- /wp:group -->' ];
-        $this->assertStringContainsString( 'is not published (draft)', $this->mcp_error( 'save-template', [ 'mode' => 'create', 'title' => 'Draft nested', 'blocks' => [ $nested, $slot ] ] ) );
-        $this->assertSame( 0, (int) $this->site()->value( 'SELECT COUNT(*) FROM wp_posts WHERE post_type = "fabrement_template" AND post_title LIKE "Draft %"' ), 'nothing was saved' );
-
-        // Published, it is placed — here with another attribute before the ref — and guarded all the same.
-        $this->set_status( $own, 'publish' );
-        $written  = [ 'markup' => '<!-- wp:block {"metadata":{"name":"Top"},"ref":' . $own . '} /-->' ];
-        $template = (int) $this->mcp( 'save-template', [ 'mode' => 'create', 'title' => 'Draft later', 'blocks' => [ $written, $slot ] ] )['template']['id'];
+        // Placed by a template — here with another attribute before the ref — and guarded all the same.
+        $template = $this->new_template( 'Draft later', 0, 0, '<!-- wp:block {"metadata":{"name":"Top"},"ref":' . $own . '} /-->' );
         $this->assertStringContainsString( 'is placed in 1 template(s)', $this->mcp_error( 'delete-synced-pattern', [ 'patternId' => $own ] ) );
-        $this->assertContains( $template, array_column( $this->mcp( 'get-synced-pattern', [ 'patternId' => $own ] )['templates'], 'id' ) );
+        $read = $this->mcp( 'get-synced-pattern', [ 'patternId' => $own ] );
+        $this->assertSame( [ [ [ 'id' => $template, 'title' => 'Draft later' ] ], 0 ], [ $read['templates'], $read['templatesHidden'] ] );
 
-        // It goes to draft afterwards: said, and the template is still edited — what it placed is carried.
+        // It goes to draft afterwards: the template says so.
         $this->set_status( $own, 'draft' );
-        $read = $this->mcp( 'get-template', [ 'templateId' => $template ] )['template'];
-        $this->assertStringContainsString( 'The global block "Draft placed" is not published (draft)', $read['problem'] );
-        $saved = $this->mcp( 'save-template', [ 'mode' => 'edit', 'templateId' => $template, 'expectedHash' => $read['hash'], 'edits' => [
-            [ 'op' => 'insert', 'at' => 1, 'block' => [ 'markup' => '<!-- wp:paragraph --><p>Kept editing</p><!-- /wp:paragraph -->' ] ],
-        ] ] )['template'];
-        $this->assertStringContainsString( 'Kept editing', $this->content_of( $template ) );
-        $this->assertStringContainsString( 'not published', $saved['problem'] );
+        $this->assertStringContainsString( 'The global block "Draft placed" is not published (draft)', $this->template_row( $template )['problem'] );
     }
 
     public function test_an_agent_makes_a_free_global_block_a_draft_and_publishes_it_again(): void {
         $own  = $this->own_global_block( 'header', 'Status' );
-        $slot = [ 'name' => 'fabrement/content-source' ];
         $this->assertSame( 'publish', $this->mcp( 'get-synced-pattern', [ 'patternId' => $own ] )['status'] );
 
-        // Free, it is taken out of use; as a draft a template does not take it, and is told how to publish it.
+        // Free, it is taken out of use.
         $this->assertSame( 'draft', $this->mcp( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $own, 'status' => 'draft' ] )['status'] );
         $this->assertSame( 'draft', $this->site()->value( 'SELECT post_status FROM wp_posts WHERE ID = ?', [ $own ] ) );
-        $refusal = $this->mcp_error( 'save-template', self::frame( 'Status', $own ) );
-        $this->assertStringContainsString( 'is not published (draft)', $refusal );
-        $this->assertStringContainsString( 'save-synced-pattern {patternId: ' . $own . ', mode: "replace", status: "publish"}', $refusal );
 
         // Published with nothing else sent: its words are as they were.
         $before = $this->content_of( $own );
         $this->assertSame( 'publish', $this->mcp( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $own, 'status' => 'publish' ] )['status'] );
         $this->assertSame( $before, $this->content_of( $own ) );
-        $template = (int) $this->mcp( 'save-template', self::frame( 'Status', $own ) )['template']['id'];
+        $template = $this->new_template( 'Status', $own );
 
         // Placed, it is not made a draft — in a template, and on a page.
         $refusal = $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $own, 'status' => 'draft' ] );
@@ -141,13 +104,9 @@ final class TemplateSidesStatesTest extends SiteTestCase {
     public function test_a_global_block_is_found_where_it_stands_however_its_placement_is_written(): void {
         $own     = $this->own_global_block( 'header', 'Written header' );
         $section = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Written section', 'blocks' => [ [ 'markup' => '<!-- wp:paragraph --><p>Written</p><!-- /wp:paragraph -->' ] ] ] )['patternId'];
-        $slot    = [ 'name' => 'fabrement/content-source' ];
 
         // As the editor writes one a person locked or named: other attributes before the ref.
-        $template = (int) $this->mcp( 'save-template', [ 'mode' => 'create', 'title' => 'Written', 'blocks' => [
-            [ 'markup' => '<!-- wp:block {"lock":{"move":true,"remove":true},"ref":' . $own . '} /-->' ],
-            $slot,
-        ] ] )['template']['id'];
+        $template = $this->new_template( 'Written', 0, 0, '<!-- wp:block {"lock":{"move":true,"remove":true},"ref":' . $own . '} /-->' );
         $page = $this->record( 'page', 'Written page' );
         $this->site_runs( 'wp_update_post( wp_slash( [ "ID" => ' . $page . ', "post_content" => "<!-- wp:group --><div class=\"wp-block-group\"><!-- wp:block {\"metadata\":{\"name\":\"Mine\"},\"ref\":' . $section . '} /--></div><!-- /wp:group -->" ] ) ); return true;' );
         // A navigation block naming a menu by the same number is no placement.
@@ -157,7 +116,7 @@ final class TemplateSidesStatesTest extends SiteTestCase {
         // Counted, in the list (one search for every row) and one by one.
         $listed = array_column( $this->mcp( 'list-synced-patterns', [ 'search' => 'Written' ] )['patterns'], null, 'id' );
         $this->assertSame( [ 1, 1 ], [ $listed[ $own ]['usedBy'], $listed[ $section ]['usedBy'] ] );
-        $this->assertSame( [ $template ], array_column( $listed[ $own ]['templates'], 'id' ) );
+        $this->assertSame( [ [ [ 'id' => $template, 'title' => 'Written' ] ], 0 ], [ $listed[ $own ]['templates'], $listed[ $own ]['templatesHidden'] ] );
         $this->assertSame( [ $page ], array_column( $this->mcp( 'get-synced-pattern', [ 'patternId' => $section ] )['usedBy'], 'id' ) );
 
         // So neither is made a draft, deleted, or re-marked while it stands there.

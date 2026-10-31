@@ -164,7 +164,7 @@ final class SaveContentAbility extends AbstractAbility {
 			'type'       => 'object',
 			'required'   => [ 'contentId', 'status', 'url', 'editUrl', 'blocks', 'note' ],
 			'properties' => [
-				'contentId' => [ 'type' => 'integer', 'description' => 'New on create, the same one back on update. Feeds set-post-terms and update-site-settings.' ],
+				'contentId' => [ 'type' => 'integer', 'description' => 'New on create, the same one back on update. Feeds set-post-terms.' ],
 				'status'  => [ 'type' => 'string', 'description' => 'Status AFTER the call, read back from WordPress: "draft" for a new record, unchanged on update.' ],
 				'url'     => [ 'type' => 'string', 'description' => 'Publicly reachable only when status is "publish".' ],
 				'slug'    => [ 'type' => 'string', 'description' => 'The slug as stored — sanitised, and suffixed when the address was taken. Empty on a draft that was given none (see slugWhenPublished).' ],
@@ -196,6 +196,7 @@ final class SaveContentAbility extends AbstractAbility {
 					],
 				],
 				'note'    => [ 'type' => 'string' ],
+				'hash'    => [ 'type' => 'string', 'description' => 'The body\'s hash after this save — the expectedHash of the next mode "edit".' ],
 			] + self::multilingual( [
 				// About THIS RECORD, not about the site: absent means the translation plugin does
 				// not track this record (an untranslatable type). "Does this site have languages"
@@ -296,7 +297,7 @@ final class SaveContentAbility extends AbstractAbility {
 				throw new McpAbilityException( sprintf( 'blocks[%d] must be an object.', (int) $i ) );
 			}
 			// One vocabulary for a block entry — {name, attributes?} or {markup} — shared with
-			// the site-template frame, so the two tools cannot drift. See {@see BlockEntry}.
+			// synced patterns and the template writer, so they cannot drift. See {@see BlockEntry}.
 			// In an edit the untouched blocks come from the stored body, which may hold a Fabrement
 			// block carried as markup (an admin wrapped content into it) — writing it back as it
 			// was is not the shortcut the refusal is there to stop.
@@ -605,6 +606,8 @@ final class SaveContentAbility extends AbstractAbility {
 				: 'A draft — its URL is not publicly reachable. Check it with preview {id}; make it public with set-content-status once the user agrees.',
 		];
 		$out['note'] .= self::$image_refused;
+		// The hash pins the next edit.
+		$out['hash'] = TextEdits::hash( BlockEntry::of_post( $content_id ) );
 
 		if ( $language_of !== '' ) {
 			$out['language'] = $language_of;

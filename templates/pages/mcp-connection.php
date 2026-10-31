@@ -37,8 +37,9 @@ defined( 'ABSPATH' ) || exit;
         $fabrement_mcp_client = $fabrement_mcp_connection['client'] ?? ( is_string( $fabrement_requested_client ) && isset( $fabrement_connection_clients[ $fabrement_requested_client ] ) ? $fabrement_requested_client : 'claude' );
         $fabrement_oauth_https = \Fabrement\Modules\Mcp\OAuth\Config::https();
         $fabrement_mcp_passwords = $page->get_mcp_passwords();
-        $fabrement_oauth_grants = ( new \Fabrement\Modules\Mcp\OAuth\Store() )->ready()
-            ? ( new \Fabrement\Modules\Mcp\OAuth\Store() )->grants() : [];
+        // Every connection on the site: only an administrator opens this page.
+        $fabrement_oauth_store = new \Fabrement\Modules\Mcp\OAuth\Store();
+        $fabrement_oauth_grants = $fabrement_oauth_store->ready() ? $fabrement_oauth_store->grants() : [];
 
         /*
          * Each client has ONE recommended way in, shown as a numbered guide; everything else
@@ -79,10 +80,10 @@ defined( 'ABSPATH' ) || exit;
         <div class="fabrement-cred__card fabrement-cred__mcp">
             <h2 class="fabrement-cred__title"><?php esc_html_e( 'Agent access (MCP)', 'fabrement-lite' ); ?></h2>
             <nav class="fabrement-cred__mcp-form fabrement-cred__oauth-clients" aria-label="<?php esc_attr_e( 'AI client', 'fabrement-lite' ); ?>">
-                <?php foreach ( $fabrement_connection_clients as $id => $fabrement_label ) : ?>
-                    <a class="fabrement-cred__mcp-client-button<?php echo $fabrement_mcp_client === $id ? ' is-active' : ''; ?>" data-client="<?php echo esc_attr( $id ); ?>"
-                        <?php echo $fabrement_mcp_client === $id ? 'aria-current="page"' : ''; ?>
-                        href="<?php echo esc_url( add_query_arg( [ 'page' => 'fabrement-credentials', 'fabrement_oauth_client' => $id ], admin_url( 'admin.php' ) ) . '#fabrement-connect' ); ?>"><?php echo esc_html( $fabrement_label ); ?></a>
+                <?php foreach ( $fabrement_connection_clients as $fabrement_client_id => $fabrement_label ) : ?>
+                    <a class="fabrement-cred__mcp-client-button<?php echo $fabrement_mcp_client === $fabrement_client_id ? ' is-active' : ''; ?>" data-client="<?php echo esc_attr( $fabrement_client_id ); ?>"
+                        <?php echo $fabrement_mcp_client === $fabrement_client_id ? 'aria-current="page"' : ''; ?>
+                        href="<?php echo esc_url( add_query_arg( [ 'page' => 'fabrement-credentials', 'fabrement_oauth_client' => $fabrement_client_id ], admin_url( 'admin.php' ) ) . '#fabrement-connect' ); ?>"><?php echo esc_html( $fabrement_label ); ?></a>
                 <?php endforeach; ?>
             </nav>
             <div id="fabrement-connect" class="fabrement-cred__connection-body">

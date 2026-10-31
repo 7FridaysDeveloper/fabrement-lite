@@ -11,8 +11,8 @@ namespace Fabrement\Modules\Storage;
  *
  * NO FALLBACK, also deliberately. There used to be one — "if the root is not writable, use another
  * folder" — and it was decided per request by is_writable() on the root. A deploy that merely
- * changed the folder's permissions therefore flipped every READ to an empty folder: no fields,
- * no templates, no log line, while the real tree sat intact one directory over. And because the same
+ * changed the folder's permissions therefore flipped every READ to an empty folder: no templates,
+ * no log line, while the real tree sat intact one directory over. And because the same
  * request could still WRITE to the other folder, recreating what seemed lost forked the data, and
  * the next migration run deleted the good copy in favour of the fork. Read permission and write
  * permission are different questions: a read-only root is still where the data is. So reads always

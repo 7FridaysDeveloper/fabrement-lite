@@ -115,23 +115,88 @@ abstract class SiteTestCase extends TestCase {
         return [ 'status' => $response['status'], 'data' => (array) json_decode( $response['body'], true ) ];
     }
 
-    // ── what an agent does, through the tools ────────────────────────────────────────────────
+    // ── templates: set up through the services behind the Templates screen's REST routes ─────
 
-    /**
-     * save-template's input for a NEW template, as an agent writes one: a header global block, the
-     * content slot, a footer global block — the sides that are given — and what else the call sets.
-     */
-    protected static function frame( string $title, int $header = 0, int $footer = 0, array $more = [] ): array {
-        $blocks = [];
-        if ( $header > 0 ) {
-            $blocks[] = [ 'name' => 'core/block', 'attributes' => [ 'ref' => $header ] ];
-        }
-        $blocks[] = [ 'name' => 'fabrement/content-source' ];
-        if ( $footer > 0 ) {
-            $blocks[] = [ 'name' => 'core/block', 'attributes' => [ 'ref' => $footer ] ];
-        }
-        return [ 'mode' => 'create', 'title' => $title, 'blocks' => $blocks ] + $more;
+    /** A template's frame as stored: a header global block, $before, the content slot, a footer global block. */
+    protected static function frame( int $header = 0, int $footer = 0, string $before = '' ): string {
+        return ( $header > 0 ? '<!-- wp:block {"ref":' . $header . '} /-->' : '' ) . $before
+            . '<!-- wp:fabrement/content-source /-->'
+            . ( $footer > 0 ? '<!-- wp:block {"ref":' . $footer . '} /-->' : '' );
     }
+
+    /** One template service call on the site, with JSON-able arguments in order. */
+    private function template_service( string $call, array $args ) {
+        return $this->site_runs( sprintf( 'return \\Fabrement\\Modules\\SiteTemplate\\%s( ...json_decode( %s, true ) );', $call, var_export( json_encode( $args ), true ) ) );
+    }
+
+    /** Save a template as the Templates screen does. @return array Its summary, or [ 'error' => code ]. */
+    protected function save_template( array $input ): array {
+        return (array) $this->template_service( 'Service\\SiteTemplateWriter::save', [ $input ] );
+    }
+
+    /** A new template with these sides. @return int Its id. */
+    protected function new_template( string $title, int $header = 0, int $footer = 0, string $before = '' ): int {
+        $saved = $this->save_template( [ 'title' => $title, 'content' => self::frame( $header, $footer, $before ) ] );
+        $this->assertArrayHasKey( 'id', $saved, (string) json_encode( $saved ) );
+        return (int) $saved['id'];
+    }
+
+    /** A template's summary with how it is given out (pageCount, archiveContexts); [] when there is none. */
+    protected function template_row( int $template ): array {
+        return (array) $this->site_runs( sprintf(
+            '$r = \\Fabrement\\Modules\\SiteTemplate\\Service\\SiteTemplateRegistry::find_any( %1$d ); if ( $r === null ) { return []; }'
+            . ' return $r->to_summary( \\Fabrement\\Modules\\SiteTemplate\\PostType\\SiteTemplatePostType::type_defaults() )'
+            . ' + [ "pageCount" => \\Fabrement\\Modules\\SiteTemplate\\Service\\SiteTemplatePages::counts()[ $r->slug ] ?? 0,'
+            . ' "archiveContexts" => array_keys( array_filter( \\Fabrement\\Modules\\SiteTemplate\\Service\\ArchiveTemplateBinding::all(), static fn( $id ) => (int) $id === %1$d ) ) ];',
+            $template
+        ) );
+    }
+
+    /** Give pages a template, as the Templates screen does. */
+    protected function assign_template( int $template, array $page_ids ): void {
+        $this->site_runs( sprintf(
+            'return \\Fabrement\\Modules\\SiteTemplate\\Service\\SiteTemplatePages::reconcile( \\Fabrement\\Modules\\SiteTemplate\\PostType\\SiteTemplatePostType::slug_for( %d ), json_decode( %s, true ), "add" );',
+            $template,
+            var_export( json_encode( array_values( $page_ids ) ), true )
+        ) );
+    }
+
+    /** Make a template the default of a post type, as the Templates screen does. */
+    protected function default_template( int $template, string $post_type ): void {
+        $this->template_service( 'PostType\\SiteTemplatePostType::set_default_for', [ $post_type, $template ] );
+    }
+
+    /** Bind a template to an archive view, as the Templates screen does. */
+    protected function bind_archive( string $context, int $template ): void {
+        $this->assertTrue( (bool) $this->template_service( 'Service\\ArchiveTemplateBinding::set', [ $context, $template ] ), $context );
+    }
+
+    /** Delete a template, as the Templates screen does. @return mixed The pages it cleared, or [ 'error' => code ]. */
+    protected function delete_template( int $template ) {
+        return $this->template_service( 'Service\\SiteTemplateDeleter::delete', [ $template ] );
+    }
+
+    /** The address of an archive view: "blog-home", "archive:<postType>" or "tax:<taxonomy>:<termId>". */
+    protected function archive_url( string $context ): string {
+        $parts = explode( ':', $context );
+        $code  = match ( $parts[0] ) {
+            'blog-home' => '$page = (int) get_option( "page_for_posts" ); return $page > 0 ? get_permalink( $page ) : home_url( "/" );',
+            'archive'   => 'return get_post_type_archive_link( ' . var_export( $parts[1] ?? '', true ) . ' );',
+            default     => 'return get_term_link( ' . (int) ( $parts[2] ?? 0 ) . ', ' . var_export( $parts[1] ?? '', true ) . ' );',
+        };
+        $url = $this->site_runs( $code );
+        $this->assertIsString( $url, $context );
+        return $url;
+    }
+
+    /** Open a template's language version, as the Templates screen does. @return int Its id. */
+    protected function translate_template( int $template, string $language ): int {
+        $opened = (array) $this->template_service( 'Service\\SiteTemplateTranslator::open', [ $template, $language ] );
+        $this->assertArrayHasKey( 'id', $opened, (string) json_encode( $opened ) );
+        return (int) $opened['id'];
+    }
+
+    // ── what an agent does, through the tools ────────────────────────────────────────────────
 
 
     /**
@@ -184,56 +249,6 @@ abstract class SiteTestCase extends TestCase {
         );
     }
 
-    /** A field definition with the label and description every field needs. */
-    protected static function field( string $name, string $type, array $extra = [] ): array {
-        return $extra + [ 'name' => $name, 'label' => ucfirst( str_replace( '_', ' ', $name ) ), 'description' => 'About ' . $name, 'type' => $type ];
-    }
-
-    /**
-     * save-fields as an agent sends it: the fields it wants, with the keys get-fields gave for the
-     * ones that exist. @return array<string,array> The saved definitions by name.
-     */
-    protected function fields( string $post_type, array $fields, bool $force = false ): array {
-        $current = $this->mcp( 'get-fields', [ 'type' => 'post', 'slug' => $post_type ] );
-        // $force: the user agreed to a field becoming "copy" (its translations are replaced).
-        $saved   = $this->mcp( 'save-fields', [ 'type' => 'post', 'slug' => $post_type, 'expectedRevision' => (int) ( $current['revision'] ?? 0 ),
-            'fields' => self::with_keys( self::without_retired( $fields ), (array) ( $current['fields'] ?? [] ) ) ] + ( $force ? [ 'force' => true ] : [] ) );
-        return array_column( $saved['fields'], null, 'name' );
-    }
-
-    /** The field definitions as get-fields gives them, by name. */
-    protected function definitions( string $post_type ): array {
-        return array_column( (array) ( $this->mcp( 'get-fields', [ 'type' => 'post', 'slug' => $post_type ] )['fields'] ?? [] ), null, 'name' );
-    }
-
-    /** As the docs say: a retired field is left out (it stays retired), at every level. */
-    protected static function without_retired( array $fields ): array {
-        $kept = [];
-        foreach ( $fields as $field ) {
-            if ( ! empty( $field['retired'] ) ) {
-                continue;
-            }
-            if ( isset( $field['sub_fields'] ) ) {
-                $field['sub_fields'] = self::without_retired( $field['sub_fields'] );
-            }
-            $kept[] = $field;
-        }
-        return $kept;
-    }
-
-    protected static function with_keys( array $fields, array $stored ): array {
-        $by_name = array_column( array_filter( $stored, static fn( array $f ): bool => empty( $f['retired'] ) ), null, 'name' );
-        foreach ( $fields as $i => $field ) {
-            if ( isset( $by_name[ $field['name'] ] ) ) {
-                $fields[ $i ]['key'] = $by_name[ $field['name'] ]['key'];
-                if ( isset( $field['sub_fields'] ) ) {
-                    $fields[ $i ]['sub_fields'] = self::with_keys( $field['sub_fields'], $by_name[ $field['name'] ]['sub_fields'] ?? [] );
-                }
-            }
-        }
-        return $fields;
-    }
-
     /** A record, made with save-content and published (or left as $status). @return int Its id. */
     protected function record( string $post_type, string $title, string $status = 'publish' ): int {
         $id = (int) $this->mcp( 'save-content', [ 'mode' => 'create', 'postType' => $post_type, 'title' => $title, 'blocks' => [] ] )['contentId'];
@@ -275,6 +290,19 @@ abstract class SiteTestCase extends TestCase {
             . ' echo "\n@@" . wp_json_encode( $fabrement_plain( $fabrement_result ) );' );
         $json = substr( $out, (int) strrpos( $out, '@@' ) + 2 );
         return json_decode( $json, true );
+    }
+
+    /**
+     * Save a template's theme-file choices the way wp-admin does: MCP cannot set them.
+     *
+     * @return mixed What the writer returns ([ 'rules' => … ], or [ 'error' => code ]).
+     */
+    protected function set_sources( int $template_id, array $rules ) {
+        return $this->site_runs( sprintf(
+            'return \\Fabrement\\Modules\\SiteTemplate\\Service\\ContentSourceConfig::write( %d, [ "rules" => json_decode( %s, true ) ] );',
+            $template_id,
+            var_export( json_encode( $rules ), true )
+        ) );
     }
 
     /** @return array[] The JSON-LD nodes of every ld+json block in $html. */

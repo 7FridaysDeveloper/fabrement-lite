@@ -2,13 +2,13 @@
 
 namespace Fabrement\Api\Support;
 
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Framework\Log;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * How a read of fabrement() never throws: the read runs, and a FieldsException becomes one line in
+ * How a read of fabrement() never throws: the read runs, and a ApiException becomes one line in
  * the debug log, "Class::method(): …", and the read's empty answer.
  */
 final class Quietly {
@@ -22,7 +22,7 @@ final class Quietly {
     public static function run( string $where, callable $read, $empty, bool $log = true ) {
         try {
             return $read();
-        } catch ( FieldsException $e ) {
+        } catch ( ApiException $e ) {
             if ( $log ) {
                 self::log( $where, $e->getMessage() );
             }
@@ -48,6 +48,6 @@ final class Quietly {
     }
 
     public static function log( string $where, string $message ): void {
-        Log::debug( '[fabrement][fields] ' . $where . ': ' . $message );
+        Log::debug( '[fabrement][api] ' . $where . ': ' . $message );
     }
 }

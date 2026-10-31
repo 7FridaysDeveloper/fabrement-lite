@@ -18,7 +18,7 @@ final class TemplatesPage extends AbstractAdminPage {
     private const SCRIPT = 'assets/templates-app/build/templates-app.js';
 
     public function get_capability(): string {
-        return Capabilities::ADMIN;
+        return Capabilities::TEMPLATES;
     }
 
     public function get_page_title(): string {
@@ -60,7 +60,7 @@ final class TemplatesPage extends AbstractAdminPage {
                 }
                 // React comes from WordPress; the bundle carries its own styles.
                 wp_enqueue_script( 'fabrement-templates-app', App::url( self::SCRIPT ), [ 'react', 'react-dom', 'wp-api-fetch', 'wp-i18n' ], (string) filemtime( $path ), true );
-                wp_set_script_translations( 'fabrement-templates-app', 'fabrement-lite', App::path( 'languages' ) );
+                wp_set_script_translations( 'fabrement-templates-app', 'fabrement-lite' );
                 wp_localize_script( 'fabrement-templates-app', 'fabrementTemplatesApp', [ 'restNonce' => wp_create_nonce( 'wp_rest' ) ] );
             }
         );

@@ -28,7 +28,7 @@ final class McpClient {
     }
 
     /**
-     * Run a tool, named without the server's prefix ('set-field-values').
+     * Run a tool, named without the server's prefix ('save-content').
      *
      * @return array{error:bool, text:string, data:mixed} data: the structured answer, else the text decoded
      */

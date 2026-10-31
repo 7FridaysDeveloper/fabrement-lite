@@ -1,6 +1,6 @@
 {
     "name": "fabrement/fabrement-lite",
-    "description": "WordPress plugin: MCP server for content, installed blocks, custom fields and templates",
+    "description": "WordPress plugin: MCP server for content, installed blocks and templates",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "autoload": {

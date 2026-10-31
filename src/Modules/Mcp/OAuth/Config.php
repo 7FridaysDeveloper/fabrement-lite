@@ -8,7 +8,9 @@ final class Config {
     public const SCOPE = 'fabrement:mcp';
     public const ROUTE = '/fabrement/v1/mcp';
     public const NAMESPACE = 'fabrement-oauth/v1';
-    public const ACCESS_PREFIX = 'fb_oauth_at_';
+    public const ACCESS_PREFIX = 'fabrement_oauth_at_';
+    /** A connection unused this long ends; each refresh or token use starts the period again. */
+    public const IDLE_EXPIRY = 90 * DAY_IN_SECONDS;
 
     public static function resource(): string {
         return rest_url( ltrim( self::ROUTE, '/' ) );

@@ -8,17 +8,27 @@ namespace Fabrement;
 final class Capabilities {
 
     /**
-     * What every Fabrement admin screen, REST route and MCP tool asks for.
-     * Currently the core `manage_options` capability; can be replaced with a dedicated cap later.
+     * Who may connect an MCP client, issue its token or password and keep using it: an
+     * Administrator. The client then works with an Editor's caps at most
+     * ({@see \Fabrement\Modules\Mcp\McpCapabilityCeiling}); ask through can_connect().
      */
-    public const ADMIN = 'manage_options';
+    public const CONNECT = 'manage_options';
+
 
     /**
-     * Capability required by DESTRUCTIVE MCP tools (delete / irreversible replace).
-     * Defaults to the block-builder cap but is filterable, so a site can lock
-     * destructive tools behind a higher bar than read/create tools.
+     * Templates (the `fabrement_template` post type, its screen, its REST routes and the MCP
+     * template tools): an Editor's, as pages that are not their own are. Site-wide assignments
+     * (post-type defaults, archives, 404) are made only in wp-admin.
      */
-    public static function destructive(): string {
-        return (string) apply_filters( 'fabrement_mcp_destructive_capability', self::ADMIN );
+    public const TEMPLATES = 'edit_others_pages';
+
+    /**
+     * May this user (default: the signed-in one) connect? Asked on the user's own caps, past the
+     * MCP ceiling, which withholds CONNECT itself during an MCP request.
+     */
+    public static function can_connect( ?\WP_User $user = null ): bool {
+        return (bool) \Fabrement\Modules\Mcp\McpCapabilityCeiling::uncapped(
+            static fn(): bool => $user === null ? current_user_can( self::CONNECT ) : user_can( $user, self::CONNECT )
+        );
     }
 }

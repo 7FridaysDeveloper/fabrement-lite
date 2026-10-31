@@ -32,8 +32,7 @@ final class TranslateContentAbility extends DestructiveAbility {
             . 'returns its id and blocks. Then translate the TEXT only and save with save-content {contentId: the copy, '
             . 'mode:"replace", blocks, title}; publish it with set-content-status once the user agrees. Its SEO title and description start empty (the type\'s template '
             . 'speaks for it): get-seo {contentId} shows the original\'s, set-seo {contentId: the copy} writes them '
-            . 'translated. Its Fabrement fields, if any, start as the original\'s: translate the words of its translate fields with '
-            . 'set-field-values {postId: the copy}. An existing version is returned as it is '
+            . 'translated. An existing version is returned as it is '
             . '(created:false). Refuses with screenUrl where the translation plugin\'s editor owns the words, and for a post '
             . 'type the plugin does not translate (one set of records for every language: edit the original).';
     }

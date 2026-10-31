@@ -113,17 +113,12 @@ final class PostMeta {
             }
             $key    = self::FIELDS[ $field ];
             $stored = self::encode( $field, $value );
-            // update_post_meta() unslashes: the raw writes are slashed here, so "A \ B" stays (Yoast's
-            // setter slashes on its own).
-            $meta_key = self::PREFIX . $key;
+            // Through Yoast's own API. Its setter slashes the value itself, so "A \ B" stays; its
+            // false (unchanged, or cleaned to the stored value) is final.
             if ( $stored === '' ) {
-                delete_post_meta( $post_id, $meta_key );
-            } elseif ( class_exists( '\WPSEO_Meta' ) && method_exists( '\WPSEO_Meta', 'set_value' ) ) {
-                // Yoast's setter is update_post_meta() with the value slashed; its false (unchanged
-                // or cleaned to the stored value) is final, a raw retry would store the same.
-                \WPSEO_Meta::set_value( $key, $stored, $post_id );
+                \WPSEO_Meta::delete( $key, $post_id );
             } else {
-                update_post_meta( $post_id, $meta_key, wp_slash( $stored ) );
+                \WPSEO_Meta::set_value( $key, $stored, $post_id );
             }
             if ( ! in_array( $field, self::IMAGE_URLS, true ) ) {
                 $written[] = $field;
@@ -164,9 +159,9 @@ final class PostMeta {
 
     public static function set_primary( int $post_id, string $taxonomy, int $term_id ): void {
         if ( $term_id > 0 ) {
-            update_post_meta( $post_id, self::PRIMARY . $taxonomy, (string) $term_id );
+            ( new \WPSEO_Primary_Term( $taxonomy, $post_id ) )->set_primary_term( (string) $term_id );
         } else {
-            delete_post_meta( $post_id, self::PRIMARY . $taxonomy );
+            \WPSEO_Meta::delete( 'primary_' . $taxonomy, $post_id );
         }
     }
 

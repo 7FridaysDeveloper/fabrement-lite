@@ -2,7 +2,7 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
-/** ACF's stored flat data format; deliberately independent from Fabrement custom fields. */
+/** ACF's stored flat data format. */
 final class AcfBlockData {
     private const SCALARS = [ 'text', 'textarea', 'wysiwyg', 'number', 'range', 'true_false', 'select', 'checkbox', 'radio', 'button_group', 'image', 'file', 'gallery', 'link', 'url', 'email', 'date_picker', 'date_time_picker', 'time_picker', 'color_picker', 'post_object', 'relationship', 'user', 'taxonomy' ];
     private const DISPLAY = [ 'tab', 'accordion', 'message' ];

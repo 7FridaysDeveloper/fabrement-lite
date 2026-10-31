@@ -20,8 +20,8 @@ final class DeleteSyncedPatternAbility extends DestructiveAbility {
     }
 
     public function description(): string {
-        return 'Delete a global block (synced pattern) PERMANENTLY. A template\'s header/footer is never deleted while a '
-            . 'template uses it — take it out of each, or put another in its place, with save-template {mode:"edit"} first. Otherwise refused while any record places it — '
+        return 'Delete a global block (synced pattern) PERMANENTLY. Never deleted while a template places it — take it out of each, '
+            . 'or put another in its place, with save-template {mode:"edit"} first. Otherwise refused while any record places it — '
             . 'the answer lists them; remove the placements first, or send force:true (those places then render nothing). '
             . 'The blocks inside are not deleted.'
             . self::multilingual_text( ' `note` says what changes for other languages.' );
@@ -74,29 +74,31 @@ final class DeleteSyncedPatternAbility extends DestructiveAbility {
         // force does not apply — the template gets another one first.
         $templates = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::templates_using( $id );
         if ( $templates !== [] ) {
+            $listed = SyncedPatterns::refusal_list( $templates, static fn( $t ) => sprintf( '%d "%s"', $t['id'], $t['title'] ) . ( isset( $t['originalId'] ) ? sprintf( ' (the %s version of %d)', $t['language'], $t['originalId'] ) : '' ) );
             return new WP_Error(
                 'pattern_is_template_part',
                 sprintf(
                     'Pattern %d is placed in %d template(s): %s. It cannot be deleted while they place it — take it out of each, or put another in its place, with save-template {templateId, mode: "edit"}, then delete it.',
                     $id,
                     count( $templates ),
-                    implode( '; ', array_map( static fn( $t ) => sprintf( '%d "%s"', $t['id'], $t['title'] ) . ( isset( $t['originalId'] ) ? sprintf( ' (the %s version of %d)', $t['language'], $t['originalId'] ) : '' ), array_slice( $templates, 0, 5 ) ) )
+                    $listed['text']
                 ),
-                [ 'templates' => $templates ]
+                [ 'templates' => $listed['readable'], 'hidden' => $listed['hidden'] ]
             );
         }
 
         $used = SyncedPatterns::placements( $id, 100 );
         if ( $used !== [] && empty( $input['force'] ) ) {
+            $listed = SyncedPatterns::refusal_list( $used, static fn( $r ) => sprintf( '%s %d "%s"', $r['postType'], $r['id'], $r['title'] ) );
             return new WP_Error(
                 'pattern_in_use',
                 sprintf(
-                    'Pattern %d is placed on %d record(s): %s. Remove those placements first (save-content mode "edit" for a page; save-template mode "edit" for a template), or send force:true — they would then render nothing there.',
+                    'Pattern %d is placed on %d record(s): %s. Remove those placements first (save-content mode "edit"), or send force:true — they would then render nothing there.',
                     $id,
                     count( $used ),
-                    implode( '; ', array_map( static fn( $r ) => sprintf( '%s %d "%s"', $r['postType'], $r['id'], $r['title'] ), array_slice( $used, 0, 5 ) ) )
+                    $listed['text']
                 ),
-                [ 'usedBy' => $used ]
+                [ 'usedBy' => $listed['readable'], 'hidden' => $listed['hidden'] ]
             );
         }
 

@@ -2,7 +2,7 @@
 
 namespace Fabrement\Api\Support;
 
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Modules\Translation\Translation;
 
 defined( 'ABSPATH' ) || exit;
@@ -44,7 +44,7 @@ final class Format {
             $separators = $o['separators'];
             self::check_decimals( $decimals );
             if ( $separators !== null && ( count( $separators ) !== 2 || array_values( $separators ) !== $separators || ! is_string( $separators[0] ) || ! is_string( $separators[1] ) ) ) {
-                throw new FieldsException( 'separators: give [ decimal point, thousands separator ], two strings, or leave it out for the language\'s own.' );
+                throw new ApiException( 'separators: give [ decimal point, thousands separator ], two strings, or leave it out for the language\'s own.' );
             }
             if ( ! $this->usable || $n === null || $n === '' ) {
                 return '';
@@ -53,10 +53,10 @@ final class Format {
                 $n = $n + 0;
             }
             if ( ! is_int( $n ) && ! is_float( $n ) ) {
-                throw new FieldsException( 'give a number, not ' . ( is_string( $n ) ? '"' . esc_html( $n ) . '"' : esc_html( get_debug_type( $n ) ) ) . '.' );
+                throw new ApiException( 'give a number, not ' . ( is_string( $n ) ? '"' . esc_html( $n ) . '"' : esc_html( get_debug_type( $n ) ) ) . '.' );
             }
             if ( is_float( $n ) && ! is_finite( $n ) ) {
-                throw new FieldsException( 'the number is not finite.' );
+                throw new ApiException( 'the number is not finite.' );
             }
             [ $point, $thousands ] = $separators ?? $this->separators();
             return number_format( $n, $decimals ?? self::decimals_of( $n ), $point, $thousands );
@@ -68,17 +68,17 @@ final class Format {
         return ReadResult::read( 'Format::date()', $options, [ 'format' => null ], function ( array $o ) use ( $value ): string {
             $format = $o['format'];
             if ( $format === '' ) {
-                throw new FieldsException( 'format: give a PHP date format, or leave it out for the site\'s date format.' );
+                throw new ApiException( 'format: give a PHP date format, or leave it out for the site\'s date format.' );
             }
             if ( ! $this->usable || $value === null || $value === '' ) {
                 return '';
             }
             if ( ! is_string( $value ) ) {
-                throw new FieldsException( 'give a date as text, not ' . esc_html( get_debug_type( $value ) ) . '.' );
+                throw new ApiException( 'give a date as text, not ' . esc_html( get_debug_type( $value ) ) . '.' );
             }
             $parsed = self::parse( $value );
             if ( $parsed === null ) {
-                throw new FieldsException( '"' . esc_html( $value ) . '" is not a date — give YYYY-MM-DD, YYYY-MM-DDTHH:mm, YYYY-MM-DD HH:mm:ss or ISO 8601 with an offset.' );
+                throw new ApiException( '"' . esc_html( $value ) . '" is not a date — give YYYY-MM-DD, YYYY-MM-DDTHH:mm, YYYY-MM-DD HH:mm:ss or ISO 8601 with an offset.' );
             }
             [ $date, $with_time ] = $parsed;
             if ( $format === null ) {
@@ -102,10 +102,10 @@ final class Format {
                 $bytes = (int) $bytes;
             }
             if ( $bytes !== null && ! is_int( $bytes ) ) {
-                throw new FieldsException( 'give a number of bytes, not ' . ( is_string( $bytes ) ? '"' . esc_html( $bytes ) . '"' : esc_html( get_debug_type( $bytes ) ) ) . '.' );
+                throw new ApiException( 'give a number of bytes, not ' . ( is_string( $bytes ) ? '"' . esc_html( $bytes ) . '"' : esc_html( get_debug_type( $bytes ) ) ) . '.' );
             }
             if ( $bytes !== null && $bytes < 0 ) {
-                throw new FieldsException( 'a file size is a number of bytes from 0 (' . esc_html( $bytes ) . ' given).' );
+                throw new ApiException( 'a file size is a number of bytes from 0 (' . esc_html( $bytes ) . ' given).' );
             }
             if ( ! $this->usable || $bytes === null ) {
                 return '';
@@ -129,7 +129,7 @@ final class Format {
 
     private static function check_decimals( ?int $decimals ): void {
         if ( $decimals !== null && ( $decimals < 0 || $decimals > self::MAX_DECIMALS ) ) {
-            throw new FieldsException( 'decimals: a whole number from 0 to ' . esc_html( (string) self::MAX_DECIMALS ) . ' (' . esc_html( $decimals ) . ' given), or leave it out for the number as stored.' );
+            throw new ApiException( 'decimals: a whole number from 0 to ' . esc_html( (string) self::MAX_DECIMALS ) . ' (' . esc_html( $decimals ) . ' given), or leave it out for the number as stored.' );
         }
     }
 

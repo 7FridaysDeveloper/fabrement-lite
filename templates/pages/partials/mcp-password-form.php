@@ -10,7 +10,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 ?>
-<p class="fabrement-cred__hint"><?php esc_html_e( 'The AI client you give this password to acts on this site as you, and only through the Fabrement MCP endpoint: it can change content, but cannot install or change plugins, themes or users.', 'fabrement-lite' ); ?></p>
+<p class="fabrement-cred__hint"><?php esc_html_e( 'The AI client you give this password to acts on this site as you, with an Editor\'s permissions at most, and only through the Fabrement MCP endpoint: it can change content, but cannot install or change plugins, themes or users.', 'fabrement-lite' ); ?></p>
 <form id="fabrement-mcp-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="fabrement-cred__mcp-form">
     <input type="hidden" name="action" value="fabrement_generate_mcp_command" />
     <?php wp_nonce_field( 'fabrement_generate_mcp_command' ); ?>

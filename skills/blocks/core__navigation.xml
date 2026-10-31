@@ -10,7 +10,7 @@ EMPTY BLOCK = FALLBACK, NOT YOUR MENU
 A navigation with neither ref nor links shows, in this order: the most recently published saved
 Navigation; else a classic menu (the "primary" location, a menu with the "primary" slug, else the
 newest one), converted and saved; else a list of all pages, also saved. Once any saved Navigation
-exists, classic menus are never consulted again: a menu made with create-menu does NOT appear in a
+exists, classic menus are never consulted again: a classic menu does NOT appear in a
 theme header that uses an empty navigation block. To show chosen links, write them inline.
 
 MARKUP (comments only, no HTML)

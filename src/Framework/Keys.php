@@ -36,9 +36,6 @@ final class Keys {
     /** The page shown for "not found". */
     public const OPTION_NOT_FOUND_PAGE = 'fabrement_not_found_page';
 
-    /** The structured-data types set per post type. */
-    public const OPTION_SCHEMA_TYPES = 'fabrement_schema_types';
-
     /** Whether MCP sign-in over OAuth is on. */
     public const OPTION_MCP_OAUTH_ENABLED = 'fabrement_mcp_oauth_enabled';
 
@@ -48,22 +45,7 @@ final class Keys {
     /** The version of the OAuth table the site holds. */
     public const OPTION_MCP_OAUTH_SCHEMA = 'fabrement_mcp_oauth_schema';
 
-    /** An options page's values: {@see self::options_page()}. */
-    public const OPTIONS_PAGE_PREFIX = 'fabrement_options_';
-
     // ───────────────────────────── Post meta ─────────────────────────────
-
-    /** A field's value: {@see self::field_meta()}. Marks our meta keys among other plugins' ones. */
-    public const FIELD_META_PREFIX = 'fab_';
-
-    /** What the fields' own service keys start with (the two below). */
-    public const META_FIELDS_PREFIX = '_fabrement_fields_';
-
-    /** Why copying a record's fields to its translation failed. */
-    public const META_FIELDS_SYNC_ERROR = '_fabrement_fields_sync_error';
-
-    /** On an auto-draft opened with WPML's "+" link: the original it is being translated from. */
-    public const META_FIELDS_TRANSLATION_OF = '_fabrement_fields_translation_of';
 
     /** A record's own structured data. */
     public const META_SCHEMA = '_fabrement_schema';
@@ -108,23 +90,6 @@ final class Keys {
     public const TABLE_MCP_OAUTH = 'fabrement_mcp_oauth';
 
     // ───────────────────────────── Names built at run time ─────────────────────────────
-
-    /** The meta key of a top-level field: `fab_<name>`. */
-    public static function field_meta( string $name ): string {
-        return self::FIELD_META_PREFIX . $name;
-    }
-
-    /**
-     * The option row of an options page:
-     *
-     *   fabrement_options_<slug>          the page in the site's default language (the original);
-     *   fabrement_options_<slug>.<lang>   what another language set itself, nothing more.
-     *
-     * A dot, which no slug holds, so a page called `site_uk` never meets `site` in Ukrainian.
-     */
-    public static function options_page( string $slug, string $lang = '' ): string {
-        return self::OPTIONS_PAGE_PREFIX . $slug . ( $lang !== '' ? '.' . $lang : '' );
-    }
 
     public static function content_preview( string $token ): string {
         return self::TRANSIENT_CONTENT_PREVIEW_PREFIX . $token;

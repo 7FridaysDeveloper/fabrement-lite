@@ -3,7 +3,6 @@
 namespace Fabrement\Tests;
 
 use Fabrement\Api\Fabrement;
-use Fabrement\Api\FieldsException;
 use Fabrement\Api\Markup\Link;
 use Fabrement\Modules\Translation\Bridge\NullBridge;
 use Fabrement\Modules\Translation\Translation;

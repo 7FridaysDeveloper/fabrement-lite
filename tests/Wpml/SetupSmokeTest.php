@@ -22,7 +22,8 @@ final class SetupSmokeTest extends WpmlTestCase {
         $this->assertSame( 2, (int) ( $fields['_yoast_wpseo_title'] ?? -1 ), 'Yoast: title is translated' );
         $this->assertSame( 0, (int) ( $fields['_yoast_wpseo_canonical'] ?? -1 ), 'Yoast: canonical is left alone' );
         $this->assertSame( 1, (int) ( $fields['_yoast_wpseo_meta-robots-noindex'] ?? -1 ), 'Yoast SEO Multilingual: noindex is copied' );
-        $this->assertSame( 1, (int) ( $fields['_fabrement_archive_for'] ?? -1 ), 'Fabrement: the archive marker is copied' );
+        $this->assertSame( 1, (int) ( $fields['_fabrement_st_key'] ?? -1 ), 'Fabrement: the template key is copied' );
+        $this->assertSame( 3, (int) ( $fields['_fabrement_st_content_width'] ?? -1 ), 'Fabrement: the content width is copied once' );
     }
 
     public function test_translate_content_writes_into_the_manual_editor(): void {

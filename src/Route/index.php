@@ -1,10 +1,6 @@
 <?php
 defined( 'ABSPATH' ) || exit;
 foreach ( [
-    \Fabrement\Route\Editor\PostRefsRestRoute::class,
-    \Fabrement\Route\Editor\MediaRefsRestRoute::class,
-    \Fabrement\Route\Fields\PostFieldsRestRoute::class,
-    \Fabrement\Route\Fields\OptionsFieldsRestRoute::class,
     \Fabrement\Route\SiteTemplate\AssignSiteTemplateArchiveRestRoute::class,
     \Fabrement\Route\SiteTemplate\AssignSiteTemplatePagesRestRoute::class,
     \Fabrement\Route\SiteTemplate\ContentSourceFilesRestRoute::class,

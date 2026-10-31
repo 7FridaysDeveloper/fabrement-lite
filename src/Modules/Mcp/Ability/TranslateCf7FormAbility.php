@@ -30,8 +30,8 @@ final class TranslateCf7FormAbility extends AbstractAbility {
 	}
 
 	public function description(): string {
-		return 'Make a Contact Form 7 form\'s version in another language, linked to the original. Place the version\'s own'
-			. ' shortcode on that language\'s page. Copies the form (fields, mail, settings), sets'
+		return 'Make a Contact Form 7 form\'s version in another language, linked to the original. Place the version by its own'
+			. ' id on that language\'s page. Copies the form (fields, mail, settings), sets'
 			. ' its locale, and applies what you send: translated template (same control names), subject, messages,'
 			. ' title. Edit it later with update-cf7-form by its own id. One version per language.';
 	}
@@ -93,6 +93,10 @@ final class TranslateCf7FormAbility extends AbstractAbility {
 			return new WP_Error( 'not_found', sprintf( 'No Contact Form 7 form with id %d — list-forms shows them.', $asked ) );
 		}
 		$original = $bridge->original_of( $asked, self::TYPE ) ?: $asked;
+		// CF7's own meta caps: editing the source, and adding a form (the copy).
+		if ( ! current_user_can( 'wpcf7_edit_contact_form', $original ) || ! current_user_can( 'wpcf7_edit_contact_forms' ) ) {
+			return new WP_Error( 'forbidden', sprintf( 'You may not edit form %d or add forms (wpcf7_edit_contact_form, wpcf7_edit_contact_forms).', $original ) );
+		}
 
 		$group = $bridge->all_versions( $original, self::TYPE );
 		if ( isset( $group[ $lang ] ) ) {
@@ -119,7 +123,7 @@ final class TranslateCf7FormAbility extends AbstractAbility {
 
 		// The copy carries the ORIGINAL's locale, and CF7 formats dates, numbers and its own
 		// strings by it.
-		$locale = self::locale_of( $lang );
+		$locale = $bridge->locale_of( $lang );
 		if ( $locale !== '' ) {
 			update_post_meta( $id, '_locale', $locale );
 		}
@@ -144,10 +148,5 @@ final class TranslateCf7FormAbility extends AbstractAbility {
 			'language'     => $lang,
 			'translations' => (object) $bridge->visible_versions( $original, self::TYPE ),
 		);
-	}
-
-	private static function locale_of( string $lang ): string {
-		$active = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
-		return is_array( $active ) && isset( $active[ $lang ]['default_locale'] ) ? (string) $active[ $lang ]['default_locale'] : '';
 	}
 }

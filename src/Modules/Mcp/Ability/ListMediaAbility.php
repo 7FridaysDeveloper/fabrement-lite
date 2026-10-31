@@ -12,6 +12,11 @@ final class ListMediaAbility extends AbstractAbility {
 
     private const PER_PAGE = 24;
 
+    /** The core media library asks for upload_files. */
+    public function check_permission() {
+        return parent::check_permission() && current_user_can( 'upload_files' );
+    }
+
     public function name(): string {
         return 'fabrement/list-media';
     }

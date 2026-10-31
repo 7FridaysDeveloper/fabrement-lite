@@ -2,7 +2,7 @@
 CORE/POST-CONTENT (Content)
 Draws the current page's or post's own blocks. Two places only:
 - A Fabrement template's content slot: the alternative to fabrement/content-source. Exactly one
-  of the two per template. It shows page content only; it cannot select a theme PHP file.
+  of the two per template. It shows page content only; it cannot draw a theme PHP file.
 - Inside a Query's post-template: each listed post's full content.
 Placed in a page's own content it draws nothing (WordPress stops it repeating the page).
 
@@ -22,8 +22,8 @@ PITFALLS
 - A Fabrement template replaces the whole page: the frame must place its own header and footer
   (core/block refs) and the title if wanted (core/post-title). The page body is not a place for
   them.
-- Prefer fabrement/content-source in a new template: it does the same and can later take theme
-  file rules without changing the frame.
+- Prefer fabrement/content-source in a new template: it does the same, and a theme file can later
+  be set for it in wp-admin without changing the frame.
 
 CHECK
 Open a page assigned to the template: its content appears once, at the slot.

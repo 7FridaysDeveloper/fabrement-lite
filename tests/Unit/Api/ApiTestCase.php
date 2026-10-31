@@ -1,7 +1,7 @@
 <?php
 
 namespace {
-    // In-memory serialization boundary, shared by field API and storage tests.
+    // In-memory serialization boundary, shared by API and storage tests.
     if ( ! function_exists( 'maybe_serialize' ) ) {
         function maybe_serialize( $value ) { return is_array( $value ) || is_object( $value ) ? serialize( $value ) : $value; }
     }
@@ -75,7 +75,6 @@ namespace Fabrement\Tests\Api {
 
     require_once dirname( __DIR__, 2 ) . '/Support/ConnectionSettingsRender.php';
     require_once dirname( __DIR__, 3 ) . '/src/Api/helpers.php';
-    require_once dirname( __DIR__, 3 ) . '/src/Modules/Fields/helpers.php';
 
     /**
      * fabrement() on a single-language site without WordPress loaded: what it returns, prints and
@@ -87,7 +86,7 @@ namespace Fabrement\Tests\Api {
             if ( ! defined( 'WP_CONTENT_DIR' ) ) {
                 define( 'WP_CONTENT_DIR', sys_get_temp_dir() . '/fabrement-tests-' . getmypid() );
             }
-            // Field read mistakes go to the debug log; logged() reads them from there.
+            // Read mistakes go to the debug log; logged() reads them from there.
             defined( 'WP_DEBUG' ) || define( 'WP_DEBUG', true );
             WordPressState::reset();
             Translation::set( new NullBridge() );
@@ -125,9 +124,9 @@ namespace Fabrement\Tests\Api {
             }
             $lines = [];
             foreach ( preg_split( '/\R(?=\[)/', trim( (string) file_get_contents( $file ) ) ) ?: [] as $line ) {
-                $at = strpos( $line, '[fabrement][fields] ' );
+                $at = strpos( $line, '[fabrement][api] ' );
                 if ( $at !== false ) {
-                    $lines[] = substr( $line, $at + 20 );
+                    $lines[] = substr( $line, $at + 17 );
                 }
             }
             unlink( $file );

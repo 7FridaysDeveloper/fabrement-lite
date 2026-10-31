@@ -64,10 +64,12 @@ final class Cf7FormsTest extends WP_UnitTestCase {
         $this->assertFalse( is_wp_error( $made ), is_wp_error( $made ) ? $made->get_error_message() : '' );
         $id = (int) $made['form']['id'];
 
-        $updated = $this->tool( 'update-cf7-form', [ 'formId' => $id, 'title' => 'QA words 2', 'messages' => [ 'mail_sent_ok' => 'Thanks <you> & bye, kids <12' ] ] );
+        // An unknown tag is refused; a tag shown as words is written with &lt; and &gt;.
+        $this->assertWPError( $this->tool( 'update-cf7-form', [ 'formId' => $id, 'messages' => [ 'mail_sent_ok' => 'Thanks <you>' ] ] ) );
+        $updated = $this->tool( 'update-cf7-form', [ 'formId' => $id, 'title' => 'QA words 2', 'messages' => [ 'mail_sent_ok' => 'Thanks &lt;you&gt; & bye, kids <12' ] ] );
         $this->assertFalse( is_wp_error( $updated ), is_wp_error( $updated ) ? $updated->get_error_message() : '' );
         $this->assertSame( $made['form']['fields'], $updated['form']['fields'], 'the fields as they stand, not an empty list' );
-        $this->assertSame( 'Thanks <you> & bye, kids <12', \WPCF7_ContactForm::get_instance( $id )->prop( 'messages' )['mail_sent_ok'], 'as Contact Form 7 keeps a message' );
+        $this->assertSame( 'Thanks &lt;you&gt; & bye, kids <12', \WPCF7_ContactForm::get_instance( $id )->prop( 'messages' )['mail_sent_ok'], 'as Contact Form 7 keeps a message' );
     }
 
     public function test_a_control_named_after_a_query_var_is_refused_not_renamed(): void {

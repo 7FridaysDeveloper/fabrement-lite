@@ -5,12 +5,10 @@ namespace Fabrement\Api;
 use Fabrement\Api\Content\Post;
 use Fabrement\Api\Content\Taxonomy;
 use Fabrement\Api\Content\Term;
-use Fabrement\Api\Fields\Fields;
 use Fabrement\Api\Markup\Link;
 use Fabrement\Api\Media\Attachment;
 use Fabrement\Api\Support\Format;
 use Fabrement\Api\Support\Quietly;
-use Fabrement\Modules\Fields\Values\FieldObject;
 use Fabrement\Modules\Media\MediaKind;
 use Fabrement\Modules\Menu\MenuTree;
 use Fabrement\Modules\Translation\Version;
@@ -29,67 +27,10 @@ final class Fabrement {
     }
 
     /**
-     * @param mixed $post A record id (Version::id()), a WP_Post or a Post; null for the loop's
-     *                    record. No record (0, '', -5, one that does not exist) reads nothing,
-     *                    quietly; a mistake is logged once, here, not on every read.
-     */
-    public function fields( $post = null, ...$unknown ): Fields {
-        Quietly::unknown( __METHOD__, $unknown );
-        if ( $post === null ) {
-            $id = (int) get_the_ID();
-            if ( $id <= 0 ) {
-                return self::no_fields( 'Fabrement::fields()', 'there is no current post here; pass the post id.' );
-            }
-        } else {
-            try {
-                $id = self::record_id( $post );
-            } catch ( FieldsException $e ) {
-                return self::no_fields( 'Fabrement::fields()', $e->getMessage() );
-            }
-            if ( $id <= 0 ) {
-                return Fields::missing( 'fields(): no record.', true );
-            }
-        }
-        $object = FieldObject::post( $id );
-        if ( $object ) {
-            return new Fields( $object );
-        }
-        $wp = get_post( $id );
-        return ! $wp || wp_is_post_revision( $wp )
-            ? Fields::missing( 'fields(): there is no post ' . $id . '.', true )
-            : self::no_fields( 'Fabrement::fields()', 'the post type "' . $wp->post_type . '" cannot have Fabrement fields.' );
-    }
-
-    /**
-     * @param mixed $page An options page slug.
-     * @param mixed $lang
-     */
-    public function options( $page = null, $lang = '', ...$unknown ): Fields {
-        Quietly::unknown( __METHOD__, $unknown );
-        if ( ! is_string( $page ) ) {
-            return self::no_fields( 'Fabrement::options()', 'give an options page slug, not ' . get_debug_type( $page ) . '.' );
-        }
-        try {
-            $lang = Version::lang( $lang );
-            Version::check_language( $lang );
-        } catch ( FieldsException $e ) {
-            return self::no_fields( 'Fabrement::options()', $e->getMessage() );
-        }
-        $object = FieldObject::options( $page, $lang );
-        return $object ? ( new Fields( $object ) )->in_language( $lang ) : self::no_fields( 'Fabrement::options()', 'there is no options page "' . $page . '"' . ( $lang !== '' ? ' in the language "' . $lang . '"' : '' ) . '.' );
-    }
-
-    /** A mistake in a fields()/options() call: one log line now, then nothing on each read. */
-    private static function no_fields( string $where, string $why ): Fields {
-        Quietly::log( $where, $why );
-        return Fields::missing( $where . ': ' . $why, true );
-    }
-
-    /**
      * A record id from an id (Version::id()), a WP_Post or a Post.
      *
      * @param mixed $value
-     * @throws FieldsException
+     * @throws ApiException
      */
     private static function record_id( $value ): int {
         if ( $value instanceof \WP_Post ) {
@@ -105,7 +46,7 @@ final class Fabrement {
      * A media id from an id (Version::id()), a WP_Post or an Attachment.
      *
      * @param mixed $value
-     * @throws FieldsException
+     * @throws ApiException
      */
     private static function media_id( $value ): int {
         if ( $value instanceof \WP_Post ) {
@@ -121,7 +62,7 @@ final class Fabrement {
      * A term id from an id (Version::id()), a WP_Term or a Term.
      *
      * @param mixed $value
-     * @throws FieldsException
+     * @throws ApiException
      */
     private static function term_id( $value ): int {
         if ( $value instanceof \WP_Term ) {
@@ -191,7 +132,7 @@ final class Fabrement {
                 $public = null;
             }
             if ( $public !== null && ! is_bool( $public ) ) {
-                throw new FieldsException( 'public: true or false, not ' . esc_html( get_debug_type( $public ) ) . '.' );
+                throw new ApiException( 'public: true or false, not ' . esc_html( get_debug_type( $public ) ) . '.' );
             }
             if ( $viewed ) {
                 $of = self::instance()->viewed_post();
@@ -202,7 +143,7 @@ final class Fabrement {
                 $type = $of->not_empty() ? $of->type() : '';
             } elseif ( is_string( $of ) && $of !== '' && preg_match( '/^-?\d+$/', $of ) !== 1 ) {
                 if ( ! post_type_exists( $of ) ) {
-                    throw new FieldsException( 'there is no post type "' . esc_html( $of ) . '".' );
+                    throw new ApiException( 'there is no post type "' . esc_html( $of ) . '".' );
                 }
                 $type = $of;
             } else {
@@ -250,7 +191,7 @@ final class Fabrement {
                 $taxonomy = null;
             }
             if ( $hide_empty !== null && ! is_bool( $hide_empty ) ) {
-                throw new FieldsException( 'hide_empty: true or false, not ' . esc_html( get_debug_type( $hide_empty ) ) . '.' );
+                throw new ApiException( 'hide_empty: true or false, not ' . esc_html( get_debug_type( $hide_empty ) ) . '.' );
             }
             // An empty Taxonomy is no taxonomy to read: nothing, quietly, as any empty object.
             $listed = is_array( $taxonomy ) ? $taxonomy : [ $taxonomy ];
@@ -265,7 +206,7 @@ final class Fabrement {
                 return [];
             }
             if ( $valid === [] && $taxonomy === null ) {
-                throw new FieldsException( 'name a taxonomy, or give term ids — fabrement()->taxonomies() lists a record\'s or a type\'s.' );
+                throw new ApiException( 'name a taxonomy, or give term ids — fabrement()->taxonomies() lists a record\'s or a type\'s.' );
             }
             return array_values( array_filter( array_map( static fn( int $id ): Term => Term::of( $id, $lang ), Version::terms( $valid, $lang, self::taxonomy_option( $taxonomy ), $hide_empty ) ), static fn( Term $term ): bool => $term->not_empty() ) );
         }, [] );
@@ -274,7 +215,7 @@ final class Fabrement {
     /**
      * @param mixed $taxonomy
      * @return list<string>|null
-     * @throws FieldsException
+     * @throws ApiException
      */
     private static function taxonomy_option( $taxonomy ): ?array {
         if ( $taxonomy === null || $taxonomy === '' ) {
@@ -282,11 +223,11 @@ final class Fabrement {
         }
         $list = array_map( static fn( $one ) => $one instanceof Taxonomy ? $one->name() : $one, is_array( $taxonomy ) ? $taxonomy : [ $taxonomy ] );
         if ( $list === [] || array_values( $list ) !== $list ) {
-            throw new FieldsException( 'taxonomy: give a taxonomy, or a list of them.' );
+            throw new ApiException( 'taxonomy: give a taxonomy, or a list of them.' );
         }
         foreach ( $list as $one ) {
             if ( ! is_string( $one ) || ! in_array( $one, Version::taxonomies(), true ) ) {
-                throw new FieldsException( 'taxonomy: there is no taxonomy ' . ( is_string( $one ) ? '"' . esc_html( $one ) . '"' : esc_html( get_debug_type( $one ) ) ) . '.' );
+                throw new ApiException( 'taxonomy: there is no taxonomy ' . ( is_string( $one ) ? '"' . esc_html( $one ) . '"' : esc_html( get_debug_type( $one ) ) ) . '.' );
             }
         }
         return array_values( array_unique( $list ) );
@@ -354,7 +295,7 @@ final class Fabrement {
      *
      * @param mixed $value
      * @return array<string,mixed>
-     * @throws FieldsException
+     * @throws ApiException
      */
     private static function menu_control( $value ): array {
         if ( $value instanceof \WP_Term ) {
@@ -363,7 +304,7 @@ final class Fabrement {
         if ( is_string( $value ) && $value !== '' && preg_match( '/^-?\d+$/', $value ) !== 1 ) {
             $menu = wp_get_nav_menu_object( $value );
             if ( ! $menu ) {
-                throw new FieldsException( 'there is no menu "' . esc_html( $value ) . '" (list-menus).' );
+                throw new ApiException( 'there is no menu "' . esc_html( $value ) . '".' );
             }
             return [ 'source' => 'wp', 'menuId' => (int) $menu->term_id ];
         }
@@ -382,7 +323,7 @@ final class Fabrement {
     public function archive_url( $type = null, ...$options ): ?string {
         return ReadResult::read( 'Fabrement::archive_url()', $options, [ 'lang' => '' ], static function ( array $o ) use ( $type ): string {
             if ( ! is_string( $type ) || ! post_type_exists( $type ) ) {
-                throw new FieldsException( 'there is no post type ' . ( is_string( $type ) ? '"' . esc_html( $type ) . '"' : esc_html( get_debug_type( $type ) ) ) . '.' );
+                throw new ApiException( 'there is no post type ' . ( is_string( $type ) ? '"' . esc_html( $type ) . '"' : esc_html( get_debug_type( $type ) ) ) . '.' );
             }
             $url = Version::in( $o['lang'], static fn() => get_post_type_archive_link( $type ) );
             return is_string( $url ) ? $url : '';
@@ -412,7 +353,7 @@ final class Fabrement {
         return Quietly::run( 'Fabrement::languages()', static function () use ( $translated_only ): array {
             $translated_only ??= false;
             if ( ! is_bool( $translated_only ) ) {
-                throw new FieldsException( 'translated_only: true or false, not ' . esc_html( get_debug_type( $translated_only ) ) . '.' );
+                throw new ApiException( 'translated_only: true or false, not ' . esc_html( get_debug_type( $translated_only ) ) . '.' );
             }
             return array_map( static fn( array $l ): array => [
                 'code'       => $l['code'],

@@ -15,8 +15,7 @@ final class MemoryOAuthStore extends Store {
 
     public function get( string $kind, string $key ): ?array {
         $row = $this->rows[ hash( 'sha256', $key ) ] ?? null;
-        return $row && $kind === $row['kind'] && ( $row['expires'] > time()
-            || ( self::NO_EXPIRY === $row['expires'] && in_array( $kind, [ 'grant', 'refresh' ], true ) ) ) ? $row : null;
+        return $row && $kind === $row['kind'] && $row['expires'] > time() ? $row : null;
     }
 
     public function consume( string $kind, string $key ): bool {
@@ -35,6 +34,18 @@ final class MemoryOAuthStore extends Store {
     public function revoke_all(): void {
         foreach ( $this->rows as &$row ) { $row['revoked'] = 1; }
     }
+
+    public function revoke_user( int $user_id ): void {
+        foreach ( $this->rows as &$row ) {
+            if ( $row['user_id'] === $user_id ) { $row['revoked'] = 1; }
+        }
+    }
+
+    public function extend( string $family, int $expires ): void {
+        if ( ! isset( $this->rows[ hash( 'sha256', $family ) ] ) ) { return; }
+        $row = &$this->rows[ hash( 'sha256', $family ) ];
+        if ( 'grant' === $row['kind'] && ! $row['revoked'] && $row['expires'] > time() ) { $row['expires'] = $expires; }
+    }
 }
 
 final class McpOAuthTest extends TestCase {
@@ -47,7 +58,7 @@ final class McpOAuthTest extends TestCase {
     protected function setUp(): void {
         WordPressState::reset();
         WordPressState::$options[ Keys::OPTION_MCP_OAUTH_SCHEMA ] = Store::SCHEMA_VERSION;
-        WordPressState::select_user( 12, [ 'manage_options' ] );
+        WordPressState::select_user( 12, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
         $this->store = new MemoryOAuthStore();
         $this->clients = new Clients( $this->store );
         $this->protocol = new Protocol( $this->store, $this->clients );
@@ -68,8 +79,8 @@ final class McpOAuthTest extends TestCase {
         ];
     }
 
-    private function exchange( array $changes = [] ): array {
-        $code = $this->protocol->approve( $this->protocol->authorization( $this->request() ), 12 );
+    private function exchange( array $changes = [], int $user_id = 12 ): array {
+        $code = $this->protocol->approve( $this->protocol->authorization( $this->request() ), $user_id );
         return $changes + [ 'grant_type' => 'authorization_code', 'code' => $code,
             'resource' => Config::resource(), 'client_id' => $this->client['client_id'],
             'redirect_uri' => $this->client['redirect_uris'][0], 'code_verifier' => $this->verifier ];
@@ -137,6 +148,10 @@ final class McpOAuthTest extends TestCase {
             [ [ 'scope' => 'fabrement:mcp admin' ], 'invalid_scope' ],
             [ [ 'client_id' => '' ], 'invalid_client' ],
             [ [ 'state' => str_repeat( 'x', 4097 ) ], 'invalid_request' ],
+            [ [ 'state' => str_repeat( 'x', 1025 ) ], 'invalid_request' ],
+            [ [ 'state' => "a\nb" ], 'invalid_request' ],
+            [ [ 'client_id' => 'fabrement_client_unknown' ], 'invalid_client' ],
+            [ [ 'client_id' => 'fb_client_' . str_repeat( 'a', 48 ) ], 'invalid_client' ],
         ];
     }
 
@@ -172,15 +187,42 @@ final class McpOAuthTest extends TestCase {
         WordPressState::select_user( 12, [ 'read' ] );
         $this->error( 'access_denied', fn() => $this->protocol->authenticate( $tokens['access_token'] ) );
         $this->error( 'access_denied', fn() => $this->protocol->token( $this->refresh( $tokens ) ) );
-        WordPressState::select_user( 12, [ 'manage_options' ] );
+        WordPressState::select_user( 12, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
         WordPressState::$options['home'] = 'https://different.test';
         $this->error( 'invalid_grant', fn() => $this->protocol->authenticate( $tokens['access_token'] ) );
     }
 
-    public function test_non_administrator_cannot_approve(): void {
-        WordPressState::select_user( 12, [ 'edit_posts' ] );
+    public function test_user_who_cannot_edit_posts_cannot_approve(): void {
+        WordPressState::select_user( 12, [ 'read' ] );
         $this->error( 'access_denied', fn() => $this->exchange() );
     }
+
+    /** Only an Administrator connects: an Editor or an Author cannot approve, use or refresh a token. */
+    public function test_an_editor_or_author_cannot_approve_or_use_a_token(): void {
+        $tokens = $this->protocol->token( $this->exchange() );
+        $roles = [
+            'editor' => [ 'edit_posts', 'edit_others_posts', 'edit_others_pages', 'publish_posts' ],
+            'author' => [ 'edit_posts', 'publish_posts', 'upload_files' ],
+        ];
+        foreach ( $roles as $caps ) {
+            WordPressState::select_user( 12, $caps );
+            $this->error( 'access_denied', fn() => $this->exchange() );
+            $this->error( 'access_denied', fn() => $this->protocol->authenticate( $tokens['access_token'] ) );
+            $this->error( 'access_denied', fn() => $this->protocol->token( $this->refresh( $tokens ) ) );
+        }
+    }
+
+    public function test_an_administrator_approves_and_the_token_acts_with_an_editors_caps(): void {
+        $tokens = $this->protocol->token( $this->exchange() );
+        // The token's requests run on the MCP route, under the ceiling.
+        WordPressState::select_mcp_user( 12, [ 'manage_options', 'activate_plugins', 'edit_posts', 'edit_others_posts', 'edit_others_pages' ] );
+        self::assertSame( 12, $this->protocol->authenticate( $tokens['access_token'] ) );
+        self::assertSame( 12, $this->protocol->authenticate( $this->protocol->token( $this->refresh( $tokens ) )['access_token'] ) );
+        self::assertTrue( current_user_can( 'edit_others_posts' ) );
+        self::assertFalse( current_user_can( 'manage_options' ) );
+        self::assertFalse( current_user_can( 'activate_plugins' ) );
+    }
+
 
     public function test_access_and_refresh_tokens_cannot_be_used_interchangeably(): void {
         $tokens = $this->protocol->token( $this->exchange() );
@@ -188,48 +230,130 @@ final class McpOAuthTest extends TestCase {
         $this->error( 'invalid_grant', fn() => $this->protocol->token( $this->refresh( $tokens, [ 'refresh_token' => $tokens['access_token'] ] ) ) );
     }
 
-    public function test_new_grants_and_rotating_refresh_have_no_expiry_but_access_remains_short_lived(): void {
-        $tokens = $this->protocol->token( $this->exchange() );
+    /** Moves a connection's clock: every row of its family ends $seconds earlier, as if that time passed unused. */
+    private function age( array $tokens, int $seconds ): string {
         $family = $this->store->get( 'refresh', $tokens['refresh_token'] )['family'];
-        self::assertSame( Store::NO_EXPIRY, $this->store->get( 'grant', $family )['expires'] );
-        $this->store->rows[ hash( 'sha256', $family ) ]['payload']['created'] = time() - 365 * 86400;
-        for ( $rotation = 0; $rotation < 3; ++$rotation ) {
-            self::assertSame( Store::NO_EXPIRY, $this->store->get( 'refresh', $tokens['refresh_token'] )['expires'] );
-            self::assertGreaterThan( 0, $tokens['expires_in'] );
-            self::assertLessThanOrEqual( 3600, $tokens['expires_in'] );
-            self::assertSame( 12, $this->protocol->authenticate( $tokens['access_token'] ) );
-            $tokens = $this->protocol->token( $this->refresh( $tokens ) );
+        foreach ( $this->store->rows as &$row ) {
+            if ( $row['family'] === $family ) { $row['expires'] -= $seconds; }
         }
+        return $family;
     }
 
-    public function test_revoking_one_permanent_connection_leaves_another_working(): void {
+    private function grant_expires( string $family ): int {
+        return $this->store->rows[ hash( 'sha256', $family ) ]['expires'];
+    }
+
+    public function test_grant_and_refresh_end_after_ninety_idle_days_and_access_stays_short(): void {
+        $before = time();
+        $tokens = $this->protocol->token( $this->exchange() );
+        $family = $this->store->get( 'refresh', $tokens['refresh_token'] )['family'];
+        self::assertSame( 90 * 86400, Config::IDLE_EXPIRY );
+        self::assertGreaterThanOrEqual( $before + Config::IDLE_EXPIRY, $this->grant_expires( $family ) );
+        self::assertLessThanOrEqual( time() + Config::IDLE_EXPIRY, $this->grant_expires( $family ) );
+        self::assertGreaterThanOrEqual( $before + Config::IDLE_EXPIRY, $this->store->get( 'refresh', $tokens['refresh_token'] )['expires'] );
+        self::assertGreaterThan( 0, $tokens['expires_in'] );
+        self::assertLessThanOrEqual( 3600, $tokens['expires_in'] );
+    }
+
+    public function test_refresh_after_more_than_ninety_idle_days_is_refused(): void {
+        $tokens = $this->protocol->token( $this->exchange() );
+        $this->age( $tokens, Config::IDLE_EXPIRY + 1 );
+        $this->error( 'invalid_grant', fn() => $this->protocol->token( $this->refresh( $tokens ) ) );
+        $this->error( 'invalid_token', fn() => $this->protocol->authenticate( $tokens['access_token'] ) );
+    }
+
+    public function test_refresh_inside_ninety_days_works_and_extends_the_window(): void {
+        $tokens = $this->protocol->token( $this->exchange() );
+        // 89 days and 23 hours unused: a minute is left.
+        $family = $this->age( $tokens, Config::IDLE_EXPIRY - 60 );
+        self::assertLessThanOrEqual( time() + 60, $this->grant_expires( $family ) );
+        $before = time();
+        $next = $this->protocol->token( $this->refresh( $tokens ) );
+        self::assertGreaterThanOrEqual( $before + Config::IDLE_EXPIRY, $this->grant_expires( $family ) );
+        self::assertGreaterThanOrEqual( $before + Config::IDLE_EXPIRY, $this->store->get( 'refresh', $next['refresh_token'] )['expires'] );
+        self::assertSame( 12, $this->protocol->authenticate( $next['access_token'] ) );
+        // The extended window is a full one again: another 89 days later, the next refresh still works.
+        $this->age( $next, Config::IDLE_EXPIRY - 60 );
+        self::assertSame( 12, $this->protocol->authenticate( $this->protocol->token( $this->refresh( $next ) )['access_token'] ) );
+    }
+
+    public function test_token_use_extends_the_window_at_most_once_a_day(): void {
+        $tokens = $this->protocol->token( $this->exchange() );
+        $family = $this->store->get( 'refresh', $tokens['refresh_token'] )['family'];
+        $recent = time() + Config::IDLE_EXPIRY - 3600;
+        $this->store->rows[ hash( 'sha256', $family ) ]['expires'] = $recent;
+        self::assertSame( 12, $this->protocol->authenticate( $tokens['access_token'] ) );
+        self::assertSame( $recent, $this->grant_expires( $family ) );
+        $this->store->rows[ hash( 'sha256', $family ) ]['expires'] = time() + 3 * 86400;
+        $before = time();
+        self::assertSame( 12, $this->protocol->authenticate( $tokens['access_token'] ) );
+        self::assertGreaterThanOrEqual( $before + Config::IDLE_EXPIRY, $this->grant_expires( $family ) );
+    }
+
+    public function test_revoking_one_connection_leaves_another_working(): void {
         $first = $this->protocol->token( $this->exchange() );
         $second = $this->protocol->token( $this->exchange() );
         $this->protocol->revoke( [ 'token' => $first['refresh_token'], 'client_id' => $this->client['client_id'] ] );
         $this->error( 'invalid_grant', fn() => $this->protocol->token( $this->refresh( $first ) ) );
         $this->error( 'invalid_token', fn() => $this->protocol->authenticate( $first['access_token'] ) );
         self::assertSame( 12, $this->protocol->authenticate( $second['access_token'] ) );
-        $next = $this->protocol->token( $this->refresh( $second ) );
-        self::assertSame( Store::NO_EXPIRY, $this->store->get( 'refresh', $next['refresh_token'] )['expires'] );
+        self::assertSame( 12, $this->protocol->authenticate( $this->protocol->token( $this->refresh( $second ) )['access_token'] ) );
     }
 
-    public function test_zero_expiry_cannot_make_codes_or_access_tokens_permanent(): void {
+    public function test_zero_expiry_is_expired_for_every_kind(): void {
         $input = $this->exchange();
-        $this->store->rows[ hash( 'sha256', $input['code'] ) ]['expires'] = Store::NO_EXPIRY;
+        $this->store->rows[ hash( 'sha256', $input['code'] ) ]['expires'] = 0;
         $this->error( 'invalid_grant', fn() => $this->protocol->token( $input ) );
         $tokens = $this->protocol->token( $this->exchange() );
-        $this->store->rows[ hash( 'sha256', $tokens['access_token'] ) ]['expires'] = Store::NO_EXPIRY;
+        $this->store->rows[ hash( 'sha256', $tokens['access_token'] ) ]['expires'] = 0;
         $this->error( 'invalid_token', fn() => $this->protocol->authenticate( $tokens['access_token'] ) );
+        $this->store->rows[ hash( 'sha256', $tokens['refresh_token'] ) ]['expires'] = 0;
+        $this->error( 'invalid_grant', fn() => $this->protocol->token( $this->refresh( $tokens ) ) );
     }
 
-    public function test_rotation_of_a_legacy_grant_issues_a_permanent_refresh_token(): void {
-        $tokens = $this->protocol->token( $this->exchange() );
-        $family = $this->store->get( 'refresh', $tokens['refresh_token'] )['family'];
-        $this->store->rows[ hash( 'sha256', $family ) ]['expires'] = time() + 30;
-        $next = $this->protocol->token( $this->refresh( $tokens ) );
-        self::assertGreaterThan( 30, $next['expires_in'] );
-        self::assertLessThanOrEqual( 3600, $next['expires_in'] );
-        self::assertSame( Store::NO_EXPIRY, $this->store->get( 'refresh', $next['refresh_token'] )['expires'] );
+    public function test_password_change_revokes_that_users_connections_only(): void {
+        WordPressState::select_user( 13, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
+        $other = $this->protocol->token( $this->exchange( [], 13 ) );
+        WordPressState::select_user( 12, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
+        $first = $this->protocol->token( $this->exchange() );
+        $second = $this->protocol->token( $this->exchange() );
+
+        Bootstrap::revoke_user( 12, $this->store );
+
+        foreach ( [ $first, $second ] as $tokens ) {
+            $this->error( 'invalid_token', fn() => $this->protocol->authenticate( $tokens['access_token'] ) );
+            $this->error( 'invalid_grant', fn() => $this->protocol->token( $this->refresh( $tokens ) ) );
+        }
+        WordPressState::select_user( 13, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
+        self::assertSame( 13, $this->protocol->authenticate( $other['access_token'] ) );
+        self::assertSame( 13, $this->protocol->authenticate( $this->protocol->token( $this->refresh( $other ) )['access_token'] ) );
+    }
+
+    public function test_password_hooks_revoke_the_changed_users_connections(): void {
+        $old = ( new \ReflectionClass( \WP_User::class ) )->newInstanceWithoutConstructor();
+        $old->ID = 12;
+        $old->data = (object) [ 'user_pass' => '$wp$old-hash' ];
+        WordPressState::$user->data->user_pass = '$wp$old-hash';
+        Bootstrap::profile_updated( 12, $old );
+        self::assertSame( [], $GLOBALS['wpdb']->revoked_users, 'a profile save without a new password' );
+
+        WordPressState::$user->data->user_pass = '$wp$new-hash';
+        Bootstrap::profile_updated( 12, $old );
+        Bootstrap::password_reset( WordPressState::$user );
+        Bootstrap::password_set( 'new password', 12 );
+        self::assertSame( [ 12, 12, 12 ], $GLOBALS['wpdb']->revoked_users );
+    }
+
+    public function test_a_login_rehash_of_the_same_password_keeps_the_connections(): void {
+        $old = ( new \ReflectionClass( \WP_User::class ) )->newInstanceWithoutConstructor();
+        $old->ID = 12;
+        $old->data = (object) [ 'user_pass' => '$wp$same password' ];
+
+        Bootstrap::password_set( 'same password', 12, $old );
+        self::assertSame( [], $GLOBALS['wpdb']->revoked_users, 'core rehashing the same password on login' );
+
+        Bootstrap::password_set( 'new password', 12, $old );
+        self::assertSame( [ 12 ], $GLOBALS['wpdb']->revoked_users, 'a new password' );
     }
 
     public function test_disable_generation_prevents_concurrent_grant_from_surviving_reenable(): void {
@@ -472,7 +596,7 @@ final class McpOAuthTest extends TestCase {
     public function test_o_auth_does_not_touch_other_routes_or_existing_authentication(): void {
         WordPressState::$options[ Keys::OPTION_MCP_OAUTH_ENABLED ] = true;
         $request = new \WP_REST_Request( 'POST', '/wp/v2/posts' );
-        $request->set_header( 'authorization', 'Bearer fb_oauth_at_invalid' );
+        $request->set_header( 'authorization', 'Bearer fabrement_oauth_at_invalid' );
         self::assertNull( Bootstrap::authenticate( null, null, $request ) );
         self::assertSame( 12, get_current_user_id() );
         $request = new \WP_REST_Request( 'POST', Config::ROUTE );
@@ -516,10 +640,20 @@ final class McpOAuthTest extends TestCase {
         unset( $_SERVER['REQUEST_URI'] );
     }
 
-    public function test_o_auth_settings_require_administrator(): void {
-        WordPressState::select_user( 12, [ 'edit_posts' ] );
+    public function test_o_auth_settings_require_a_user_who_can_connect(): void {
+        WordPressState::select_user( 12, [ 'read' ] );
+        $_POST['oauth_command'] = 'revoke';
         $this->expectException( \RuntimeException::class );
-        $this->expectExceptionMessage( 'Administrator access is required.' );
+        $this->expectExceptionMessage( 'You do not have permission to perform this action.' );
+        Bootstrap::settings();
+    }
+
+    public function test_only_an_administrator_turns_o_auth_on(): void {
+        // An Editor cannot connect, so is refused before the command is read.
+        WordPressState::select_user( 12, [ 'edit_posts', 'edit_others_posts' ] );
+        $_POST['oauth_command'] = 'enable';
+        $this->expectException( \RuntimeException::class );
+        $this->expectExceptionMessage( 'You do not have permission to perform this action.' );
         Bootstrap::settings();
     }
 

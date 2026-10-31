@@ -40,9 +40,14 @@ final class Protocol {
         if ( 'S256' !== self::value( $input, 'code_challenge_method' ) || ! preg_match( '/\A[A-Za-z0-9_-]{43}\z/D', $challenge ) ) {
             throw new OAuthError( 'invalid_request', 'PKCE S256 is required.' );
         }
+        // RFC 6749: printable ASCII.
+        $state = self::value( $input, 'state' );
+        if ( ! preg_match( '/\A[\x20-\x7E]{0,1024}\z/D', $state ) ) {
+            throw new OAuthError( 'invalid_request', 'Invalid state.' );
+        }
         return [ 'client_id' => $id, 'client_name' => $client['client_name'], 'redirect_uri' => $redirect,
             'resource' => Config::resource(), 'issuer' => Config::issuer(), 'scope' => $scope,
-            'generation' => Config::generation(), 'challenge' => $challenge, 'state' => self::value( $input, 'state' ) ];
+            'generation' => Config::generation(), 'challenge' => $challenge, 'state' => $state ];
     }
 
     public function approve( array $authorization, int $user_id ): string {
@@ -50,8 +55,8 @@ final class Protocol {
         $family = bin2hex( random_bytes( 32 ) );
         $authorization['user_id'] = $user_id;
         $authorization['created'] = time();
-        $this->store->put( 'grant', $family, $authorization, Store::NO_EXPIRY, $family, $user_id );
-        $code = 'fb_code_' . bin2hex( random_bytes( 32 ) );
+        $this->store->put( 'grant', $family, $authorization, time() + Config::IDLE_EXPIRY, $family, $user_id );
+        $code = 'fabrement_code_' . bin2hex( random_bytes( 32 ) );
         $this->store->put( 'code', $code, $authorization, time() + 120, $family, $user_id );
         return $code;
     }
@@ -86,12 +91,13 @@ final class Protocol {
             $this->store->revoke( $row['family'] );
             throw new OAuthError( 'invalid_grant', 'Authorization was already used. Reconnect the client.' );
         }
+        $this->store->extend( $row['family'], time() + Config::IDLE_EXPIRY );
         $access = Config::ACCESS_PREFIX . bin2hex( random_bytes( 32 ) );
-        $refresh = 'fb_oauth_rt_' . bin2hex( random_bytes( 32 ) );
+        $refresh = 'fabrement_oauth_rt_' . bin2hex( random_bytes( 32 ) );
         $expires = time() + 3600;
         $payload = [ 'client_id' => $row['payload']['client_id'] ];
         $this->store->put( 'access', $access, $payload, $expires, $row['family'], (int) $row['user_id'] );
-        $this->store->put( 'refresh', $refresh, $payload, Store::NO_EXPIRY, $row['family'], (int) $row['user_id'] );
+        $this->store->put( 'refresh', $refresh, $payload, time() + Config::IDLE_EXPIRY, $row['family'], (int) $row['user_id'] );
         return [ 'access_token' => $access, 'token_type' => 'Bearer', 'expires_in' => $expires - time(),
             'refresh_token' => $refresh, 'scope' => Config::SCOPE ];
     }
@@ -101,7 +107,12 @@ final class Protocol {
         if ( ! $row || $row['revoked'] ) {
             throw new OAuthError( 'invalid_token', 'Invalid or expired access token.', 401 );
         }
-        return (int) $this->grant( $row['family'] )['user_id'];
+        $grant = $this->grant( $row['family'] );
+        // Use restarts the idle window too; written at most once a day.
+        if ( (int) $grant['expires'] < time() + Config::IDLE_EXPIRY - DAY_IN_SECONDS ) {
+            $this->store->extend( $row['family'], time() + Config::IDLE_EXPIRY );
+        }
+        return (int) $grant['user_id'];
     }
 
     public function revoke( array $input ): void {
@@ -128,8 +139,8 @@ final class Protocol {
 
     private function user( int $id ): void {
         $user = get_userdata( $id );
-        if ( ! $user || ! user_can( $user, Capabilities::ADMIN ) ) {
-            throw new OAuthError( 'access_denied', 'An administrator account is required.', 403 );
+        if ( ! $user || ! Capabilities::can_connect( $user ) ) {
+            throw new OAuthError( 'access_denied', 'Only Administrators can connect.', 403 );
         }
     }
 

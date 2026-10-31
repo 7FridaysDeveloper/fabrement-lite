@@ -35,7 +35,7 @@ final class GetSkillDocAbility extends AbstractAbility {
                     'type'        => 'string',
                     'pattern'     => '^[a-z0-9][a-z0-9-]*$',
                     'maxLength'   => 100,
-                    'description' => 'Document id, e.g. "content-contract", "block-discovery-contract" or "fields-contract".',
+                    'description' => 'Document id, e.g. "content-contract" or "block-discovery-contract".',
                 ],
             ],
             'additionalProperties' => false,

@@ -2,23 +2,18 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
-use Fabrement\Modules\Mcp\Support\PostTypeArchive;
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 use Fabrement\Modules\Mcp\Support\LanguageVersion;
 use Fabrement\Modules\Mcp\Support\TermLanguages;
 use Fabrement\Modules\Seo\Schema\SchemaOutput;
-use Fabrement\Modules\Seo\Schema\SchemaStore;
 use Fabrement\Modules\Seo\Seo;
 use Fabrement\Modules\Seo\SeoTranslations;
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;
 
 /**
- * The SEO state of the site, a post type, or one record — read before any set-seo / set-schema.
- *
- * One read tool for the whole area, because the questions come together: "is Yoast even here",
- * "what does this page currently emit", "what template does this type use", "what schema is on
- * it". Three answers at once cost less than three round trips.
+ * The SEO state of one record or term — read before any set-seo / set-schema. Site-wide Yoast
+ * settings are not read: they belong to Yoast's own settings screens.
  */
 final class GetSeoAbility extends AbstractAbility {
 
@@ -34,10 +29,8 @@ final class GetSeoAbility extends AbstractAbility {
         return 'Read the SEO state: always yoast {active, version}; with contentId — the record\'s stored Yoast '
             . 'fields, `effective` output (title, description, canonical, robots) and the FULL schema graph it '
             . 'emits (and primaryTerms: the main term per taxonomy, for breadcrumbs); with termId — a term '
-            . 'archive\'s stored and effective SEO; with archive (a post type) — its archive\'s stored SEO'
-            . '; with postType — its defaults and schema template; with neither — the site settings and '
-            . 'knowledge graph. Call it FIRST (is Yoast active?) and AFTER a write to verify.'
-            . self::multilingual_text( ' Every level says what other languages hold and which still lack a version: '
+            . 'archive\'s stored and effective SEO. Call it FIRST (is Yoast active?) and AFTER a write to verify.'
+            . self::multilingual_text( ' A record and a term say what other languages hold and which still lack a version: '
             . 'translations / missingLanguages; a record and a term also translationsSeo {code: {id, noindex, title, metaDesc: '
             . '"translated"|"sameAsOriginal"|"missing"|"template"}} — sameAsOriginal and missing are still to translate '
             . '(set-seo on that version). list-seo finds them across the site.' );
@@ -53,8 +46,6 @@ final class GetSeoAbility extends AbstractAbility {
             'properties'           => [
                 'contentId' => [ 'type' => 'integer', 'minimum' => 1 ],
                 'termId'    => [ 'type' => 'integer', 'minimum' => 1, 'description' => 'A term: the stored and effective SEO of its archive page.' ],
-                'archive'   => [ 'type' => 'string', 'description' => 'A post type: the stored SEO of its archive.' ],
-                'postType'  => [ 'type' => 'string' ],
             ] + self::multilingual( [
                 'language'  => [ 'type' => 'string', 'description' => 'With the contentId or termId of an ORIGINAL: its version in this language (the answer gives that id, and the original in from). Codes: list-languages.' ],
             ] ),
@@ -77,10 +68,6 @@ final class GetSeoAbility extends AbstractAbility {
                 ],
                 'content'  => [ 'type' => 'object' ],
                 'term'     => [ 'type' => 'object' ],
-                'archive'  => [ 'type' => 'object' ],
-                'postType' => [ 'type' => 'object' ],
-                'site'     => [ 'type' => 'object' ],
-                'typesWithSchema' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                 'note'     => [ 'type' => 'string' ],
                 'from'     => [ 'type' => 'integer', 'description' => 'The original whose `language` version was read.' ],
             ],
@@ -146,6 +133,9 @@ final class GetSeoAbility extends AbstractAbility {
             if ( ! $term instanceof \WP_Term ) {
                 return new WP_Error( 'not_found', sprintf( 'No term %d — see list-terms.', (int) $input['termId'] ) );
             }
+            if ( ! current_user_can( 'edit_term', (int) $term->term_id ) ) {
+                return new WP_Error( 'forbidden', sprintf( 'You may not edit term %d (edit_term).', (int) $term->term_id ) );
+            }
             $language = Translation::bridge()->term_language( (int) $term->term_id, (string) $term->taxonomy );
             $out['term'] = [
                 'id'        => (int) $term->term_id,
@@ -157,68 +147,20 @@ final class GetSeoAbility extends AbstractAbility {
             ] + self::term_languages( $term );
         }
 
-        if ( ! empty( $input['archive'] ) ) {
-            $archive = self::archive( (string) $input['archive'] );
-            if ( $archive instanceof WP_Error ) {
-                return $archive;
-            }
-            $out['archive'] = $archive;
-        }
-
-        if ( ! empty( $input['postType'] ) ) {
-            $slug   = (string) $input['postType'];
-            $object = get_post_type_object( $slug );
-            if ( ! $object ) {
-                return new WP_Error( 'unknown_post_type', sprintf( 'Post type "%s" is not registered — see list-post-types.', $slug ) );
-            }
-            $counts = (array) wp_count_posts( $slug );
-            $out['postType'] = [
-                'slug'           => $slug,
-                'label'          => (string) $object->label,
-                'public'         => (bool) $object->public,
-                'hasArchive'     => (bool) $object->has_archive,
-                'defaults'       => (object) $seo->read_defaults( 'postType', $slug ),
-                'schemaTemplate' => SchemaStore::read_type( $slug ),
-                'records'        => (int) ( $counts['publish'] ?? 0 ),
-            ] + self::defaults_languages( 'postType', $slug );
-        }
-
-        if ( empty( $input['contentId'] ) && empty( $input['termId'] ) && empty( $input['archive'] ) && empty( $input['postType'] ) ) {
-            $out['site']            = (object) ( $seo->read_defaults( 'site' ) + self::defaults_languages( 'site', '' ) + self::front_page_languages() );
-            $out['typesWithSchema'] = SchemaStore::types_with_schema();
-            if ( ! $seo->is_active() ) {
-                $out['note'] = $out['yoast']['installed']
-                    ? 'Yoast SEO is installed but NOT active — ask the site admin to activate it.'
-                    : 'Yoast SEO is not installed — ask the site admin to install and activate it. Until then no SEO tool writes (set-schema included).';
-            }
+        if ( empty( $input['contentId'] ) && empty( $input['termId'] ) && ! $seo->is_active() ) {
+            $out['note'] = $out['yoast']['installed']
+                ? 'Yoast SEO is installed but NOT active — ask the site admin to activate it.'
+                : 'Yoast SEO is not installed — ask the site admin to install and activate it. Until then no SEO tool writes (set-schema included).';
         }
 
         return $out;
     }
 
     /**
-     * A post-type archive's SEO: the site-wide values the SEO plugin keeps for it.
-     *
-     * @return array<string,mixed>|WP_Error
-     */
-    private static function archive( string $type ) {
-        $has = PostTypeArchive::check( $type );
-        if ( $has instanceof WP_Error ) {
-            return $has;
-        }
-        return [
-            'postType' => $type,
-            'url'      => (string) ( get_post_type_archive_link( $type ) ?: '' ),
-            'stored'   => (object) Seo::bridge()->read_archive_defaults( $type ),
-            'note'     => 'An archive\'s SEO is one site-wide value' . ( Translation::is_multilingual() ? ', the same in every language.' : '.' ),
-        ];
-    }
-
-    /**
      * The record's language group, as list-content reports it, plus whether each version's title
      * and description are translated ({@see SeoTranslations}) — so "the English title is set" does
      * not pass for "done" while the Polish one is empty or still English. Nothing on a
-     * single-language site.
+     * single-language site. Only versions the user may edit are listed, as wp-admin shows them.
      *
      * @return array<string,mixed>
      */
@@ -232,9 +174,14 @@ final class GetSeoAbility extends AbstractAbility {
         }
         // The group's original even when it is in the trash — as list-seo reports it.
         $original = $facts['isOriginal'] ? $id : Translation::original_of( $id, $post_type );
-        $seo    = [];
-        $source = Seo::bridge()->read_post( $original );
+        $seo      = [];
+        $visible  = [];
+        $source   = Seo::bridge()->read_post( $original );
         foreach ( $facts['translations'] as $code => $other ) {
+            if ( (int) $other !== $id && ! current_user_can( 'edit_post', (int) $other ) ) {
+                continue;
+            }
+            $visible[ $code ] = $other;
             if ( (int) $other === $id ) {
                 continue;
             }
@@ -243,13 +190,14 @@ final class GetSeoAbility extends AbstractAbility {
                 + ( (int) $other === $original ? [ 'original' => true ] : SeoTranslations::status( $source, $stored ) )
                 + [ 'noindex' => ! empty( $stored['noindex'] ) ];
         }
-        return [
-            'language'         => (string) $facts['language'],
-            'originalId'       => $original,
-            'translations'     => (object) $facts['translations'],
-            'missingLanguages' => Translation::missing_languages( $facts['translations'] ),
-            'translationsSeo'  => (object) $seo,
-        ];
+        return [ 'language' => (string) $facts['language'] ]
+            + ( $original === $id || current_user_can( 'edit_post', $original ) ? [ 'originalId' => $original ] : [] )
+            + [
+                'translations'     => (object) $visible,
+                // From the whole group: a version the user cannot open still exists.
+                'missingLanguages' => Translation::missing_languages( $facts['translations'] ),
+                'translationsSeo'  => (object) $seo,
+            ];
     }
 
     /**
@@ -282,49 +230,6 @@ final class GetSeoAbility extends AbstractAbility {
             'missingLanguages' => Translation::missing_languages( $facts['translations'] ),
             'translationsSeo'  => (object) $seo,
         ];
-    }
-
-    /**
-     * Which languages hold their own version of the text defaults, and which read the original.
-     *
-     * @return array<string,mixed>
-     */
-    private static function defaults_languages( string $scope, string $slug ): array {
-        if ( ! Translation::is_multilingual() ) {
-            return [];
-        }
-        $translations = Seo::bridge()->read_defaults_translations( $scope, $slug );
-        $default      = Translation::bridge()->default_language();
-        $missing      = [];
-        foreach ( Translation::bridge()->languages() as $language ) {
-            $code = (string) ( $language['code'] ?? '' );
-            if ( $code !== '' && $code !== $default && ! isset( $translations[ $code ] ) ) {
-                $missing[] = $code;
-            }
-        }
-        return [
-            'language'         => $default,
-            'translations'     => (object) $translations,
-            'missingLanguages' => $missing,
-        ];
-    }
-
-    /**
-     * A language home page exists only when the front page has a version in that language —
-     * otherwise /<lang>/ redirects to the original, and "check the Polish home" checks the English one.
-     *
-     * @return array<string,mixed>
-     */
-    private static function front_page_languages(): array {
-        if ( ! Translation::is_multilingual() || get_option( 'show_on_front' ) !== 'page' ) {
-            return [];
-        }
-        $front = (int) get_option( 'page_on_front' );
-        if ( $front <= 0 ) {
-            return [];
-        }
-        $translations = Translation::bridge()->visible_versions( $front, 'page' );
-        return [ 'frontPageMissingLanguages' => Translation::missing_languages( $translations ) ];
     }
 
     /**

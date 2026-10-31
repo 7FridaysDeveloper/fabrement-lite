@@ -7,6 +7,11 @@ use Fabrement\Modules\Forms\FormCatalog;
 /** Read-only: the site's Contact Form 7 forms. */
 final class ListFormsAbility extends AbstractAbility {
 
+    /** CF7's own read cap for its form list (an inactive CF7 is reported, not refused). */
+    public function check_permission() {
+        return parent::check_permission() && ( ! FormCatalog::is_cf7_active() || current_user_can( 'wpcf7_read_contact_forms' ) );
+    }
+
     public function name(): string {
         return 'fabrement/list-forms';
     }
@@ -48,7 +53,19 @@ final class ListFormsAbility extends AbstractAbility {
                         ],
                     ],
                 ],
-            ],
+            ] + self::multilingual( [
+                'withoutLanguage' => [
+                    'type'  => 'array',
+                    'items' => [
+                        'type'       => 'object',
+                        'properties' => [
+                            'id'    => [ 'type' => 'integer' ],
+                            'title' => [ 'type' => 'string' ],
+                        ],
+                    ],
+                ],
+                'note'            => [ 'type' => 'string' ],
+            ] ),
         ];
 
         return [

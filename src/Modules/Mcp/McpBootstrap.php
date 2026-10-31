@@ -41,6 +41,9 @@ final class McpBootstrap {
             return;
         }
 
+        // An MCP request (or `wp mcp-adapter`): no administrator capabilities in this session.
+        McpCapabilityCeiling::register();
+
         if ( ! self::is_supported() ) {
             return;
         }
@@ -126,6 +129,10 @@ final class McpBootstrap {
      * plain permalinks, the path under the REST prefix otherwise.
      */
     public static function is_mcp_request(): bool {
+        // wp-admin, admin-ajax and admin-post never serve the MCP route, whatever the address says.
+        if ( is_admin() || wp_doing_ajax() ) {
+            return false;
+        }
         $route = ServerDefinition::ROUTE_NAMESPACE . '/' . ServerDefinition::ROUTE;
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route detection; nothing is changed.
@@ -137,12 +144,19 @@ final class McpBootstrap {
         if ( $rest_route !== '' ) {
             return $rest_route === $route;
         }
+        // A POSTed rest_route wins over the path too (WP::parse_request()): never an MCP call.
+        if ( isset( $_POST['rest_route'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only route detection; nothing is changed.
+            return false;
+        }
 
         $uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
             ? (string) wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH )
             : '';
+        $uri  = rtrim( rawurldecode( $uri ), '/' );
+        $home = rtrim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+        $tail = '/' . rest_get_url_prefix() . '/' . $route;
 
-        return str_ends_with( rtrim( rawurldecode( $uri ), '/' ), '/' . rest_get_url_prefix() . '/' . $route );
+        return $uri === $home . $tail || $uri === $home . '/index.php' . $tail;
     }
 
     /** What this module calls on the adapter: checked as such, not by its version number. */

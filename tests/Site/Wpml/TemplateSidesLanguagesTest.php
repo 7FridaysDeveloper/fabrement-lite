@@ -11,6 +11,7 @@ use Fabrement\Tests\Site\Support\WpmlSite;
  * its own sides; every version places the ORIGINAL global block, and a reader is handed that
  * global block's version in their language — so what is checked here is what the database holds
  * after each action, and what the template says when a language is left without its header.
+ * Templates are set up as wp-admin does.
  */
 final class TemplateSidesLanguagesTest extends SiteTestCase {
 
@@ -25,30 +26,36 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
     /** @return array{0:int,1:int} An English template and the own header global block it places. */
     private function template( string $title ): array {
         $header = $this->own_global_block( 'header', $title . ' header' );
-        $saved  = $this->mcp( 'save-template', self::frame( $title, $header ) );
-        return [ (int) $saved['template']['id'], $header ];
+        return [ $this->new_template( $title, $header ), $header ];
     }
 
     private function title_of( int $post ): string {
         return (string) $this->site()->value( 'SELECT post_title FROM wp_posts WHERE ID = ?', [ $post ] );
     }
 
-    /** A template as get-template gives it (a version is read by its own id). */
+    private function content_of( int $post ): string {
+        return (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $post ] );
+    }
+
+    /** A template's summary (a version is read by its own id). */
     private function read( int $template ): array {
-        return (array) $this->mcp( 'get-template', [ 'templateId' => $template ] )['template'];
+        return $this->template_row( $template );
+    }
+
+    /** A template's theme-file rules, as the editor reads them. */
+    private function sources( int $template ): array {
+        return (array) $this->site_runs( 'return \\Fabrement\\Modules\\SiteTemplate\\Service\\ContentSourceConfig::read( ' . $template . ' )["rules"];' );
     }
 
     public function test_a_version_is_changed_by_its_own_id_and_keeps_its_title(): void {
         [ $template, $header ] = $this->template( 'Versioned' );
         $footer                = $this->own_global_block( 'footer', 'Versioned footer' );
-        $opened                = $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] );
-        $version               = (int) $opened['templateId'];
-        $this->assertSame( 'Versioned (fr)', $opened['title'], 'a new version is named after its original, with its language' );
-        $this->assertSame( 'Versioned (fr)', $this->title_of( $version ) );
-        $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $version, 'title' => 'Modèle' ] );
+        $version               = $this->translate_template( $template, 'fr' );
+        $this->assertSame( 'Versioned (fr)', $this->title_of( $version ), 'a new version is named after its original, with its language' );
+        $this->save_template( [ 'id' => $version, 'title' => 'Modèle' ] );
 
-        // "Change blocks" on the version's row: only the side that changed, no title.
-        $saved = $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $version, 'blocks' => self::frame( '', $header, $footer )['blocks'] ] );
+        // Only the sides change, no title.
+        $this->save_template( [ 'id' => $version, 'content' => self::frame( $header, $footer ) ] );
 
         $this->assertSame( 'Modèle', $this->title_of( $version ), 'the version keeps its own name' );
         $this->assertSame( $footer, $this->side_of( $version, 'footer' ) );
@@ -57,14 +64,12 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertSame( 'Versioned', $this->title_of( $template ) );
 
         // The version drops its header; the original keeps it.
-        $saved = $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $version, 'blocks' => self::frame( '', 0, $footer )['blocks'] ] );
+        $this->save_template( [ 'id' => $version, 'content' => self::frame( 0, $footer ) ] );
         $this->assertSame( 0, $this->side_of( $version, 'header' ) );
         $this->assertSame( $header, $this->side_of( $template, 'header' ) );
-        $content = (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $version ] );
+        $content = $this->content_of( $version );
         $this->assertStringNotContainsString( '"ref":' . $header . '}', $content );
         $this->assertSame( 1, substr_count( $content, '"ref":' . $footer . '}' ) );
-
-        $this->assertSame( $footer, $this->read( $version )['blocks'][1]['attributes']['ref'] );
     }
 
     public function test_a_language_version_of_a_header_that_is_not_published_is_the_patterns_business_not_the_templates(): void {
@@ -90,10 +95,8 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertGreaterThan( 0, $copy );
         $this->assertSame( 'pl', $this->wpml()->language( $copy, 'fabrement_template' ) );
         $this->assertSame( $header, $this->side_of( $copy, 'header' ) );
-        $this->assertSame( 1, preg_match_all( '#"ref":' . $header . '[,}]#', (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $copy ] ) ), 'its content places the header' );
-        $read = $this->read( $copy );
-        $this->assertSame( '', $read['problem'] );
-        $this->assertSame( [ 'name' => 'core/block', 'attributes' => [ 'ref' => $header ] ], $read['blocks'][0] );
+        $this->assertSame( 1, preg_match_all( '#"ref":' . $header . '[,}]#', $this->content_of( $copy ) ), 'its content places the header' );
+        $this->assertSame( '', $this->read( $copy )['problem'] );
     }
 
     // ── what a reader of each language gets ──────────────────────────────────────────────────
@@ -105,7 +108,7 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
      */
     private function pages( int $template, string $name ): array {
         $page = $this->record( 'page', $name );
-        $this->mcp( 'assign-template-pages', [ 'templateId' => $template, 'pageIds' => [ $page ], 'mode' => 'add' ] );
+        $this->assign_template( $template, [ $page ] );
         $french = (int) $this->mcp( 'translate-content', [ 'contentId' => $page, 'language' => 'fr', 'slug' => strtolower( str_replace( ' ', '-', $name ) ) . '-fr' ] )['contentId'];
         $this->mcp( 'set-content-status', [ 'contentId' => $french, 'status' => 'publish' ] );
         return [
@@ -121,7 +124,7 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
 
     public function test_each_language_reads_its_version_of_the_header_and_the_original_where_it_has_none(): void {
         $header   = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Read header', 'kind' => 'header', 'blocks' => self::words( 'qa-read-en' ) ] )['patternId'];
-        $template = (int) $this->mcp( 'save-template', self::frame( 'Read', $header ) )['template']['id'];
+        $template = $this->new_template( 'Read', $header );
         $urls     = $this->pages( $template, 'Read page' );
 
         // No French version of the header yet: French readers get the original's words.
@@ -159,13 +162,13 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
     public function test_a_language_version_of_a_template_with_its_own_sides_and_what_its_readers_get(): void {
         $header   = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Own sides header', 'kind' => 'header', 'blocks' => self::words( 'qa-sides-header' ) ] )['patternId'];
         $footer   = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Own sides French footer', 'kind' => 'footer', 'blocks' => self::words( 'qa-sides-fr-footer' ) ] )['patternId'];
-        $template = (int) $this->mcp( 'save-template', self::frame( 'Own sides', $header ) )['template']['id'];
-        $version  = (int) $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] )['templateId'];
+        $template = $this->new_template( 'Own sides', $header );
+        $version  = $this->translate_template( $template, 'fr' );
         $urls     = $this->pages( $template, 'Own sides page' );
         $marks    = fn( string $url ): array => [ substr_count( $this->get( $url )['body'], 'qa-sides-header' ), substr_count( $this->get( $url )['body'], 'qa-sides-fr-footer' ) ];
 
         // The French version gets a footer of its own.
-        $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $version, 'blocks' => self::frame( '', $header, $footer )['blocks'] ] );
+        $this->save_template( [ 'id' => $version, 'content' => self::frame( $header, $footer ) ] );
         $this->assertSame( [ 1, 0 ], $marks( $urls['en'] ), 'English: the original template' );
         $this->assertSame( [ 1, 1 ], $marks( $urls['fr'] ), 'French: its own version, with the footer' );
 
@@ -180,7 +183,7 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertSame( [ 1, 1 ], $marks( $urls['fr'] ) );
 
         // The version drops the header: French pages have none, English pages keep theirs.
-        $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $version, 'blocks' => self::frame( '', 0, $footer )['blocks'] ] );
+        $this->save_template( [ 'id' => $version, 'content' => self::frame( 0, $footer ) ] );
         $this->assertSame( [ 0, 1 ], $marks( $urls['fr'] ) );
         $this->assertSame( [ 1, 0 ], $marks( $urls['en'] ) );
         $this->assertSame( $header, $this->side_of( $template, 'header' ) );
@@ -190,8 +193,8 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
 
     public function test_a_version_is_deleted_alone_and_the_original_takes_its_versions_with_it(): void {
         [ $template, $header ] = $this->template( 'Deleted group' );
-        $french  = (int) $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] )['templateId'];
-        $polish  = (int) $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'pl' ] )['templateId'];
+        $french  = $this->translate_template( $template, 'fr' );
+        $polish  = $this->translate_template( $template, 'pl' );
         $key     = (string) ( $this->site()->meta( $template, '_fabrement_st_key' )[0] ?? '' );
         $file    = '/var/www/html/wp-content/uploads/fabrement-lite/templates/' . $key . '.json';
         $has_file = fn(): bool => trim( $this->site()->exec( 'sh', '-c', 'test -f ' . escapeshellarg( $file ) . ' && echo yes || echo no' ) ) === 'yes';
@@ -205,17 +208,14 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertStringContainsString( 'It cannot be deleted while they place it', $this->mcp_error( 'delete-synced-pattern', [ 'patternId' => $header ] ) );
 
         // One version goes alone.
-        $deleted = $this->mcp( 'delete-template', [ 'templateId' => $french ] );
-        $this->assertTrue( $deleted['deleted'] );
+        $this->assertSame( 0, $this->delete_template( $french ) );
         $this->assertSame( [ $template, $polish ], $rows() );
         $this->assertSame( [ 'en' => $template, 'pl' => $polish ], $this->wpml()->group( $template, 'fabrement_template' ), 'WPML holds no row of the deleted version' );
         $this->assertTrue( $has_file(), 'the rules file is the group\'s: it stays' );
         $this->assertSame( $header, $this->side_of( $polish, 'header' ) );
 
         // The original takes the rest with it.
-        $gone = $this->mcp( 'delete-template', [ 'templateId' => $template ] );
-        $this->assertTrue( $gone['deleted'] );
-        $this->assertSame( [ 'pl' => $polish ], $gone['deletedTranslations'] );
+        $this->assertIsInt( $this->delete_template( $template ) );
         $this->assertSame( [], $rows(), 'no template of the group is left, in the trash either' );
         $this->assertSame( [], $this->site()->rows( 'SELECT meta_id FROM wp_postmeta WHERE post_id IN ( ?, ?, ? )', [ $template, $french, $polish ] ) );
         $this->assertSame( [], $this->site()->rows( 'SELECT translation_id FROM wp_icl_translations WHERE element_type = "post_fabrement_template" AND element_id IN ( ?, ?, ? )', [ $template, $french, $polish ] ) );
@@ -227,42 +227,11 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertNull( $this->site()->value( 'SELECT ID FROM wp_posts WHERE ID = ?', [ $header ] ) );
     }
 
-    public function test_a_version_is_given_to_nothing_and_the_refusal_names_the_original(): void {
-        [ $template ] = $this->template( 'Not assignable' );
-        $version      = (int) $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] )['templateId'];
-        $page         = $this->record( 'page', 'Not assignable page' );
-        $pick         = $this->site()->meta( $page, '_wp_page_template' );
-
-        foreach ( [
-            'assign-template-pages'   => [ 'templateId' => $version, 'pageIds' => [ $page ], 'mode' => 'add' ],
-            'set-default-template'    => [ 'templateId' => $version, 'postType' => 'page' ],
-            'assign-template-archive' => [ 'templateId' => $version, 'context' => 'blog-home' ],
-        ] as $tool => $input ) {
-            $refusal = $this->mcp_error( $tool, $input );
-            $this->assertStringContainsString( 'is a language version', $refusal, $tool );
-            $this->assertStringContainsString( '(' . $template . ')', $refusal, $tool . ' names the original to use' );
-        }
-        $this->assertSame( $pick, $this->site()->meta( $page, '_wp_page_template' ), 'nothing was written' );
-        $this->assertSame( [], $this->read( $template )['defaultFor'] );
-    }
-
     public function test_an_agent_places_the_original_of_a_global_block_and_is_told_which_it_is(): void {
         [ $template, $header ] = $this->template( 'Original only' );
         $french                = (int) $this->mcp( 'translate-synced-pattern', [ 'patternId' => $header, 'language' => 'fr' ] )['patternId'];
-        $slot                  = [ 'name' => 'fabrement/content-source' ];
 
-        // The version's id is refused, in a new template and in an edit, with the original named.
-        $refusal = $this->mcp_error( 'save-template', [ 'mode' => 'create', 'title' => 'Original only French', 'blocks' => [ [ 'name' => 'core/block', 'attributes' => [ 'ref' => $french ] ], $slot ] ] );
-        $this->assertStringContainsString( 'is a language version', $refusal );
-        $this->assertStringContainsString( '{"ref": ' . $header . '}', $refusal );
-        $read    = $this->read( $template );
-        $refusal = $this->mcp_error( 'save-template', [ 'mode' => 'edit', 'templateId' => $template, 'expectedHash' => $read['hash'], 'edits' => [
-            [ 'op' => 'insert', 'at' => 0, 'block' => [ 'name' => 'core/block', 'attributes' => [ 'ref' => $french ] ] ],
-        ] ] );
-        $this->assertStringContainsString( 'is a language version', $refusal );
-        $this->assertStringNotContainsString( '"ref":' . $french, (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $template ] ), 'nothing was written' );
-
-        // A page is the same: the original of a section, never its version — by name and as markup.
+        // A page places the original of a section, never its version — by name and as markup.
         $section = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Original only section', 'blocks' => self::words( 'qa-original-only-section' ) ] )['patternId'];
         $version = (int) $this->mcp( 'translate-synced-pattern', [ 'patternId' => $section, 'language' => 'fr' ] )['patternId'];
         $page    = $this->record( 'page', 'Original only page' );
@@ -272,12 +241,12 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
             $this->assertStringContainsString( '{"ref": ' . $section . '}', $refusal );
         }
         $this->mcp( 'save-content', [ 'contentId' => $page, 'mode' => 'replace', 'blocks' => [ [ 'name' => 'core/block', 'attributes' => [ 'ref' => $section ] ] ] ] );
-        $this->assertStringContainsString( '"ref":' . $section . '}', (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $page ] ) );
+        $this->assertStringContainsString( '"ref":' . $section . '}', $this->content_of( $page ) );
 
         // Saving the version answers the markup that places the original.
         $saved = $this->mcp( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $french, 'blocks' => self::words( 'qa-original-only-fr' ) ] );
         $this->assertSame( '<!-- wp:block {"ref":' . $header . '} /-->', $saved['placement'] );
-        $this->assertContains( $template, array_column( $this->mcp( 'get-synced-pattern', [ 'patternId' => $header ] )['templates'], 'id' ), 'and the template is found by the original' );
+        $this->assertSame( [ $template ], array_column( $this->mcp( 'get-synced-pattern', [ 'patternId' => $header ] )['templates'], 'id' ), 'and the template is found by the original' );
     }
 
     public function test_a_new_global_block_is_made_in_the_language_asked_and_only_when_said_to_be_a_new_original(): void {
@@ -304,26 +273,21 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertStringContainsString( '`language` is for CREATE', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $default, 'language' => 'fr', 'newOriginal' => true, 'blocks' => $body ] ) );
 
         // A version of a placed global block is not made a draft either: its language's pages would show nothing there.
-        $this->mcp( 'save-template', self::frame( 'Language of new', $default ) );
+        $this->new_template( 'Language of new', $default );
         $version = (int) $this->mcp( 'translate-synced-pattern', [ 'patternId' => $default, 'language' => 'fr' ] )['patternId'];
         $this->assertStringContainsString( 'As a draft it would draw nothing there', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $version, 'status' => 'draft' ] ) );
     }
 
     public function test_the_frames_own_words_are_the_template_versions_and_each_language_reads_its_own(): void {
-        [ $template, $header ] = $this->template( 'Own words' );
-        $read                  = $this->read( $template );
-        $this->mcp( 'save-template', [ 'mode' => 'edit', 'templateId' => $template, 'expectedHash' => $read['hash'], 'edits' => [
-            [ 'op' => 'insert', 'at' => 1, 'block' => [ 'markup' => '<!-- wp:paragraph --><p class="qa-own-words">Notice in English</p><!-- /wp:paragraph -->' ] ],
-        ] ] );
-        $urls = $this->pages( $template, 'Own words page' );
+        $header   = $this->own_global_block( 'header', 'Own words header' );
+        $template = $this->new_template( 'Own words', $header, 0, '<!-- wp:paragraph --><p class="qa-own-words">Notice in English</p><!-- /wp:paragraph -->' );
+        $urls     = $this->pages( $template, 'Own words page' );
 
         // No French version of the template yet: French readers get the original's words.
         $this->assertStringContainsString( 'Notice in English', $this->get( $urls['fr'] )['body'] );
 
-        $opened = $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] );
-        $this->mcp( 'save-template', [ 'mode' => 'edit', 'templateId' => (int) $opened['templateId'], 'expectedHash' => $opened['hash'], 'edits' => [
-            [ 'op' => 'text', 'index' => 1, 'name' => 'core/paragraph', 'old' => 'Notice in English', 'new' => 'Avis en français' ],
-        ] ] );
+        $version = $this->translate_template( $template, 'fr' );
+        $this->save_template( [ 'id' => $version, 'content' => str_replace( 'Notice in English', 'Avis en français', $this->content_of( $version ) ) ] );
 
         $fr = $this->get( $urls['fr'] )['body'];
         $en = $this->get( $urls['en'] )['body'];
@@ -331,22 +295,21 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertStringNotContainsString( 'Notice in English', $fr );
         $this->assertStringContainsString( 'Notice in English', $en );
         $this->assertStringNotContainsString( 'Avis en français', $en );
-        $this->assertSame( $header, $this->side_of( (int) $opened['templateId'], 'header' ), 'and the version places the same header' );
+        $this->assertSame( $header, $this->side_of( $version, 'header' ), 'and the version places the same header' );
     }
 
-    public function test_the_templates_placing_a_global_block_say_their_language_and_which_are_versions_of_one(): void {
+    public function test_the_templates_placing_a_global_block_and_their_versions_are_named(): void {
         [ $template, $header ] = $this->template( 'Counted' );
-        $version               = (int) $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] )['templateId'];
+        $version               = $this->translate_template( $template, 'fr' );
 
-        $rows = array_column( $this->mcp( 'get-synced-pattern', [ 'patternId' => $header ] )['templates'], null, 'id' );
-        $this->assertSame( [ 'id' => $template, 'title' => 'Counted', 'language' => 'en' ], $rows[ $template ], 'the original has no originalId' );
-        $this->assertSame( [ 'id' => $version, 'title' => 'Counted (fr)', 'language' => 'fr', 'originalId' => $template ], $rows[ $version ] );
+        $read = $this->mcp( 'get-synced-pattern', [ 'patternId' => $header ] );
+        $this->assertSame( [ [ $template, $version ], 0 ], [ array_column( $read['templates'], 'id' ), $read['templatesHidden'] ] );
 
         $listed = array_column( $this->mcp( 'list-synced-patterns', [ 'kind' => 'header', 'search' => 'Counted' ] )['patterns'], null, 'id' );
-        $this->assertSame( $template, array_column( $listed[ $header ]['templates'], 'originalId', 'id' )[ $version ] );
+        $this->assertSame( [ [ $template, $version ], 0 ], [ array_column( $listed[ $header ]['templates'], 'id' ), $listed[ $header ]['templatesHidden'] ] );
 
         $refusal = $this->mcp_error( 'delete-synced-pattern', [ 'patternId' => $header ] );
-        $this->assertStringContainsString( $version . ' "Counted (fr)" (the fr version of ' . $template . ')', $refusal );
+        $this->assertStringContainsString( 'is placed in 2 template(s): ' . $template . ' "Counted"; ' . $version . ' "Counted (fr)" (the fr version of ' . $template . ')', $refusal );
     }
 
     public function test_a_versions_save_leaves_the_shared_rules_file_named_after_the_original(): void {
@@ -355,14 +318,12 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $title        = fn(): string => (string) $this->site_runs( 'return json_decode( (string) file_get_contents( wp_upload_dir()["basedir"] . "/fabrement-lite/templates/' . $key . '.json" ), true )["title"] ?? "";' );
         $this->assertSame( 'Named file', $title() );
 
-        $opened = $this->mcp( 'translate-template', [ 'templateId' => $template, 'language' => 'fr' ] );
-        $this->mcp( 'save-template', [ 'mode' => 'edit', 'templateId' => (int) $opened['templateId'], 'expectedHash' => $opened['hash'], 'edits' => [
-            [ 'op' => 'insert', 'at' => 1, 'block' => [ 'markup' => '<!-- wp:paragraph --><p>Avis</p><!-- /wp:paragraph -->' ] ],
-        ] ] );
+        $version = $this->translate_template( $template, 'fr' );
+        $this->save_template( [ 'id' => $version, 'content' => '<!-- wp:paragraph --><p>Avis</p><!-- /wp:paragraph -->' . $this->content_of( $version ) ] );
         $this->assertSame( 'Named file', $title(), 'the version\'s own name ("Named file (fr)") is not written into it' );
 
         // The original renamed, the file follows.
-        $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $template, 'title' => 'Named file anew' ] );
+        $this->save_template( [ 'id' => $template, 'title' => 'Named file anew' ] );
         $this->assertSame( 'Named file anew', $title() );
     }
 
@@ -375,7 +336,7 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $refusal = $this->mcp_error( 'save-content', [ 'contentId' => $page, 'mode' => 'edit', 'edits' => [ [ 'op' => 'update', 'index' => 0, 'name' => 'core/block', 'attributes' => [ 'ref' => $version ] ] ] ] );
         $this->assertStringContainsString( 'is a language version', $refusal );
         $this->assertStringContainsString( '{"ref": ' . $section . '}', $refusal );
-        $this->assertStringContainsString( '"ref":' . $section . '}', (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $page ] ) );
+        $this->assertStringContainsString( '"ref":' . $section . '}', $this->content_of( $page ) );
     }
 
     public function test_a_language_version_of_a_global_block_answers_the_places_its_original_stands(): void {
@@ -384,11 +345,11 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
 
         $read = $this->mcp( 'get-synced-pattern', [ 'patternId' => $version ] );
         $this->assertSame( $header, $read['shownThrough'] );
-        $this->assertSame( [ $template ], array_column( $read['usedBy'], 'id' ), 'not "used by nothing"' );
-        $this->assertSame( [ $template ], array_column( $read['templates'], 'id' ) );
+        // The places are the original's.
+        $this->assertSame( [ [ $template ], 0 ], [ array_column( $read['templates'], 'id' ), $read['templatesHidden'] ], 'not "used by nothing"' );
 
         $saved = $this->mcp( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $version, 'blocks' => self::words( 'qa-shown-through-fr' ) ] );
-        $this->assertSame( [ $header, [ $template ] ], [ $saved['shownThrough'], array_column( $saved['usedBy'], 'id' ) ] );
+        $this->assertSame( $header, $saved['shownThrough'] );
 
         // The original says nothing of the kind.
         $this->assertArrayNotHasKey( 'shownThrough', $this->mcp( 'get-synced-pattern', [ 'patternId' => $header ] ) );
@@ -396,25 +357,25 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
 
     public function test_source_rules_edited_in_a_translation_are_shared_with_the_original(): void {
         [ $original ] = $this->template( 'Shared sources' );
-        $version = (int) $this->mcp( 'translate-template', [ 'templateId' => $original, 'language' => 'fr' ] )['templateId'];
+        $version = $this->translate_template( $original, 'fr' );
         $file = (string) $this->site_runs( '$dir = get_stylesheet_directory() . "/templates"; wp_mkdir_p( $dir ); $file = $dir . "/qa-shared-source.php"; if ( file_exists( $file ) ) { throw new \\RuntimeException( "Fixture already exists" ); } file_put_contents( $file, "<?php\n/**\n * Fabrement: singular:page\n */\n?><p class=\"qa-shared-source\">Shared theme file</p>" ); return $file;' );
         try {
             $rules = [ [ 'context' => 'singular:page', 'file' => 'qa-shared-source.php' ] ];
-            $before = (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $original ] );
-            $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $version, 'contentSource' => [ 'rules' => $rules ] ] );
-            $this->assertSame( $rules, $this->read( $original )['contentSource']['rules'] );
-            $this->assertSame( $rules, $this->read( $version )['contentSource']['rules'] );
+            $before = $this->content_of( $original );
+            $this->assertSame( [ 'rules' => $rules ], $this->set_sources( $version, $rules ) );
+            $this->assertSame( $rules, $this->sources( $original ) );
+            $this->assertSame( $rules, $this->sources( $version ) );
             $this->assertSame( $this->site()->meta( $original, '_fabrement_st_key' ), $this->site()->meta( $version, '_fabrement_st_key' ) );
-            $this->assertSame( $before, (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $original ] ), 'shared choices do not rewrite the original blocks' );
+            $this->assertSame( $before, $this->content_of( $original ), 'shared choices do not rewrite the original blocks' );
             foreach ( [ $original, $version ] as $id ) {
-                $this->assertStringNotContainsString( 'qa-shared-source.php', (string) $this->site()->value( 'SELECT post_content FROM wp_posts WHERE ID = ?', [ $id ] ), 'the rules live only in the shared JSON manifest' );
+                $this->assertStringNotContainsString( 'qa-shared-source.php', $this->content_of( $id ), 'the rules live only in the shared JSON manifest' );
             }
             $urls = $this->pages( $original, 'Shared source page' );
             foreach ( $urls as $url ) {
                 $this->assertSame( 1, substr_count( $this->get( $url )['body'], 'qa-shared-source' ) );
             }
-            $this->mcp( 'save-template', [ 'mode' => 'replace', 'templateId' => $original, 'contentSource' => [ 'rules' => [] ] ] );
-            $this->assertSame( [], $this->read( $version )['contentSource']['rules'] );
+            $this->assertSame( [ 'rules' => [] ], $this->set_sources( $original, [] ) );
+            $this->assertSame( [], $this->sources( $version ) );
         } finally {
             $this->site()->exec( 'rm', '-f', '--', $file );
         }

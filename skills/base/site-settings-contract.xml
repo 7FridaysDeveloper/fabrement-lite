@@ -1,15 +1,13 @@
 <skill id="site-settings-contract"><![CDATA[
 SITE SETTINGS
-Read get-site-settings before update-site-settings; send only intended properties.
-Use list-plugins for installed/active dependencies. A missing plugin is installed by the site admin.
-The settings tool is a limited interface, not a general option or siteurl writer.
-The home page, the posts page and the permalink structure are read here, not set: the site administrator
-sets them in Settings. Assigned home/blog/not-found pages cannot simply be trashed or deleted.
+get-site-settings reads the settings; these tools do not change them. The site title, tagline, site icon,
+home page, posts page, not-found page and permalink structure are set by the site administrator in wp-admin.
+A missing plugin is installed by the site admin. Assigned home/blog/not-found pages cannot simply be
+trashed or deleted.
 
-notFoundPage selects a published page for missing addresses; 0 restores the theme's behavior.
-It must not also be the home or posts page. Build one only when requested.
+notFoundPage is the published page shown for missing addresses; 0 means the theme's own 404.
 Verify on an actually missing URL, including HTTP 404 and indexing behavior, not only the page's URL.
-The 404 body is that page's blocks unless the 404 template has a contentSource "404" rule. Block templates are managed through template-contract.
-Use siteIcon with a valid image attachment; inspect current values before replacing/clearing it.
+The 404 body is that page's blocks unless the 404 template has a theme file set for "404" in wp-admin.
+The 404 template itself is chosen in wp-admin; block templates follow template-contract.
 The active theme supplies design and layout.
 ]]></skill>

@@ -12,6 +12,7 @@ final class McpCredentialsPageTest extends TestCase {
 
     protected function setUp(): void {
         WordPressState::reset();
+        // An administrator: only they may connect.
         WordPressState::select_user( 1, [ 'manage_options', 'edit_themes' ] );
         $this->page = ( new \ReflectionClass( McpConnectionPage::class ) )->newInstanceWithoutConstructor();
     }
@@ -105,6 +106,7 @@ final class McpCredentialsPageTest extends TestCase {
 
     public static function denied_contexts(): iterable {
         yield 'guest' => [ 'guest', 'You do not have permission to perform this action.' ];
+        yield 'editor' => [ 'editor', 'You do not have permission to perform this action.' ];
         yield 'bad nonce' => [ 'nonce', 'Invalid nonce.' ];
         yield 'passwords unavailable' => [ 'unavailable', 'Application passwords are not available for this user on this site.' ];
     }
@@ -112,6 +114,7 @@ final class McpCredentialsPageTest extends TestCase {
     /** @dataProvider denied_contexts */
     public function test_authorization_checks_precede_password_creation( string $context, string $message ): void {
         if ( $context === 'guest' ) { WordPressState::select_user( 0, [] ); }
+        if ( $context === 'editor' ) { WordPressState::select_user( 1, [ 'edit_posts', 'edit_others_posts', 'edit_others_pages' ] ); }
         if ( $context === 'nonce' ) { WordPressState::$valid_nonce = false; }
         if ( $context === 'unavailable' ) { WordPressState::$passwords_available = false; }
         $this->assert_generation_denied( $message );

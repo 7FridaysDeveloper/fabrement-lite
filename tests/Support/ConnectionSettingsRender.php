@@ -10,8 +10,9 @@ function esc_js( $text ) { return addslashes( $text ); }
 function wp_nonce_field( $action ) { echo '<input type="hidden" name="_wpnonce" value="synthetic-nonce">'; }
 function wp_nonce_url( $url, $action ) { return $url; }
 
-function fabrement_render_connection_access( array $oauth_grants = [], array $mcp_passwords = [], bool $enabled = true, bool $https = true, bool $storage_ready = true ): string {
+function fabrement_render_connection_access( array $oauth_grants = [], array $mcp_passwords = [], bool $enabled = true, bool $https = true, bool $storage_ready = true, array $caps = [ 'manage_options', 'edit_posts', 'edit_others_posts' ] ): string {
     \Fabrement\Tests\WordPressState::reset();
+    \Fabrement\Tests\WordPressState::select_user( 12, $caps );
     \Fabrement\Tests\WordPressState::$options[ \Fabrement\Framework\Keys::OPTION_MCP_OAUTH_SCHEMA ] = \Fabrement\Modules\Mcp\OAuth\Store::SCHEMA_VERSION;
     $GLOBALS['wpdb']->table_exists = $storage_ready;
     \Fabrement\Tests\WordPressState::$options[ \Fabrement\Framework\Keys::OPTION_MCP_OAUTH_ENABLED ] = $enabled;
@@ -30,7 +31,7 @@ function fabrement_render_connection_access( array $oauth_grants = [], array $mc
 function fabrement_render_connection_settings( string $client, bool $password = false, bool $https = true ): string {
     \Fabrement\Tests\WordPressState::reset();
     \Fabrement\Tests\WordPressState::$options[ \Fabrement\Framework\Keys::OPTION_MCP_OAUTH_SCHEMA ] = \Fabrement\Modules\Mcp\OAuth\Store::SCHEMA_VERSION;
-    \Fabrement\Tests\WordPressState::select_user( 12, [ 'manage_options' ] );
+    \Fabrement\Tests\WordPressState::select_user( 12, [ 'manage_options', 'edit_posts', 'edit_others_posts' ] );
     \Fabrement\Tests\WordPressState::$options[ \Fabrement\Framework\Keys::OPTION_MCP_OAUTH_ENABLED ] = true;
     if ( ! $https ) { \Fabrement\Tests\WordPressState::$options['home'] = 'http://example.test'; }
     $query = $_GET;

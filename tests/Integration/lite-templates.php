@@ -1,11 +1,13 @@
 <?php
-/** Local Lite only. Creates its own temporary content, removes it in finally. */
-use Fabrement\Modules\Mcp\Ability\SaveTemplateAbility;
-use Fabrement\Modules\Mcp\Ability\GetTemplateAbility;
-use Fabrement\Modules\Mcp\Ability\SaveSyncedPatternAbility;
+/** Local Lite only. Creates its own temporary content, removes it in finally. Theme-file choices are wp-admin only: written through the service behind their REST route. */
 use Fabrement\Modules\Mcp\Ability\AssignTemplatePagesAbility;
 use Fabrement\Modules\Mcp\Ability\DeleteTemplateAbility;
+use Fabrement\Modules\Mcp\Ability\GetTemplateAbility;
+use Fabrement\Modules\Mcp\Ability\SaveSyncedPatternAbility;
+use Fabrement\Modules\Mcp\Ability\SaveTemplateAbility;
+use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;
+use Fabrement\Modules\SiteTemplate\Service\SiteTemplateWriter;
 use Fabrement\Modules\SiteTemplate\Service\BlockThemeApplier;
 use Fabrement\Modules\SiteTemplate\Service\TemplateResolver;
 
@@ -28,6 +30,9 @@ try {
         $made = $ok( $patterns->execute( [ 'mode' => 'create', 'title' => 'Lite template QA ' . $kind, 'kind' => $kind, 'blocks' => [ $paragraph( 'QA ' . $kind ) ] ] ) );
         $parts[ $kind ] = $ids[] = (int) $made['patternId'];
     }
+    $header = '<!-- wp:block {"ref":' . $parts['header'] . '} /-->';
+    $footer = '<!-- wp:block {"ref":' . $parts['footer'] . '} /-->';
+    $frame  = static fn( string $slot, string $before = '' ) => $header . $before . $slot . $footer;
     $blocks = [ [ 'name' => 'core/block', 'attributes' => [ 'ref' => $parts['header'] ] ], [ 'name' => 'core/post-content', 'attributes' => [ 'className' => 'qa-content' ] ], [ 'name' => 'core/block', 'attributes' => [ 'ref' => $parts['footer'] ] ] ];
     $save = new SaveTemplateAbility(); $get = new GetTemplateAbility();
     $made = $ok( $save->execute( [ 'mode' => 'create', 'title' => 'Lite QA template', 'blocks' => $blocks ] ) );
@@ -44,22 +49,22 @@ try {
     }
     $edited = $ok( $save->execute( [ 'mode' => 'edit', 'templateId' => $id, 'expectedHash' => $read['hash'], 'edits' => [ [ 'op' => 'insert', 'at' => 1, 'block' => $paragraph( 'QA before body' ) ] ] ] ) );
     $assert( $edited['template']['hash'] !== $read['hash'], 'Template edit updates its hash.' );
+    $slug = $read['slug'];
     $page = $ids[] = (int) $ok( wp_insert_post( wp_slash( [ 'post_type' => 'page', 'post_status' => 'draft', 'post_title' => 'Lite QA assigned page', 'post_content' => $paragraph( 'QA page body' )['markup'] ] ), true ) );
     $ok( ( new AssignTemplatePagesAbility() )->execute( [ 'templateId' => $id, 'pageIds' => [ $page ], 'mode' => 'add' ] ) );
-    $assert( get_page_template_slug( $page ) === $read['slug'], 'Page receives the template assignment.' );
+    $assert( get_page_template_slug( $page ) === $slug, 'Page receives the template assignment.' );
     $GLOBALS['wp_query'] = new WP_Query( [ 'page_id' => $page, 'post_status' => 'draft' ] );
     $GLOBALS['post'] = get_post( $page ); setup_postdata( $GLOBALS['post'] );
     $assert( TemplateResolver::singular_template()->id === $id, 'Assigned template resolves without bundles.' );
     BlockThemeApplier::register_templates();
-    $native = get_block_template( get_stylesheet() . '//' . $read['slug'], 'wp_template' );
+    $native = get_block_template( get_stylesheet() . '//' . $slug, 'wp_template' );
     $assert( $native && str_contains( $native->content, 'wp:post-content' ), 'Native block theme receives the frame.' );
     $html = do_blocks( $native->content );
     foreach ( [ 'QA header', 'QA before body', 'QA page body', 'QA footer', 'qa-content' ] as $needle ) { $assert( str_contains( $html, $needle ), 'Rendered frame includes ' . $needle ); }
     $assert( substr_count( $html, 'QA page body' ) === 1, 'Page content renders exactly once.' );
     $assert( get_post_field( 'post_content', $page ) === $paragraph( 'QA page body' )['markup'], 'Assigning and rendering never rewrites page blocks.' );
-    $own_blocks = $blocks;
-    $own_blocks[1] = [ 'name' => 'fabrement/content-source' ];
-    $ok( $save->execute( [ 'mode' => 'replace', 'templateId' => $id, 'blocks' => $own_blocks ] ) );
+    $own_frame = $frame( '<!-- wp:fabrement/content-source /-->' );
+    $ok( SiteTemplateWriter::save( [ 'id' => $id, 'content' => $own_frame ] ) );
     $html = do_blocks( SiteTemplateRegistry::find( $id )->render_content() );
     $assert( str_contains( $html, 'QA header' ) && str_contains( $html, 'QA page body' ) && str_contains( $html, 'QA footer' ), 'Our Content Source block renders page content inside the same frame.' );
     $assert( SiteTemplateRegistry::find( $id )->problem() === '', 'The built-in slot needs no manifest or PHP layout.' );
@@ -69,29 +74,28 @@ try {
         acf_add_local_field_group( [ 'key' => 'group_lite_template_qa', 'title' => 'QA',
             'fields' => [ [ 'key' => 'field_lite_template_qa_heading', 'name' => 'heading', 'label' => 'Heading', 'type' => 'text' ] ],
             'location' => [ [ [ 'param' => 'block', 'operator' => '==', 'value' => 'acf/lite-template-qa' ] ] ] ] );
-        $acf_frame = $own_blocks;
-        array_unshift( $acf_frame, [ 'name' => 'acf/lite-template-qa', 'attributes' => [ 'data' => [ 'heading' => 'QA ACF template' ] ] ] );
-        $ok( $save->execute( [ 'mode' => 'replace', 'templateId' => $id, 'blocks' => $acf_frame ] ) );
+        $acf = BlockEntry::serialize( [ 'name' => 'acf/lite-template-qa', 'attributes' => [ 'data' => [ 'heading' => 'QA ACF template' ] ] ], 0 )['markup'];
+        $ok( SiteTemplateWriter::save( [ 'id' => $id, 'content' => $acf . $own_frame ] ) );
         $html = do_blocks( SiteTemplateRegistry::find( $id )->render_content() );
-        $assert( str_contains( $html, 'QA ACF template' ) && str_contains( $html, 'QA page body' ), 'Existing ACF blocks render alongside Content Source.' );
-        $before_acf_edit = $ok( $get->execute( [ 'templateId' => $id ] ) )['template'];
-        $ok( $save->execute( [ 'mode' => 'edit', 'templateId' => $id, 'expectedHash' => $before_acf_edit['hash'], 'edits' => [ [ 'op' => 'update', 'index' => 0, 'name' => 'acf/lite-template-qa', 'attributes' => [ 'data' => [ 'heading' => 'QA ACF updated' ] ] ] ] ] ) );
-        $html = do_blocks( SiteTemplateRegistry::find( $id )->render_content() );
-        $assert( str_contains( $html, 'QA ACF updated' ) && str_contains( $html, 'QA header' ), 'ACF patches preserve neighboring template blocks.' );
+        $assert( str_contains( $html, 'QA ACF template' ) && str_contains( $html, 'QA page body' ) && str_contains( $html, 'QA header' ), 'Existing ACF blocks render alongside Content Source.' );
         // Leave only persistent registered blocks for the subsequent REST/browser-equivalent save.
-        $ok( $save->execute( [ 'mode' => 'replace', 'templateId' => $id, 'blocks' => $own_blocks ] ) );
+        $ok( SiteTemplateWriter::save( [ 'id' => $id, 'content' => $own_frame ] ) );
     }
     add_filter( 'stylesheet_directory', $child_theme );
     add_filter( 'template_directory', $parent_theme );
-    $files = ( new \Fabrement\Modules\Mcp\Ability\ListThemeTemplatesAbility() )->execute( [] )['files'];
+    $files = \Fabrement\Modules\ContentSource\ThemeTemplateFiles::all();
     $paths = array_column( $files, 'path' );
     $assert( count( array_filter( $paths, static fn( $path ) => $path === 'body.php' ) ) === 1 && in_array( 'parent-only.php', $paths, true ), 'Theme discovery merges child and parent without duplicate paths.' );
     $assert( ! in_array( '../outside.php', $paths, true ), 'Discovery never offers PHP outside templates/.' );
     $assert( \Fabrement\Modules\ContentSource\ThemeTemplateFiles::resolve( '/body.php' ) === null,'Discovery checks reject absolute paths rather than silently trimming them.' );
-    $set_source = static function ( string $file ) use ( $save, $id ) { return $save->execute( [ 'mode' => 'replace', 'templateId' => $id, 'contentSource' => [ 'rules' => [ [ 'context' => 'singular:page', 'file' => $file ] ] ] ] ); };
+    // Theme files are set in wp-admin only; the writer behind its REST route.
+    $set_source = static function ( string $file ) use ( $id ) { return \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::write( $id, [ 'rules' => [ [ 'context' => 'singular:page', 'file' => $file ] ] ] ); };
     $ok( $set_source( 'body.php' ) );
     $key = \Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType::manifest_key( $id );
-    $assert( $key !== '' && \Fabrement\Modules\SiteTemplate\Service\TemplateManifestStore::rules( $key )[0]['file'] === 'body.php', 'MCP saves choices into the shared JSON manifest.' );
+    $assert( $key !== '' && \Fabrement\Modules\SiteTemplate\Service\TemplateManifestStore::rules( $key )[0]['file'] === 'body.php', 'Choices are saved into the shared JSON manifest.' );
+    $ok( $save->execute( [ 'mode' => 'replace', 'templateId' => $id, 'title' => get_the_title( $id ) . ' renamed', 'contentSource' => [ 'rules' => [] ] ] ) );
+    $assert( \Fabrement\Modules\SiteTemplate\Service\TemplateManifestStore::rules( $key )[0]['file'] === 'body.php', 'save-template keeps the theme-file choices; it takes no contentSource.' );
+    $assert( $ok( $get->execute( [ 'templateId' => $id ] ) )['template']['contentSource']['rules'][0]['file'] === 'body.php', 'get-template shows the current source choice.' );
     $assert( ! str_contains( get_post_field( 'post_content', $id ), '"rules"' ), 'Shared rules are absent from stored block attributes.' );
     // Exercise the storage relationship WPML uses, without claiming a real WPML installation.
     $version = $ids[] = (int) $ok( wp_insert_post( wp_slash( [ 'post_type' => 'fabrement_template', 'post_status' => 'publish',
@@ -104,8 +108,6 @@ try {
     $assert( \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::read( $version )['rules'][0]['file'] === 'body.php', 'A sibling reads shared rules rather than stale embedded copies.' );
     $rendered_version = SiteTemplateRegistry::find( $version )->render_content();
     $assert( str_contains( $rendered_version, '"templateId":' . $version ) && ! str_contains( $rendered_version, 'parent-only.php' ) && str_contains( $rendered_version, 'translated-slot' ), 'The slot is told its template; stale embedded rules are dropped, layout attributes kept.' );
-    $version_read = $ok( $get->execute( [ 'templateId' => $version ] ) )['template'];
-    $assert( ! str_contains( wp_json_encode( $version_read['blocks'] ), 'parent-only.php' ) && str_contains( wp_json_encode( $version_read['blocks'] ), 'translated-slot' ), 'MCP block reads separate shared choices from nested translated blocks.' );
     $html = do_blocks( SiteTemplateRegistry::find( $id )->render_content() );
     $assert( str_contains( $html, 'Child theme source: ' . $page ) && ! str_contains( $html, 'Parent shadowed' ) && ! str_contains( $html, 'QA page body' ), 'Existing child PHP file fills the source slot using the actual page context.' );
     $assert( str_contains( $html, 'QA header' ) && str_contains( $html, 'QA footer' ), 'Theme source preserves header/footer.' );
@@ -115,8 +117,7 @@ try {
     $assert( ! str_contains( $html, 'Child theme source' ) && str_contains( $html, 'post-password-form' ), 'A selected theme source does not bypass page password protection.' );
     wp_update_post( [ 'ID' => $page, 'post_password' => '' ] );
     $GLOBALS['post'] = get_post( $page ); $GLOBALS['wp_query']->queried_object = get_post( $page );
-    $source_read = $ok( $get->execute( [ 'templateId' => $id ] ) )['template'];
-    $assert( $source_read['contentSource']['rules'][0]['file'] === 'body.php', 'get-template returns the current source choice.' );
+    $assert( \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::read( $id )['rules'][0]['file'] === 'body.php', 'The current source choice reads back.' );
     $before_source = get_post_field( 'post_content', $id );
     foreach ( [ '../outside.php', '/body.php', 'C:/outside.php', 'php://filter/resource=body.php', '%2e%2e/outside.php', 'render/singular/generated.php', 'missing.php', 'archive.php' ] as $invalid ) {
         $assert( is_wp_error( $set_source( $invalid ) ) && get_post_field( 'post_content', $id ) === $before_source, 'Invalid source refused atomically: ' . $invalid );
@@ -128,7 +129,7 @@ try {
     $ok( $set_source( 'broken.php' ) );
     $html = do_blocks( SiteTemplateRegistry::find( $id )->render_content() );
     $assert( str_contains( $html, 'QA page body' ) && ! str_contains( $html, 'Partial output' ), 'A throwing theme source falls back without leaking partial output.' );
-    $ok( $save->execute( [ 'mode' => 'replace', 'templateId' => $id, 'contentSource' => [ 'rules' => [] ] ] ) );
+    $ok( \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::write( $id, [ 'rules' => [] ] ) );
     $assert( str_contains( do_blocks( SiteTemplateRegistry::find( $id )->render_content() ), 'QA page body' ), 'Clearing the source returns to page blocks.' );
     $ok( $set_source( 'parent-only.php' ) );
     // REST_REQUEST remains true after dispatch; finish frontend rendering checks first.
@@ -151,7 +152,7 @@ try {
     $response = rest_do_request( $request );
     $assert( $response->get_status() === 200 && ! str_contains( get_post_field( 'post_content', $version ), '"rules"' )
         && \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::read( $id )['rules'][0]['file'] === 'body.php', 'A block-only save cannot overwrite shared rules with old embedded choices.' );
-    $ok( $save->execute( [ 'mode' => 'replace', 'templateId' => $version, 'contentSource' => [ 'rules' => [] ] ] ) );
+    $ok( \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::write( $version, [ 'rules' => [] ] ) );
     $assert( \Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig::read( $id )['rules'] === [], 'Clearing rules from the sibling clears shared choices for the original.' );
     wp_delete_post( $version, true );
     $assert( \Fabrement\Modules\SiteTemplate\Service\TemplateManifestStore::exists( $key ), 'Deleting one version preserves the manifest for its remaining holder.' );
@@ -168,9 +169,14 @@ try {
     $response = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/fabrement_template/' . $id ) );
     $assert( $response->get_status() === 401, 'Anonymous users cannot read template editor records.' );
     wp_set_current_user( (int) $users[0] );
-    $bad = ( new DeleteTemplateAbility() )->execute( [ 'templateId' => $id ] );
-    $assert( is_wp_error( $bad ), 'In-use template deletion is guarded.' );
-    $ok( ( new DeleteTemplateAbility() )->execute( [ 'templateId' => $id, 'force' => true ] ) );
+    $delete = new DeleteTemplateAbility();
+    $assert( is_wp_error( $delete->execute( [ 'templateId' => $id ] ) ), 'In-use template deletion is guarded.' );
+    $page_default = \Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType::type_defaults()['page'] ?? 0;
+    \Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType::set_default_for( 'page', $id );
+    $site_wide = $delete->execute( [ 'templateId' => $id, 'force' => true ] );
+    \Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType::set_default_for( 'page', (int) $page_default );
+    $assert( is_wp_error( $site_wide ) && $site_wide->get_error_code() === 'template_assigned_site_wide' && get_post( $id ), 'A site-wide default is never cleared through MCP, force or not.' );
+    $ok( $delete->execute( [ 'templateId' => $id, 'force' => true ] ) );
     $assert( ! get_post( $id ) && ! str_starts_with( (string) get_page_template_slug( $page ), 'fabrement-template-' ), 'Deletion clears page picks.' );
     $assert( ! \Fabrement\Modules\SiteTemplate\Service\TemplateManifestStore::exists( $key ), 'Deleting the last holder removes the shared manifest.' );
     $assert( get_post( $parts['header'] ) !== null && get_post( $page ) !== null, 'Template deletion preserves shared patterns and page content.' );

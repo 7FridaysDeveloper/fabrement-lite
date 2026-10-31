@@ -49,7 +49,10 @@ final class TranslationToolsTest extends WpmlTestCase {
         $this->assertSame( $fr, $this->version( $page, 'fr' ) );
         $this->assertSame( 'fr', apply_filters( 'wpml_element_language_code', null, [ 'element_id' => $fr, 'element_type' => 'post_page' ] ) );
         $this->assertSame( get_post_field( 'post_content', $page ), get_post_field( 'post_content', $fr ) );
-        $this->assertSame( $image, (int) get_post_thumbnail_id( $fr ) );
+        // The image in the version's language: WPML may have made a French copy of it.
+        $french_image = (int) apply_filters( 'wpml_object_id', $image, 'attachment', true, 'fr' );
+        $this->assertSame( $french_image, (int) get_post_thumbnail_id( $fr ) );
+        $this->assertSame( 'fr', apply_filters( 'wpml_element_language_code', null, [ 'element_id' => $french_image, 'element_type' => 'post_attachment' ] ) );
         $this->assertSame( 'page-wide.php', get_post_meta( $fr, '_wp_page_template', true ) );
     }
 

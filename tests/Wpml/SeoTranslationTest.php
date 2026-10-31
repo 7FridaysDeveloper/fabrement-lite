@@ -2,9 +2,6 @@
 
 namespace Fabrement\Tests\Wpml;
 
-use Fabrement\Modules\Fields\Schema\Owner;
-use Fabrement\Modules\Fields\Schema\SchemaRepository;
-use Fabrement\Modules\PostType\ArchivePageStore;
 use Fabrement\Modules\Seo\Content\ContentImages;
 use Fabrement\Modules\Seo\PrimaryTerm;
 use Fabrement\Modules\Seo\Seo;
@@ -14,16 +11,11 @@ use WP_Error;
 /**
  * SEO across languages on the real WPML with Yoast SEO and Yoast SEO Multilingual: what a language
  * version gets and keeps, per-language defaults through String Translation, term SEO and the main
- * category in the right language, an archive's SEO per language, and images from a global block's
- * version in the page's language.
+ * category in the right language, and images from a global block's version in the page's language.
  */
 final class SeoTranslationTest extends WpmlTestCase {
 
     public function tear_down(): void {
-        if ( $owner = Owner::of( 'post', 'page' ) ) {
-            SchemaRepository::delete( $owner );
-        }
-        SchemaRepository::flush();
         ContentImages::flush();
         \WPSEO_Options::clear_cache();
         parent::tear_down();
@@ -43,13 +35,8 @@ final class SeoTranslationTest extends WpmlTestCase {
         return $result instanceof WP_Error ? $result->get_error_code() : 'accepted';
     }
 
-    public function test_a_version_gets_yoasts_fields_as_wpml_config_says_and_fabrements_by_policy(): void {
-        $saved = $this->tool( 'save-fields', [ 'type' => 'post', 'slug' => 'page', 'expectedRevision' => 0, 'fields' => [
-            [ 'name' => 'price', 'label' => 'Price', 'description' => 'Price', 'type' => 'number', 'format' => 'decimal' ],
-        ] ] );
-        $this->assertIsArray( $saved );
+    public function test_a_version_gets_yoasts_fields_as_wpml_config_says(): void {
         $page = $this->page( [ 'post_title' => 'About us' ] );
-        fabrement()->fields( $page )->set( 'price', 12.5 )->save();
         foreach ( [
             '_yoast_wpseo_title'               => 'About — EN',
             '_yoast_wpseo_metadesc'            => 'English description',
@@ -67,7 +54,6 @@ final class SeoTranslationTest extends WpmlTestCase {
         $this->assertSame( [], get_post_meta( $fr, '_yoast_wpseo_title' ), 'translate: Yoast\'s French template applies' );
         $this->assertSame( [], get_post_meta( $fr, '_yoast_wpseo_metadesc' ) );
         $this->assertSame( [], get_post_meta( $fr, '_yoast_wpseo_canonical' ), 'ignore: never the English address' );
-        $this->assertEquals( 12.5, fabrement_get_field( 'price', $fr ), 'a Fabrement copy field' );
 
         wp_update_post( [ 'ID' => $fr, 'post_status' => 'publish', 'post_name' => 'a-propos' ] );
         $this->assertSame( 'http://example.org/fr/a-propos/', Translation::bridge()->permalink( $fr, 'fr' ) );
@@ -101,18 +87,6 @@ final class SeoTranslationTest extends WpmlTestCase {
         $this->assertSame( 'translated', ( (array) $read['translationsSeo'] )['fr']['title'] ?? null, 'the version has words of its own' );
     }
 
-    public function test_type_defaults_have_a_version_per_language_through_string_translation(): void {
-        $en = $this->tool( 'set-seo-defaults', [ 'postType' => 'page', 'titleTemplate' => '%%title%% %%sep%% Studio' ] );
-        $this->assertIsArray( $en, $en instanceof WP_Error ? $en->get_error_message() : '' );
-        $fr = ( new \Fabrement\Modules\Mcp\Ability\SetSeoDefaultsAbility() )->execute( [ 'postType' => 'page', 'language' => 'fr', 'titleTemplate' => '%%title%% %%sep%% Atelier' ] );
-        $this->assertIsArray( $fr, $fr instanceof WP_Error ? $fr->get_error_message() : '' );
-        $this->assertSame( [ 'titleTemplate' ], $fr['written'] );
-
-        $this->assertSame( '%%title%% %%sep%% Atelier', Seo::bridge()->read_defaults_translations( 'postType', 'page' )['fr']['titleTemplate'] ?? null );
-        $this->assertSame( '%%title%% %%sep%% Studio', Seo::bridge()->read_defaults( 'postType', 'page' )['titleTemplate'] ?? null, 'the original stays' );
-        $this->assertSame( 'shared_field', $this->code( ( new \Fabrement\Modules\Mcp\Ability\SetSeoDefaultsAbility() )->execute( [ 'postType' => 'page', 'language' => 'fr', 'noindex' => true ] ) ), 'a flag is one value for every language' );
-    }
-
     public function test_term_seo_is_written_on_the_term_asked_for(): void {
         $news = self::factory()->category->create( [ 'name' => 'News' ] );
         $this->tool( 'translate-term', [ 'termId' => $news, 'language' => 'fr', 'name' => 'Actualités', 'slug' => 'actualites' ] );
@@ -124,112 +98,6 @@ final class SeoTranslationTest extends WpmlTestCase {
         $this->assertSame( 'Toutes les actualités', Seo::bridge()->read_term( \WP_Term::get_instance( $fr_news ) )['title'] ?? null );
         $this->assertArrayNotHasKey( 'title', Seo::bridge()->read_term( \WP_Term::get_instance( $news ) ), 'not the English one' );
         $this->assertSame( 'Toutes les actualités', ( (array) $this->tool( 'get-seo', [ 'termId' => $fr_news ] )['term']['stored'] )['title'] ?? null );
-    }
-
-    public function test_an_archive_has_seo_per_language(): void {
-        register_post_type( 'qa_wbook', [ 'public' => true, 'has_archive' => 'qa-wbooks', 'label' => 'Books' ] );
-        try {
-            $record = ArchivePageStore::ensure( 'qa_wbook', 'Books', 'qa-wbooks' );
-            $this->assertGreaterThan( 0, $record );
-            $set_seo = new \Fabrement\Modules\Mcp\Ability\SetSeoAbility();
-
-            $this->assertSame( 'fabrement_language_missing', $this->code( $set_seo->execute( [ 'archive' => 'qa_wbook', 'language' => 'fr', 'title' => 'Livres' ] ) ) );
-            $fr = $this->translate( $record, 'fr' );
-            wp_update_post( [ 'ID' => $fr, 'post_status' => 'publish' ] );
-
-            $out = $set_seo->execute( [ 'archive' => 'qa_wbook', 'language' => 'fr', 'title' => 'Tous les livres', 'noindex' => true ] );
-            $this->assertSame( $fr, $out['contentId'] ?? null, $out instanceof WP_Error ? $out->get_error_message() : '' );
-            $this->assertSame( 'Tous les livres', Seo::bridge()->read_post( $fr )['title'] ?? null );
-            $this->assertArrayNotHasKey( 'noindex', Seo::bridge()->read_post( $record ), 'noindex on the French archive alone' );
-            $this->assertSame( $fr, ( new \Fabrement\Modules\Mcp\Ability\GetSeoAbility() )->execute( [ 'archive' => 'qa_wbook', 'language' => 'fr' ] )['archive']['pageId'] );
-
-            register_post_type( 'qa_wforeign', [ 'public' => true, 'has_archive' => true, 'label' => 'Foreign' ] );
-            $this->assertSame( 'archive_needs_record', $this->code( $set_seo->execute( [ 'archive' => 'qa_wforeign', 'language' => 'fr', 'title' => 'x' ] ) ), 'without a record: one value for every language' );
-        } finally {
-            unregister_post_type( 'qa_wbook' );
-            unregister_post_type( 'qa_wforeign' );
-        }
-    }
-
-    public function test_the_french_archive_pages_at_its_own_address(): void {
-        register_post_type( 'qa_wtalk', [ 'public' => true, 'has_archive' => 'qa-wtalks', 'label' => 'Talks' ] );
-        try {
-            $record = ArchivePageStore::ensure( 'qa_wtalk', 'Talks', 'qa-wtalks' );
-            $fr     = $this->translate( $record, 'fr' );
-            wp_update_post( [ 'ID' => $fr, 'post_status' => 'publish', 'post_name' => 'exposes' ] );
-            self::factory()->post->create_many( 5, [ 'post_type' => 'qa_wtalk' ] );
-            update_option( 'posts_per_page', 2 );
-            flush_rewrite_rules( false );
-
-            // A reader on page 2 of the French listing: the request is in French, as WPML sets it from the URL.
-            do_action( 'wpml_switch_language', 'fr' );
-            $first = (string) get_post_type_archive_link( 'qa_wtalk' );
-            $this->assertStringContainsString( '/fr/exposes', $first, 'at the French record\'s address' );
-            $this->go_to( trailingslashit( $first ) . 'page/2/' );
-            $this->assertTrue( is_post_type_archive( 'qa_wtalk' ), 'the French rules answer page 2' );
-            YoastSEO()->classes->get( \Yoast\WP\SEO\Memoizers\Meta_Tags_Context_Memoizer::class )->clear();
-            ob_start();
-            do_action( 'wpseo_head' );
-            $head = (string) ob_get_clean();
-
-            $this->assertStringContainsString( '<link rel="canonical" href="' . trailingslashit( $first ) . 'page/2/"', $head );
-            $this->assertStringContainsString( '<link rel="prev" href="' . $first . '"', $head );
-            $this->assertStringContainsString( '<link rel="next" href="' . trailingslashit( $first ) . 'page/3/"', $head );
-        } finally {
-            unregister_post_type( 'qa_wtalk' );
-        }
-    }
-
-    public function test_the_language_version_of_an_archive_record_is_a_collection_page_too(): void {
-        register_post_type( 'qa_wtalk', [ 'public' => true, 'has_archive' => 'qa-wtalks', 'label' => 'Talks' ] );
-        try {
-            $record = ArchivePageStore::ensure( 'qa_wtalk', 'Talks', 'qa-wtalks' );
-            $fr     = $this->translate( $record, 'fr' );
-            wp_update_post( [ 'ID' => $fr, 'post_status' => 'publish', 'post_name' => 'exposes' ] );
-
-            $types = static function ( int $id ): array {
-                $graph = Translation::bridge()->in_language( (string) Translation::live_language_of( $id, 'page' ), static fn() => \Fabrement\Modules\Seo\Schema\SchemaOutput::preview( $id )['graph'] );
-                foreach ( $graph as $node ) {
-                    if ( is_array( $node ) && in_array( 'WebPage', (array) ( $node['@type'] ?? [] ), true ) ) {
-                        return (array) $node['@type'];
-                    }
-                }
-                return [];
-            };
-            $this->assertContains( 'CollectionPage', $types( $record ) );
-            $this->assertContains( 'CollectionPage', $types( $fr ), 'the French record stands for the French archive' );
-        } finally {
-            unregister_post_type( 'qa_wtalk' );
-        }
-    }
-
-    public function test_the_sitemap_lists_each_languages_archive_once(): void {
-        register_post_type( 'qa_wtalk', [ 'public' => true, 'has_archive' => 'qa-wtalks', 'label' => 'Talks' ] );
-        try {
-            $record = ArchivePageStore::ensure( 'qa_wtalk', 'Talks', 'qa-wtalks' );
-            $fr     = $this->translate( $record, 'fr' );
-            wp_update_post( [ 'ID' => $fr, 'post_status' => 'publish', 'post_name' => 'exposes' ] );
-            $bridge = Translation::bridge();
-            $en_url = $bridge->permalink( $record, 'en' );
-            $fr_url = $bridge->permalink( $fr, 'fr' );
-            $this->assertNotSame( $en_url, $fr_url );
-
-            // What WPML's sitemap filter adds after Yoast's own link: the archive in every language —
-            // Polish has no record, so its archive is the original's address, listed again.
-            $wpml = [ [ 'loc' => $en_url ], [ 'loc' => $fr_url ], [ 'loc' => $en_url ] ];
-            $locs = static fn( $links ): array => array_column( (array) $links, 'loc' );
-
-            $this->assertSame( [ $en_url, $fr_url ], $locs( apply_filters( 'wpseo_sitemap_post_type_first_links', $wpml, 'qa_wtalk' ) ) );
-
-            $this->assertIsArray( ( new \Fabrement\Modules\Mcp\Ability\SetSeoAbility() )->execute( [ 'archive' => 'qa_wtalk', 'language' => 'fr', 'noindex' => true ] ) );
-            $this->assertSame( [ $en_url ], $locs( apply_filters( 'wpseo_sitemap_post_type_first_links', $wpml, 'qa_wtalk' ) ), 'noindex on the French archive takes its address out' );
-
-            $excluded = apply_filters( 'wpseo_exclude_from_sitemap_by_post_ids', [] );
-            $this->assertContains( $record, $excluded );
-            $this->assertContains( $fr, $excluded, 'no version of the record is a page in the sitemap' );
-        } finally {
-            unregister_post_type( 'qa_wtalk' );
-        }
     }
 
     // ── what is still to translate: get-seo and list-seo ──────────────────────────────────────
@@ -308,7 +176,7 @@ final class SeoTranslationTest extends WpmlTestCase {
         $this->assertSame( '', (string) ( $row['wpseo_bctitle'] ?? '' ) );
     }
 
-    public function test_terms_and_archives_report_their_versions_too(): void {
+    public function test_terms_report_their_versions_too(): void {
         $news = self::factory()->term->create( [ 'taxonomy' => 'category', 'name' => 'News', 'slug' => 'news' ] );
         Seo::bridge()->write_term( \WP_Term::get_instance( $news ), [ 'metaDesc' => 'All the news' ] );
         $this->tool( 'translate-term', [ 'termId' => $news, 'language' => 'fr', 'name' => 'Actualités', 'slug' => 'actualites' ] );
@@ -323,22 +191,6 @@ final class SeoTranslationTest extends WpmlTestCase {
         $this->assertIsArray( $this->tool( 'set-seo', [ 'termId' => $fr_news, 'metaDesc' => 'Toutes les nouvelles' ] ) );
         $this->assertSame( 'translated', $this->tool( 'get-seo', [ 'termId' => $news ] )['term']['translationsSeo']->fr['metaDesc'] ?? null );
         $this->assertArrayNotHasKey( $fr_news, $this->seo_rows( [ 'kind' => 'term', 'taxonomy' => 'category', 'language' => 'fr', 'filter' => [ 'untranslated' ] ] ) );
-
-        register_post_type( 'qa_wtalk', [ 'public' => true, 'has_archive' => 'qa-wtalks', 'label' => 'Talks' ] );
-        try {
-            $record = ArchivePageStore::ensure( 'qa_wtalk', 'Talks', 'qa-wtalks' );
-            Seo::bridge()->write_post( $record, [ 'metaDesc' => 'Every talk' ] );
-            $fr = $this->translate( $record, 'fr' );
-            wp_update_post( [ 'ID' => $fr, 'post_status' => 'publish', 'post_name' => 'exposes' ] );
-
-            $row = $this->seo_rows( [ 'kind' => 'archive', 'language' => 'fr' ] )[ $fr ] ?? null;
-            $this->assertSame( 'qa_wtalk', $row['postType'] ?? null );
-            $this->assertSame( 'missing', $row['translation']['metaDesc'] ?? null );
-            $this->assertSame( 'missing', $this->tool( 'get-seo', [ 'archive' => 'qa_wtalk' ] )['archive']['translationsSeo']->fr['metaDesc'] ?? null );
-            $this->assertContains( 'pl', $this->seo_rows( [ 'kind' => 'archive' ] )[ $record ]['missingLanguages'] ?? [] );
-        } finally {
-            unregister_post_type( 'qa_wtalk' );
-        }
     }
 
     public function test_schema_tokens_on_a_version_point_at_yoasts_nodes_in_its_language(): void {
@@ -381,7 +233,7 @@ final class SeoTranslationTest extends WpmlTestCase {
     public function test_a_pages_images_come_from_the_global_blocks_version_in_its_language(): void {
         $en_img  = self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg' );
         $fr_img  = self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg' );
-        $block   = static fn( int $id ): string => '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => [ 'id' => $id, 'url' => (string) wp_get_attachment_url( $id ) ] ] ) . ' /-->';
+        $block   = static fn( int $id ): string => '<!-- wp:image {"id":' . $id . '} --><figure class="wp-block-image"><img src="' . esc_url( (string) wp_get_attachment_url( $id ) ) . '" alt="" class="wp-image-' . $id . '"/></figure><!-- /wp:image -->';
         $pattern = self::factory()->post->create( [ 'post_type' => 'wp_block', 'post_status' => 'publish', 'post_title' => 'Hero', 'post_content' => $block( $en_img ) ] );
         $version = $this->tool( 'translate-synced-pattern', [ 'patternId' => $pattern, 'language' => 'fr' ] );
         $this->assertIsArray( $version, $version instanceof WP_Error ? $version->get_error_message() : '' );

@@ -76,6 +76,25 @@ final class TranslateTermAbility extends AbstractAbility {
 		);
 	}
 
+	public function output_schema(): array {
+		return array(
+			'type'       => 'object',
+			'required'   => array( 'termId', 'originalId', 'taxonomy', 'language', 'created', 'name', 'slug', 'url', 'translations', 'warnings' ),
+			'properties' => array(
+				'termId'       => array( 'type' => 'integer' ),
+				'originalId'   => array( 'type' => 'integer' ),
+				'taxonomy'     => array( 'type' => 'string' ),
+				'language'     => array( 'type' => 'string' ),
+				'created'      => array( 'type' => 'boolean' ),
+				'name'         => array( 'type' => 'string' ),
+				'slug'         => array( 'type' => 'string' ),
+				'url'          => array( 'type' => 'string' ),
+				'translations' => array( 'type' => 'object', 'description' => '{code: id}, this term included.' ),
+				'warnings'     => array( 'type' => 'array', 'items' => array( 'type' => 'string' ) ),
+			),
+		);
+	}
+
 	public function execute( array $input ) {
 		$term_id  = (int) ( $input['termId'] ?? 0 );
 		$language = trim( (string) ( $input['language'] ?? '' ) );
@@ -99,6 +118,14 @@ final class TranslateTermAbility extends AbstractAbility {
 		}
 		$taxonomy = (string) $term->taxonomy;
 		$refused  = TermWriter::refuse_term_taxonomy( $taxonomy );
+		if ( $refused !== null ) {
+			return $refused;
+		}
+		// Edit the source, and add a term (the version is a new one).
+		if ( ! current_user_can( 'edit_term', $term_id ) ) {
+			return new WP_Error( 'forbidden', sprintf( 'You may not edit term %d (edit_term).', $term_id ) );
+		}
+		$refused = TermWriter::refuse_create( $taxonomy );
 		if ( $refused !== null ) {
 			return $refused;
 		}
@@ -144,8 +171,8 @@ final class TranslateTermAbility extends AbstractAbility {
 		// success, and reported the version as `originalId`. The only hint was `created: false`,
 		// which reads like an ordinary idempotent repeat.
 		//
-		// translate-content and translate-template have refused this from the start; terms are the
-		// path that did not. Same refusal code, so an agent meets one rule rather than three.
+		// translate-content has refused this from the start; terms are the path that did not.
+		// Same refusal code, so an agent meets one rule.
 		$original = $bridge->original_term_id( $term_id, $taxonomy );
 		if ( $original > 0 && $original !== $term_id ) {
 			return new WP_Error(
@@ -198,6 +225,10 @@ final class TranslateTermAbility extends AbstractAbility {
 
 		$existing = $bridge->version_in( $term_id, $taxonomy, $language );
 		$created  = $existing <= 0 || $existing === $term_id;
+		// A version that exists is rewritten: an edit of that term.
+		if ( ! $created && ! current_user_can( 'edit_term', $existing ) ) {
+			return new WP_Error( 'forbidden', sprintf( 'You may not edit term %d (edit_term).', $existing ) );
+		}
 
 		// WordPress keeps term slugs unique across the whole taxonomy, and WPML makes term_exists()
 		// answer across every language at once — so a slug held by another language's term is not

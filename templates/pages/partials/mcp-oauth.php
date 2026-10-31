@@ -78,7 +78,7 @@ $fabrement_oauth_fields = static function () use ( $fabrement_oauth_setup, $fabr
          */
         ?>
         <h3 id="fabrement-claude-guide-title" class="fabrement-cred__guide-title"><?php esc_html_e( 'Connect this site in Claude.ai (Web and Desktop connections)', 'fabrement-lite' ); ?></h3>
-        <p class="fabrement-cred__guide-lead"><?php $fabrement_ui( /* translators: 1: Claude form name, 2: Claude button, 3: this site's consent page title, 4: its approve button. */ __( 'The button opens Claude\'s %1$s form with this site\'s name and URL already filled in. After you select %2$s, Claude takes you to this site\'s %3$s page by itself — if WordPress asks, sign in as an administrator first. Click %4$s and you are sent back to Claude, connected. Then enable the connector in a new chat.', 'fabrement-lite' ), __( 'Add custom connector', 'fabrement-lite' ), __( 'Continue', 'fabrement-lite' ), __( 'Connect to Fabrement', 'fabrement-lite' ), __( 'Allow access', 'fabrement-lite' ) ); ?></p>
+        <p class="fabrement-cred__guide-lead"><?php $fabrement_ui( /* translators: 1: Claude form name, 2: Claude button, 3: this site's consent page title, 4: its approve button. */ __( 'The button opens Claude\'s %1$s form with this site\'s name and URL already filled in. After you select %2$s, Claude takes you to this site\'s %3$s page by itself — if WordPress asks, sign in first. Click %4$s and you are sent back to Claude, connected. Then enable the connector in a new chat.', 'fabrement-lite' ), __( 'Add custom connector', 'fabrement-lite' ), __( 'Continue', 'fabrement-lite' ), __( 'Connect to Fabrement', 'fabrement-lite' ), __( 'Allow access', 'fabrement-lite' ) ); ?></p>
         <?php if ( $fabrement_oauth_gate() ) : ?>
             <div class="fabrement-cred__mcp-actions">
                 <a class="button button-primary" href="<?php echo esc_url( $fabrement_oauth_setup['settings_url'] ); ?>" target="_blank" rel="noopener noreferrer">
@@ -178,7 +178,7 @@ $fabrement_oauth_fields = static function () use ( $fabrement_oauth_setup, $fabr
                 __( 'Authorize in WordPress', 'fabrement-lite' ),
                 static function () use ( $fabrement_ui, $fabrement_create ): void {
                     ?>
-                    <p><?php $fabrement_ui( /* translators: 1: ChatGPT button, 2: this site's consent page title, 3: its approve button. */ __( 'After you click %1$s, ChatGPT takes you to this site\'s %2$s page by itself — if WordPress asks, sign in as an administrator first. Review the permissions and click %3$s: you are sent back to ChatGPT with the connection in place.', 'fabrement-lite' ), $fabrement_create, __( 'Connect to Fabrement', 'fabrement-lite' ), __( 'Allow access', 'fabrement-lite' ) ); ?></p>
+                    <p><?php $fabrement_ui( /* translators: 1: ChatGPT button, 2: this site's consent page title, 3: its approve button. */ __( 'After you click %1$s, ChatGPT takes you to this site\'s %2$s page by itself — if WordPress asks, sign in first. Review the permissions and click %3$s: you are sent back to ChatGPT with the connection in place.', 'fabrement-lite' ), $fabrement_create, __( 'Connect to Fabrement', 'fabrement-lite' ), __( 'Allow access', 'fabrement-lite' ) ); ?></p>
                     <?php
                 }
             );
@@ -247,7 +247,7 @@ $fabrement_oauth_fields = static function () use ( $fabrement_oauth_setup, $fabr
                 __( 'Sign in', 'fabrement-lite' ),
                 static function () use ( $fabrement_ui ): void {
                     ?>
-                    <p><?php $fabrement_ui( /* translators: 1: Codex tab, 2: list heading, 3: Codex button, 4: this site's consent page title, 5: its approve button. */ __( 'The server now shows on the %1$s tab under %2$s. Click %3$s next to it. Your browser opens this site\'s %4$s page — if WordPress asks, sign in as an administrator first. Review the permissions and click %5$s: you are sent back to Codex with the connection in place.', 'fabrement-lite' ), 'MCPs', __( 'Servers', 'fabrement-lite' ), __( 'Authenticate', 'fabrement-lite' ), __( 'Connect to Fabrement', 'fabrement-lite' ), __( 'Allow access', 'fabrement-lite' ) ); ?></p>
+                    <p><?php $fabrement_ui( /* translators: 1: Codex tab, 2: list heading, 3: Codex button, 4: this site's consent page title, 5: its approve button. */ __( 'The server now shows on the %1$s tab under %2$s. Click %3$s next to it. Your browser opens this site\'s %4$s page — if WordPress asks, sign in first. Review the permissions and click %5$s: you are sent back to Codex with the connection in place.', 'fabrement-lite' ), 'MCPs', __( 'Servers', 'fabrement-lite' ), __( 'Authenticate', 'fabrement-lite' ), __( 'Connect to Fabrement', 'fabrement-lite' ), __( 'Allow access', 'fabrement-lite' ) ); ?></p>
                     <?php
                 },
                 [

@@ -3,8 +3,6 @@
 namespace Fabrement\Tests\Wp;
 
 use Fabrement\Framework\Keys;
-use Fabrement\Modules\Fields\Schema\Owner;
-use Fabrement\Modules\Fields\Schema\SchemaRepository;
 use Fabrement\Modules\Seo\Integration\YoastIntegration;
 use Fabrement\Modules\Seo\Seo;
 use WP_UnitTestCase;
@@ -34,18 +32,6 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
             $this->images[] = self::factory()->attachment->create_upload_object( DIR_TESTDATA . '/images/canola.jpg' );
         }
         register_post_type( self::TYPE, [ 'public' => true, 'show_ui' => true, 'show_in_rest' => true, 'label' => 'Courses', 'supports' => [ 'title', 'editor' ] ] );
-        $f     = static fn( string $name, string $type, array $extra = [] ): array => $extra + [ 'name' => $name, 'label' => ucfirst( $name ), 'description' => 'About ' . $name, 'type' => $type ];
-        $saved = $this->tool( 'save-fields', [ 'type' => 'post', 'slug' => self::TYPE, 'expectedRevision' => 0, 'fields' => [
-            $f( 'level', 'select', [ 'choices' => [ [ 'value' => 'beginner', 'label' => 'For beginners' ] ], 'default' => 'beginner' ] ),
-            $f( 'place', 'group', [ 'sub_fields' => [ $f( 'town', 'text' ) ] ] ),
-            $f( 'host', 'post_object', [ 'postTypes' => [ 'page' ] ] ),
-            $f( 'guests', 'relationship', [ 'postTypes' => [ 'page' ] ] ),
-            $f( 'steps', 'repeater', [ 'sub_fields' => [ $f( 'label', 'text' ) ] ] ),
-            $f( 'photo', 'image' ),
-        ] ] );
-        $this->assertIsArray( $saved, is_wp_error( $saved ) ? $saved->get_error_message() : '' );
-        // Yoast registers variables once per request; fields saved in this "request" come now.
-        YoastIntegration::register_variables();
     }
 
     public function tear_down(): void {
@@ -55,10 +41,6 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
             \WPSEO_Options::set( $key, $value );
         }
         $this->forget_statics();
-        if ( $owner = Owner::of( 'post', self::TYPE ) ) {
-            SchemaRepository::delete( $owner );
-        }
-        SchemaRepository::flush();
         unregister_post_type( self::TYPE );
         parent::tear_down();
     }
@@ -80,8 +62,14 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         return self::factory()->post->create( [ 'post_type' => 'page', 'post_title' => $title, 'post_status' => $status, 'post_content' => $content ] );
     }
 
-    private function media( int $id ): array {
-        return [ 'id' => $id, 'url' => (string) wp_get_attachment_url( $id ) ];
+    /** A global block (synced pattern) of core images, as the content places it. */
+    private function in_global_block( int ...$ids ): string {
+        $images = '';
+        foreach ( $ids as $id ) {
+            $images .= '<!-- wp:image {"id":' . $id . '} --><figure class="wp-block-image"><img src="' . esc_url( (string) wp_get_attachment_url( $id ) ) . '" class="wp-image-' . $id . '"/></figure><!-- /wp:image -->';
+        }
+        $pattern = self::factory()->post->create( [ 'post_type' => 'wp_block', 'post_status' => 'publish', 'post_title' => 'QA global block', 'post_content' => $images ] );
+        return '<!-- wp:block {"ref":' . $pattern . '} /-->';
     }
 
     /** What Yoast prints on the page at $url: its meta for the current page, fresh. */
@@ -95,71 +83,14 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         return array_values( array_map( static fn( $img ) => (string) ( $img['url'] ?? '' ), (array) $meta->open_graph_images ) );
     }
 
-    // ── variables ────────────────────────────────────────────────────────────────────────────
-
-    public function test_a_fab_variable_with_a_less_than_sign_does_not_cut_the_title(): void {
-        $this->tool( 'set-seo-defaults', [ 'postType' => self::TYPE, 'titleTemplate' => '%%title%% — %%fab_place_town%% %%sep%% %%sitename%%' ] );
-        $record = self::factory()->post->create( [ 'post_type' => self::TYPE, 'post_title' => 'Negotiation', 'post_status' => 'publish' ] );
-        fabrement()->fields( $record )->set( 'place', [ 'town' => 'Kids <12 & more' ] )->save();
-
-        $this->head_at( (string) get_permalink( $record ) );
-        ob_start();
-        do_action( 'wpseo_head' );
-        $head = (string) ob_get_clean();
-        $title = wp_get_document_title();
-        // What a browser shows: "<" and "&" as typed, the rest of the title still there.
-        $this->assertStringContainsString( 'Kids <12 & more', html_entity_decode( $title ), 'not cut at "<"' );
-        $this->assertStringContainsString( get_bloginfo( 'name' ), html_entity_decode( $title ), 'the rest of the title stays' );
-        $this->assertMatchesRegularExpression( '/og:title" content="[^"]*Kids &lt;12 &amp; more/', $head, 'og:title escaped once, not cut' );
-    }
-
-    public function test_fab_variables_in_a_type_template_print_the_fields(): void {
-        $defaults = $this->tool( 'set-seo-defaults', [
-            'postType'         => self::TYPE,
-            'titleTemplate'    => '%%title%% — %%fab_level%%, %%fab_place_town%%',
-            'metaDescTemplate' => 'Host %%fab_host%%. Guests %%fab_guests%%; %%fab_steps%% steps.',
-        ] );
-        $this->assertFalse( is_wp_error( $defaults ), is_wp_error( $defaults ) ? $defaults->get_error_message() : '' );
-
-        $host   = $this->page( 'Olena' );
-        $guests = [ $this->page( 'A' ), $this->page( 'Hidden', 'draft' ), $this->page( 'B' ), $this->page( 'C' ), $this->page( 'D' ) ];
-        $record = self::factory()->post->create( [ 'post_type' => self::TYPE, 'post_title' => 'Negotiation', 'post_status' => 'publish' ] );
-        fabrement()->fields( $record )->set( 'place', [ 'town' => 'Lviv' ] )->save();
-        fabrement()->fields( $record )->set( 'host', $host )->save();
-        fabrement()->fields( $record )->set( 'guests', $guests )->save();
-        fabrement()->fields( $record )->set( 'steps', [ [ 'label' => 'One' ], [ 'label' => 'Two' ], [ 'label' => 'Three' ] ] )->save();
-
-        $effective = Seo::bridge()->effective_post( $record );
-        $this->assertStringStartsWith( 'Negotiation — For beginners, Lviv', $effective['title'] );
-        $this->assertSame( 'Host Olena. Guests A, B, C…; 3 steps.', $effective['description'] );
-
-        $empty = self::factory()->post->create( [ 'post_type' => self::TYPE, 'post_title' => 'Empty', 'post_status' => 'publish' ] );
-        $desc  = Seo::bridge()->effective_post( $empty )['description'];
-        $this->assertStringNotContainsString( '%%', $desc, 'unknown or empty variables are removed' );
-        $this->assertStringNotContainsString( '0 steps', $desc, 'no rows: removed, not "0"' );
-        $this->assertStringStartsWith( 'Negotiation — For beginners', Seo::bridge()->effective_post( $record )['title'], 'reading another record did not leak into this one' );
-    }
-
-    public function test_a_variable_behind_a_password_says_nothing(): void {
-        $this->tool( 'set-seo-defaults', [ 'postType' => self::TYPE, 'titleTemplate' => '%%title%% in %%fab_place_town%%' ] );
-        $record = self::factory()->post->create( [ 'post_type' => self::TYPE, 'post_title' => 'Locked', 'post_status' => 'publish', 'post_password' => 'x' ] );
-        fabrement()->fields( $record )->set( 'place', [ 'town' => 'Secret town' ] )->save();
-
-        $this->assertStringNotContainsString( 'Secret town', wpseo_replace_vars( '%%title%% in %%fab_place_town%%', get_post( $record ) ) );
-    }
-
     // ── images ───────────────────────────────────────────────────────────────────────────────
 
-    public function test_og_image_falls_back_to_a_block_image_then_a_field_image_never_over_a_chosen_one(): void {
-        [ $a, $b, $c ] = $this->images;
-        $page = $this->page( 'Blocks', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->' );
+    public function test_og_image_falls_back_to_a_block_image_never_over_a_chosen_one(): void {
+        [ $a, , $c ] = $this->images;
+        $page = $this->page( 'Blocks', 'publish', $this->in_global_block( $a ) );
         $this->assertSame( [ (string) wp_get_attachment_url( $a ) ], $this->og_urls( $this->head_at( get_permalink( $page ) ) ), 'block image, and only it' );
 
-        $record = self::factory()->post->create( [ 'post_type' => self::TYPE, 'post_title' => 'Field', 'post_status' => 'publish' ] );
-        fabrement()->fields( $record )->set( 'photo', $b )->save();
-        $this->assertSame( [ (string) wp_get_attachment_url( $b ) ], $this->og_urls( $this->head_at( get_permalink( $record ) ) ), 'field image, and only it' );
-
-        $featured = $this->page( 'Featured', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->' );
+        $featured = $this->page( 'Featured', 'publish', $this->in_global_block( $a ) );
         set_post_thumbnail( $featured, $c );
         wp_update_post( [ 'ID' => $featured ] ); // as the editor saves it: Yoast rebuilds on save
         $urls = $this->og_urls( $this->head_at( get_permalink( $featured ) ) );
@@ -172,7 +103,7 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         // What Yoast Premium does for "social image per content type": answers this filter.
         $type_image = static fn( $id, $subtype ) => $subtype === 'page' ? $c : $id;
         add_filter( 'Yoast\WP\SEO\open_graph_image_id_post', $type_image, 10, 2 );
-        $page = $this->page( 'Typed', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->' );
+        $page = $this->page( 'Typed', 'publish', $this->in_global_block( $a ) );
         $urls = $this->og_urls( $this->head_at( get_permalink( $page ) ) );
         remove_filter( 'Yoast\WP\SEO\open_graph_image_id_post', $type_image, 10 );
 
@@ -189,7 +120,7 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
 
     public function test_without_a_presentation_the_viewed_singular_page_is_used(): void {
         [ $a ] = $this->images;
-        $page = $this->page( 'Plain', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->' );
+        $page = $this->page( 'Plain', 'publish', $this->in_global_block( $a ) );
         $this->go_to( get_permalink( $page ) );
         YoastIntegration::remember_presentation( null );
         // A caller that reached Yoast's generator around wpseo_frontend_presentation.
@@ -213,8 +144,8 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
 
     public function test_the_fallback_image_belongs_to_the_record_yoast_describes_not_the_page_viewed(): void {
         [ $a, $b ] = $this->images;
-        $one = $this->page( 'One', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->' );
-        $two = $this->page( 'Two', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $b ) ] ) . ' /-->' );
+        $one = $this->page( 'One', 'publish', $this->in_global_block( $a ) );
+        $two = $this->page( 'Two', 'publish', $this->in_global_block( $b ) );
 
         // get-seo runs in an MCP request: nothing is "singular" there.
         $this->go_to( home_url( '/' ) );
@@ -234,7 +165,7 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         $record = self::factory()->post->create( [
             'post_type'    => self::TYPE,
             'post_status'  => 'publish',
-            'post_content' => '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->',
+            'post_content' => $this->in_global_block( $a ),
         ] );
         set_post_thumbnail( $record, $a );
         $srcs = array_column( ( new \WPSEO_Sitemap_Image_Parser() )->get_images( get_post( $record ) ), 'src' );
@@ -252,31 +183,28 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         $record = self::factory()->post->create( [
             'post_type'    => self::TYPE,
             'post_status'  => 'publish',
-            'post_content' => '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->',
+            'post_content' => $this->in_global_block( $a, $b ),
         ] );
-        fabrement()->fields( $record )->set( 'photo', $b )->save();
         $drop_b = static fn( $item ) => ( is_array( $item ) && $item['src'] === wp_get_attachment_image_url( $b, 'full' ) ) ? false : ( (array) $item + [ 'title' => 'QA' ] );
         add_filter( 'wpseo_xml_sitemap_img', $drop_b );
         $items = ( new \WPSEO_Sitemap_Image_Parser() )->get_images( get_post( $record ) );
         remove_filter( 'wpseo_xml_sitemap_img', $drop_b );
 
-        $this->assertSame( [ (string) wp_get_attachment_image_url( $a, 'full' ) ], array_column( $items, 'src' ), 'the filter dropped the field image' );
+        $this->assertSame( [ (string) wp_get_attachment_image_url( $a, 'full' ) ], array_column( $items, 'src' ), 'the filter dropped the other block image' );
         $this->assertSame( 'QA', $items[0]['title'], 'and its changes to the block image are kept' );
     }
 
-    public function test_the_sitemap_lists_block_and_field_images_once(): void {
-        [ $a, $b ] = $this->images;
+    public function test_the_sitemap_lists_block_images_once(): void {
+        [ $a ] = $this->images;
         $record = self::factory()->post->create( [
             'post_type'    => self::TYPE,
             'post_status'  => 'publish',
-            'post_content' => '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ), 'again' => $this->media( $a ) ] ) . ' /-->',
+            'post_content' => $this->in_global_block( $a, $a ),
         ] );
-        fabrement()->fields( $record )->set( 'photo', $b )->save();
 
         $srcs = array_column( ( new \WPSEO_Sitemap_Image_Parser() )->get_images( get_post( $record ) ), 'src' );
 
         $this->assertContains( (string) wp_get_attachment_image_url( $a, 'full' ), $srcs );
-        $this->assertContains( (string) wp_get_attachment_image_url( $b, 'full' ), $srcs );
         $this->assertSame( $srcs, array_values( array_unique( $srcs ) ), 'each image once' );
     }
 
@@ -338,12 +266,12 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         [ $a, $b ] = $this->images;
         \WPSEO_Options::set( 'og_default_image_id', $b );
         \WPSEO_Options::set( 'og_default_image', (string) wp_get_attachment_url( $b ) );
-        $blocks = $this->page( 'Blocks', 'publish', '<!-- wp:fabrement/qa-hero ' . wp_json_encode( [ 'bg' => $this->media( $a ) ] ) . ' /-->' );
+        $blocks = $this->page( 'Blocks', 'publish', $this->in_global_block( $a ) );
         $core   = $this->page( 'Core', 'publish', '<!-- wp:image {"id":' . $a . '} --><figure class="wp-block-image"><img src="' . esc_url( (string) wp_get_attachment_url( $a ) ) . '" class="wp-image-' . $a . '"/></figure><!-- /wp:image -->' );
         $none   = $this->page( 'Text only', 'publish', '<!-- wp:paragraph --><p>Words</p><!-- /wp:paragraph -->' );
 
         $this->assertContains( (string) wp_get_attachment_url( $a ), $this->og_urls( $this->head_at( get_permalink( $core ) ) ), 'Yoast: the first content image beats the default' );
-        $this->assertSame( [ (string) wp_get_attachment_url( $a ) ], $this->og_urls( $this->head_at( get_permalink( $blocks ) ) ), 'a Fabrement block image is a content image too, not added beside the default' );
+        $this->assertSame( [ (string) wp_get_attachment_url( $a ) ], $this->og_urls( $this->head_at( get_permalink( $blocks ) ) ), 'a global block\'s image is a content image too, not added beside the default' );
         $this->assertContains( (string) wp_get_attachment_url( $b ), $this->og_urls( $this->head_at( get_permalink( $none ) ) ), 'no image at all: the default' );
     }
 
@@ -378,7 +306,6 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
     public function test_article_type_is_refused_where_yoast_would_print_no_article(): void {
         $record = self::factory()->post->create( [ 'post_type' => self::TYPE, 'post_status' => 'publish' ] );
         $this->assertSame( 'article_needs_author', $this->tool( 'set-seo', [ 'contentId' => $record, 'schemaArticleType' => 'Article' ] )->get_error_code() );
-        $this->assertSame( 'article_needs_author', $this->tool( 'set-seo-defaults', [ 'postType' => self::TYPE, 'schemaArticleType' => 'Article' ] )->get_error_code() );
 
         $post = self::factory()->post->create( [ 'post_status' => 'publish' ] );
         $this->assertFalse( is_wp_error( $this->tool( 'set-seo', [ 'contentId' => $post, 'schemaArticleType' => 'NewsArticle' ] ) ), 'posts support author' );
@@ -501,17 +428,6 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         }
     }
 
-    public function test_site_social_profiles_and_default_image_reach_yoast(): void {
-        [ $a ] = $this->images;
-        $out   = $this->tool( 'set-seo-defaults', [ 'site' => true, 'socialProfiles' => [ 'https://www.instagram.com/qa' ], 'defaultOgImageId' => $a, 'twitterUsername' => '@qa_handle' ] );
-
-        $this->assertFalse( is_wp_error( $out ), is_wp_error( $out ) ? $out->get_error_message() : '' );
-        $this->assertSame( [ 'https://www.instagram.com/qa' ], array_values( (array) \WPSEO_Options::get( 'other_social_urls' ) ) );
-        $this->assertSame( $a, (int) \WPSEO_Options::get( 'og_default_image_id' ) );
-        $this->assertSame( 'qa_handle', \WPSEO_Options::get( 'twitter_site' ) );
-        $this->assertSame( 'bad_url', $this->tool( 'set-seo-defaults', [ 'site' => true, 'socialProfiles' => [ 'not a url' ] ] )->get_error_code() );
-    }
-
     // ── schema: our nodes as a piece of Yoast's graph ─────────────────────────────────────────
 
     /** @return array<string,mixed>|null The node of Yoast's graph for record `$id` with that @id. */
@@ -565,10 +481,6 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
             $this->assertSame( 'yoast_node_id', is_wp_error( $out ) ? $out->get_error_code() : 'accepted', $id );
         }
         $this->assertSame( [], \Fabrement\Modules\Seo\Schema\SchemaStore::read_post( $page ), 'nothing saved' );
-        foreach ( [ '{{url}}', home_url( '/' ) . '#organization', home_url( '/' ) . '#/schema/logo/image/' ] as $id ) {
-            $type = $this->tool( 'set-schema', [ 'postType' => self::TYPE, 'graph' => [ [ '@type' => 'Course', '@id' => $id, 'name' => '{{title}}' ] ] ] );
-            $this->assertSame( 'yoast_node_id', is_wp_error( $type ) ? $type->get_error_code() : 'accepted', 'the type template too: ' . $id );
-        }
 
         // On a static front page the page URL is the site URL: {{url}}#organization is Yoast's.
         $front = $this->page( 'Home' );
@@ -643,24 +555,16 @@ final class YoastIntegrationTest extends WP_UnitTestCase {
         $this->assertStringNotContainsString( 'Swapped', (string) wp_json_encode( $graph ) );
     }
 
-    public function test_the_posts_page_takes_its_own_nodes_not_the_page_template(): void {
+    public function test_the_posts_page_takes_its_own_nodes(): void {
         $posts = $this->page( 'Blog' );
         $plain = $this->page( 'About' );
-        update_option( 'page_for_posts', $posts );
-        $this->assertTrue( \Fabrement\Modules\Seo\Schema\SchemaOutput::with_type( $posts ), 'a leftover setting while the front page lists posts: an ordinary page' );
         update_option( 'show_on_front', 'page' );
         update_option( 'page_on_front', $plain );
-        $this->assertFalse( \Fabrement\Modules\Seo\Schema\SchemaOutput::with_type( $posts ) );
-        $this->assertTrue( \Fabrement\Modules\Seo\Schema\SchemaOutput::with_type( $plain ) );
+        update_option( 'page_for_posts', $posts );
 
-        $this->assertIsArray( $this->tool( 'set-schema', [ 'postType' => 'page', 'graph' => [ [ '@type' => 'Thing', '@id' => '{{url}}#page-template', 'name' => 'Template' ] ] ] ) );
         $this->assertIsArray( $this->tool( 'set-schema', [ 'contentId' => $posts, 'graph' => [ [ '@type' => 'Blog', '@id' => '{{url}}#blog', 'name' => 'Own' ] ] ] ) );
         $url = (string) get_permalink( $posts );
         $this->assertSame( 'Own', $this->schema_node( $posts, $url . '#blog' )['name'] ?? null );
-        $this->assertNull( $this->schema_node( $posts, $url . '#page-template' ), 'not the page template' );
-        $webpage = (string) ( \Fabrement\Modules\Seo\Seo::bridge()->schema_values( $plain )['url'] ?? '' );
-        $this->assertNotSame( '', $webpage, 'the WebPage id Yoast gives the front page' );
-        $this->assertNotNull( $this->schema_node( $plain, $webpage . '#page-template' ), 'an ordinary page takes it, on that WebPage id' );
     }
 
     public function test_the_page_view_emits_the_nodes_of_the_record_yoast_describes(): void {

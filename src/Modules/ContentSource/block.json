@@ -10,6 +10,5 @@
     "usesContext": [ "postId", "postType" ],
     "attributes": { "templateId": { "type": "integer" } },
     "supports": { "html": false, "reusable": false, "layout": true },
-    "editorScript": "fabrement-editor-plugin",
-    "editorStyle": "fabrement-editor-plugin"
+    "editorScript": "fabrement-editor-plugin"
 }

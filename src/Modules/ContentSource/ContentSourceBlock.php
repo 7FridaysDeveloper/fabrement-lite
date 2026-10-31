@@ -44,7 +44,7 @@ final class ContentSourceBlock {
     }
 
     /**
-     * The theme-file choices an administrator saved for this template (its shared JSON manifest).
+     * The theme-file choices saved for this template in wp-admin (its shared JSON manifest).
      * Never the block's own markup: a slot pasted into a post only names a template, and then
      * that template's saved choices apply.
      *
@@ -81,7 +81,7 @@ final class ContentSourceBlock {
             return null;
         } finally {
             while ( ob_get_level() > $level ) { ob_end_clean(); }
-            $GLOBALS['post'] = $previous;
+            $GLOBALS['post'] = $previous; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- restores the post that was current before the theme file ran.
             if ( $previous instanceof \WP_Post ) { setup_postdata( $previous ); }
         }
     }

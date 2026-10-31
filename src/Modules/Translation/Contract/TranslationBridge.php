@@ -77,6 +77,9 @@ interface TranslationBridge {
      */
     public function in_locale( string $lang, callable $fn );
 
+    /** The WordPress locale of a language ("fr" → "fr_FR"); "" when the plugin does not know it. */
+    public function locale_of( string $lang ): string;
+
     /**
      * The SITE's own language — where content created without a language lands.
      *
@@ -233,25 +236,6 @@ interface TranslationBridge {
     public function writes_translations_manually( int $post_id ): bool;
 
     /**
-     * Notify the translation plugin after content of an original was committed outside a
-     * WordPress post save. It decides which translations need updating, including manual ones.
-     * Does not save the post or mark a translation complete; inert without a translation plugin.
-     */
-    public function original_changed( int $post_id ): void;
-
-    /** Register the provider's field lifecycle, translation-job and settings hooks once. */
-    public function register_field_hooks(): void;
-
-    /**
-     * Original requested by the provider's new-translation editor URL for this auto-draft.
-     * Returns 0 for invalid, inaccessible or already occupied language versions; writes nothing.
-     */
-    public function pending_original( int $post_id ): int;
-
-    /** Original a duplicate follows until translated independently; 0 for an ordinary post. */
-    public function duplicate_of( int $post_id ): int;
-
-    /**
      * Is this record the ORIGINAL, rather than one language's version of another?
      *
      * A translation is a real post, so anything listing "the site's templates" would otherwise
@@ -286,19 +270,6 @@ interface TranslationBridge {
      * @return array<int,int>
      */
     public function originals_of_many( array $post_ids, string $type ): array;
-
-    /**
-     * The ORIGINAL of each record — of any post type, media included — as `id => original id`,
-     * for every positive id asked: the id itself when it has no original to give (not translated,
-     * or its type is not translated today). One query for all of them, and none for an id asked
-     * before in this request — a listing that resolved a hundred ids answers the next one free.
-     *
-     * Every id answers itself without a translation plugin.
-     *
-     * @param list<int> $post_ids
-     * @return array<int,int>
-     */
-    public function originals_of_any( array $post_ids ): array;
 
     /**
      * Files `$post_id` as its OWN original, in `$lang` — nobody's translation.
@@ -360,28 +331,6 @@ interface TranslationBridge {
     public function forget_term_link( int $term_id, string $taxonomy ): void;
 
     /**
-     * Translate ONE key of a site option — an "admin text" — into a language.
-     *
-     * A site option (a Yoast title template, a plugin's label) is stored once, in the original
-     * language; a translation plugin keeps the other languages beside it and swaps them in when
-     * the option is read on a page in that language. This registers the key as translatable when
-     * it is not yet, and stores the translation. `$original` is the value the option holds now —
-     * the translation is of THAT text.
-     *
-     * @return bool false when the plugin cannot do this (no string-translation component) or did
-     *              not store the translation.
-     */
-    public function translate_option( string $option, string $key, string $original, string $lang, string $value ): bool;
-
-    /**
-     * The stored translations of ONE key of a site option: code → text. Empty when none, or when
-     * the plugin has no string translation at all.
-     *
-     * @return array<string,string>
-     */
-    public function option_translations( string $option, string $key, string $original ): array;
-
-    /**
      * The language a term belongs to, or '' when it belongs to none — which is what every term of
      * an untranslated taxonomy looks like.
      */
@@ -418,9 +367,6 @@ interface TranslationBridge {
      * same request has to say so — the memo cannot know.
      */
     public function forget_languages(): void;
-
-    /** Whether the plugin's string translation is present (WPML String Translation). */
-    public function supports_strings(): bool;
 
     /**
      * Records of a TRANSLATABLE type that have no language at all — made before the type became

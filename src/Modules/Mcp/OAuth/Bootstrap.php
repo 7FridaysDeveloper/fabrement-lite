@@ -8,7 +8,14 @@ use Fabrement\Modules\Mcp\McpBootstrap;
 use Fabrement\Modules\Mcp\McpConnectionConfig;
 
 final class Bootstrap {
-    private static array $previous_users = [];
+    /** Why the access token of this request was refused, for the 401/403 the route answers with. */
+    private static ?OAuthError $token_error = null;
+
+    /** Guards determine_current_user against itself while a token is checked. */
+    private static bool $resolving = false;
+
+    /** The user an access token signed in on this request (0: none). */
+    private static int $token_user = 0;
 
     public static function register(): void {
         add_action( 'admin_notices', [ Lifecycle::class, 'notice' ] );
@@ -16,11 +23,52 @@ final class Bootstrap {
         add_action( 'admin_post_fabrement_mcp_authorize', [ self::class, 'authorize' ] );
         add_action( 'admin_post_nopriv_fabrement_mcp_authorize', [ self::class, 'authorize' ] );
         add_action( 'fabrement_mcp_oauth_cleanup', static function (): void { ( new Store() )->cleanup(); } );
+        // A changed or reset password ends the user's OAuth connections.
+        add_action( 'after_password_reset', [ self::class, 'password_reset' ] );
+        add_action( 'wp_set_password', [ self::class, 'password_set' ], 10, 3 );
+        add_action( 'profile_update', [ self::class, 'profile_updated' ], 10, 2 );
         add_action( 'init', [ self::class, 'discovery' ], 0 );
         add_action( 'rest_api_init', [ self::class, 'routes' ] );
+        // After core's cookie (10) and application-password (20) checks, as a login of its own.
+        add_filter( 'determine_current_user', [ self::class, 'determine_user' ], 30 );
+        // After core's own checks (cookie, application password).
+        add_filter( 'rest_authentication_errors', [ self::class, 'refuse_other_route' ], 100 );
         add_filter( 'rest_request_before_callbacks', [ self::class, 'authenticate' ], 5, 3 );
-        add_filter( 'rest_request_after_callbacks', [ self::class, 'restore_user' ], PHP_INT_MAX, 3 );
         add_filter( 'rest_post_dispatch', [ self::class, 'response' ], 20, 3 );
+    }
+
+    public static function password_reset( $user ): void {
+        if ( $user instanceof \WP_User ) {
+            self::revoke_user( $user->ID );
+        }
+    }
+
+    public static function password_set( $password, $user_id, $old_user_data = null ): void {
+        // Core rehashes the same password on login (6.8+): not a change.
+        if ( $old_user_data instanceof \WP_User && wp_check_password( (string) $password, $old_user_data->user_pass, (int) $user_id ) ) {
+            return;
+        }
+        self::revoke_user( (int) $user_id );
+    }
+
+    /** A hash saved through wp_insert_user() fires no wp_set_password: compare the stored hashes. */
+    public static function profile_updated( $user_id, $old_user ): void {
+        $user = get_userdata( (int) $user_id );
+        if ( $user && $old_user instanceof \WP_User && $old_user->user_pass !== $user->user_pass ) {
+            self::revoke_user( (int) $user_id );
+        }
+    }
+
+    public static function revoke_user( int $user_id, ?Store $store = null ): void {
+        $store = $store ?? new Store();
+        if ( $user_id > 0 && $store->ready() ) {
+            // A failed write must not break the password change or the login that triggered it.
+            try {
+                $store->revoke_user( $user_id );
+            } catch ( OAuthError $error ) {
+                \Fabrement\Framework\Log::debug( '[fabrement][oauth] Could not revoke the connections of user ' . $user_id . ': ' . $error->getMessage() );
+            }
+        }
     }
 
     public static function routes(): void {
@@ -29,7 +77,7 @@ final class Bootstrap {
                 'methods' => in_array( $name, [ 'metadata', 'resource' ], true ) ? 'GET' : 'POST',
                 // Public by the OAuth standard (RFC 8414, 7591, 6749, 7009): a client calls them before it
                 // has a user. They do nothing unless an administrator enabled OAuth, are rate limited,
-                // and a token is issued only for a code an administrator approved (authorize() below).
+                // and a token is issued only for a code a signed-in user approved (authorize() below).
                 'permission_callback' => '__return_true',
                 'callback' => static function ( \WP_REST_Request $request ) use ( $name ): \WP_REST_Response {
                     return self::endpoint( $name, $request );
@@ -123,26 +171,63 @@ final class Bootstrap {
         wp_send_json( $path === $as ? Config::authorization_metadata() : Config::resource_metadata() );
     }
 
+    /**
+     * determine_current_user: an access token on the MCP route signs its owner in, the way core
+     * signs in an application password. Not on any other route, never over a user already found.
+     *
+     * @param int|false $user_id
+     * @return int|false
+     */
+    public static function determine_user( $user_id ) {
+        // Only REST requests, as core does for application passwords.
+        if ( $user_id || self::$resolving || ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ! McpBootstrap::is_mcp_request() ) {
+            return $user_id;
+        }
+        $header = \Fabrement\Modules\Mcp\BearerApplicationPasswordAuth::authorization_header();
+        if ( ! preg_match( '/\ABearer\s+(' . Config::ACCESS_PREFIX . '\S+)\z/iD', $header, $matches ) ) {
+            return $user_id;
+        }
+        self::$resolving = true;
+        try {
+            self::available();
+            self::$token_user = ( new Protocol( new Store() ) )->authenticate( $matches[1] );
+            return self::$token_user;
+        } catch ( OAuthError $error ) {
+            self::$token_error = $error;
+            return $user_id;
+        } finally {
+            self::$resolving = false;
+        }
+    }
+
+    /**
+     * At dispatch: an access token opens the MCP route only. Checked against the route WordPress
+     * actually serves, which the address alone does not decide (a POSTed `rest_route`, /batch/v1).
+     */
+    public static function refuse_other_route( $result ) {
+        // The user first: it runs determine_current_user, which is what sets $token_user.
+        $user_id = get_current_user_id();
+        if ( is_wp_error( $result ) || self::$token_user === 0 || $user_id !== self::$token_user ) {
+            return $result;
+        }
+        // What rest_api_loaded() hands to the server.
+        $route = rtrim( (string) ( $GLOBALS['wp']->query_vars['rest_route'] ?? '' ), '/' );
+        if ( Config::ROUTE === $route ) {
+            return $result;
+        }
+        return new \WP_Error( 'fabrement_oauth_scope', __( 'This access token works only for the Fabrement MCP endpoint.', 'fabrement-lite' ), [ 'status' => 403 ] );
+    }
+
+    /** On the MCP route: a refused token, or no login at all, is answered before any tool runs. */
     public static function authenticate( $result, $server, \WP_REST_Request $request ) {
         if ( rtrim( $request->get_route(), '/' ) !== Config::ROUTE || null !== $result ) {
             return $result;
         }
-        $header = (string) $request->get_header( 'authorization' );
-        if ( preg_match( '/\ABearer\s+(' . Config::ACCESS_PREFIX . '\S+)\z/iD', $header, $matches ) ) {
-            $request_id = spl_object_id( $request );
-            self::$previous_users[ $request_id ][] = get_current_user_id();
-            try {
-                self::available();
-                $user = ( new Protocol( new Store() ) )->authenticate( $matches[1] );
-                // Scope this identity to the matched callback, including inside WordPress batches.
-                wp_set_current_user( $user );
-                return $result;
-            } catch ( OAuthError $error ) {
-                wp_set_current_user( 0 );
-                return in_array( $error->error, [ 'access_denied', 'temporarily_unavailable' ], true )
-                    ? new \WP_Error( 'fabrement_oauth_unavailable', $error->getMessage(), [ 'status' => $error->status ] )
-                    : self::challenge();
-            }
+        if ( self::$token_error !== null ) {
+            $error = self::$token_error;
+            return in_array( $error->error, [ 'access_denied', 'temporarily_unavailable' ], true )
+                ? new \WP_Error( 'fabrement_oauth_unavailable', $error->getMessage(), [ 'status' => $error->status ] )
+                : self::challenge();
         }
         if ( ! get_current_user_id() ) {
             try {
@@ -151,17 +236,6 @@ final class Bootstrap {
                 return new \WP_Error( 'fabrement_oauth_unavailable', $error->getMessage(), [ 'status' => $error->status ] );
             }
             return self::challenge();
-        }
-        return $result;
-    }
-
-    public static function restore_user( $result, $handler, \WP_REST_Request $request ) {
-        $request_id = spl_object_id( $request );
-        if ( isset( self::$previous_users[ $request_id ] ) ) {
-            wp_set_current_user( array_pop( self::$previous_users[ $request_id ] ) );
-            if ( ! self::$previous_users[ $request_id ] ) {
-                unset( self::$previous_users[ $request_id ] );
-            }
         }
         return $result;
     }
@@ -245,17 +319,25 @@ final class Bootstrap {
             if ( ! in_array( $method, [ 'GET', 'POST' ], true ) ) {
                 throw new OAuthError( 'invalid_request', esc_html__( 'Unsupported request method.', 'fabrement-lite' ) );
             }
+            // Raw on purpose: OAuth needs the exact values and must refuse a repeated parameter, which $_GET / $_POST
+            // would merge. Each value is then checked against a strict format: here and in Protocol::authorization().
             $input = self::form( 'POST' === $method ? (string) file_get_contents( 'php://input' ) : (string) ( $_SERVER['QUERY_STRING'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- OAuth parameters must reach Protocol exactly as sent; Protocol validates them.
             // GET only keeps the client's request for 10 minutes and shows the consent page; the POST that approves is checked
-            // below: a logged-in administrator (current_user_can) and the consent form's nonce.
+            // below: a logged-in user who may connect (current_user_can) and the consent form's nonce.
             $pending = Protocol::value( $input, 'pending' );
+            if ( '' !== $pending && ! preg_match( '/\Afabrement_pending_[a-f0-9]{64}\z/D', $pending ) ) {
+                throw new OAuthError( 'invalid_request', esc_html__( 'This authorization request has expired. Reconnect your client.', 'fabrement-lite' ) );
+            }
+            if ( ! in_array( Protocol::value( $input, 'decision' ), [ '', 'allow', 'deny' ], true ) ) {
+                throw new OAuthError( 'invalid_request', esc_html__( 'Start a new authorization request.', 'fabrement-lite' ) );
+            }
             if ( '' === $pending ) {
                 if ( 'GET' !== $method ) {
                     throw new OAuthError( 'invalid_request', esc_html__( 'Start a new authorization request.', 'fabrement-lite' ) );
                 }
                 self::throttle( $store, 'authorize', 60 );
                 $authorization = $protocol->authorization( $input );
-                $pending = 'fb_pending_' . bin2hex( random_bytes( 32 ) );
+                $pending = 'fabrement_pending_' . bin2hex( random_bytes( 32 ) );
                 $store->put( 'pending', $pending, $authorization, time() + 600 );
             } else {
                 $row = $store->get( 'pending', $pending );
@@ -276,8 +358,8 @@ final class Bootstrap {
                 wp_safe_redirect( wp_login_url( $resume ) );
                 exit;
             }
-            if ( ! current_user_can( Capabilities::ADMIN ) ) {
-                throw new OAuthError( 'access_denied', esc_html__( 'Only site administrators can authorize Fabrement agents.', 'fabrement-lite' ), 403 );
+            if ( ! Capabilities::can_connect() ) {
+                throw new OAuthError( 'access_denied', esc_html__( 'Only Administrators can connect an agent.', 'fabrement-lite' ), 403 );
             }
             if ( 'POST' === $method ) {
                 check_admin_referer( 'fabrement_mcp_consent_' . $pending );
@@ -312,14 +394,19 @@ final class Bootstrap {
     }
 
     public static function settings(): void {
-        if ( ! current_user_can( Capabilities::ADMIN ) ) {
-            wp_die( esc_html__( 'Administrator access is required.', 'fabrement-lite' ), '', [ 'response' => 403 ] );
+        if ( ! Capabilities::can_connect() ) {
+            wp_die( esc_html__( 'You do not have permission to perform this action.', 'fabrement-lite' ), '', [ 'response' => 403 ] );
         }
         check_admin_referer( 'fabrement_mcp_oauth_settings' );
         $client = '';
         try {
             $store = new Store();
-            $form = wp_unslash( $_POST );
+            // Only the fields this form sends; the nonce was checked above.
+            $form = [
+                'oauth_command' => isset( $_POST['oauth_command'] ) && is_string( $_POST['oauth_command'] ) ? sanitize_key( wp_unslash( $_POST['oauth_command'] ) ) : '',
+                'oauth_client' => isset( $_POST['oauth_client'] ) && is_string( $_POST['oauth_client'] ) ? sanitize_key( wp_unslash( $_POST['oauth_client'] ) ) : '',
+                'family' => isset( $_POST['family'] ) && is_string( $_POST['family'] ) ? sanitize_text_field( wp_unslash( $_POST['family'] ) ) : '',
+            ];
             $command = Protocol::value( $form, 'oauth_command' );
             if ( 'connect' === $command ) {
                 $client = Protocol::value( $form, 'oauth_client' );
@@ -355,7 +442,6 @@ final class Bootstrap {
                 }
                 $family = Protocol::value( $form, 'family' );
                 $grant = $store->get( 'grant', $family );
-                // Any administrator may revoke any connection, not only their own.
                 if ( ! $grant ) {
                     throw new OAuthError( 'invalid_request', esc_html__( 'This connection no longer exists.', 'fabrement-lite' ), 404 );
                 }

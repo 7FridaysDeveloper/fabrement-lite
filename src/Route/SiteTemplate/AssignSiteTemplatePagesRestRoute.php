@@ -32,7 +32,7 @@ final class AssignSiteTemplatePagesRestRoute extends AbstractRestRoute {
     }
 
     public function permission_callback( WP_REST_Request $request ): bool {
-        return current_user_can( Capabilities::ADMIN );
+        return current_user_can( Capabilities::TEMPLATES );
     }
 
     public function get_route_args(): array {
@@ -50,6 +50,11 @@ final class AssignSiteTemplatePagesRestRoute extends AbstractRestRoute {
         $record = SiteTemplateRegistry::find_assignable( $id );
         if ( $record === null ) {
             return new WP_Error( 'fabrement_st_not_found', __( 'Template not found.', 'fabrement-lite' ), [ 'status' => 404 ] );
+        }
+
+        // A pick is the record's own setting: the same edit_post the editor's Template dropdown needs.
+        if ( SiteTemplatePages::not_editable( $record->slug, (array) $request->get_param( 'pageIds' ) ) !== [] ) {
+            return new WP_Error( 'rest_forbidden', __( 'You are not allowed to edit some of these pages.', 'fabrement-lite' ), [ 'status' => 403 ] );
         }
 
         $result = SiteTemplatePages::reconcile( $record->slug, (array) $request->get_param( 'pageIds' ) );

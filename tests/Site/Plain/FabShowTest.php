@@ -19,9 +19,6 @@ final class FabShowTest extends SiteTestCase {
     /** Site code: $echo( fn() => … ) gives [ what the call returned, what it printed ]. */
     private const PRINTED = '$echo = static function ( callable $print ): array { ob_start(); $returned = $print(); return [ $returned, ob_get_clean() ]; };';
 
-    /** Site code: $shown( fn() => … ) gives what the call printed. */
-    private const SHOWN = '$shown = static function ( callable $draw ): string { ob_start(); $draw(); return (string) ob_get_clean(); }; $wrap = static function ( $value, array $options, string $content = \'<i></i>\' ): string { ob_start(); $element = fab_r(...$options)->open($value); echo $content; $element->close(); return (string) ob_get_clean(); };';
-
     private function take_log(): string {
         $log = $this->site()->debug_log();
         $this->site()->exec( 'sh', '-c', 'rm -f /var/www/html/wp-content/debug.log' );
@@ -214,9 +211,9 @@ final class FabShowTest extends SiteTestCase {
         parse_str( (string) parse_url( $asked, PHP_URL_QUERY ), $query );
         $foreign = $this->site_runs( "return get_permalink( $other );" ) . '?fabrement_preview_token=' . $query['fabrement_preview_token'];
         $this->assertSame( [ [], [] ], $list( $foreign ), 'the same token on another page opens nothing' );
-        $plain = (string) $this->mcp( 'preview', [ 'target' => 'content', 'id' => $page ] )['url'];
+        $plain = (string) $this->mcp( 'preview', [ 'id' => $page ] )['url'];
         $this->assertSame( [ [], [] ], $list( $plain ), 'a link that asked for no statuses: as the site will show it' );
-        $this->assertNotSame( '', $this->mcp_error( 'preview', [ 'target' => 'content', 'id' => $page, 'statuses' => [ 'draft' ] ] ), 'Lite MCP does not expose status overrides.' );
+        $this->assertNotSame( '', $this->mcp_error( 'preview', [ 'id' => $page, 'statuses' => [ 'draft' ] ] ), 'Lite MCP does not expose status overrides.' );
     }
 
     /**
@@ -266,7 +263,7 @@ final class FabShowTest extends SiteTestCase {
         $this->assertSame( [], $none, 'only wrong ids: nothing, not every category' );
         $this->assertSame( [ $five ], $one );
         $log = $this->take_log();
-        $this->assertSame( 1, substr_count( $log, '[Fabrement]' ), 'one line, for the one that is not a number' );
+        $this->assertSame( 1, substr_count( $log, '[fabrement][api]' ), 'one line, for the one that is not a number' );
         $this->assertStringContainsString( 'Fabrement::terms(): give an id (a number), not "x".', $log );
     }
 
@@ -321,7 +318,8 @@ final class FabShowTest extends SiteTestCase {
         $log = $this->take_log();
         $this->assertStringContainsString( 'status: give at least one', $log );
         $this->assertStringContainsString( 'status: "auto-draft"', $log );
-        $this->assertStringContainsString( '\'all\' stands alone', $log );
+        // The message is escaped as an exception's is (&#039;all&#039;); the hint is what counts.
+        $this->assertStringContainsString( 'stands alone, not in a list', $log );
     }
 
     /**
@@ -497,17 +495,6 @@ final class FabShowTest extends SiteTestCase {
         $this->assertStringContainsString( 'Fabrement::posts(): unknown option "limit"', $log );
     }
 
-    public function test_an_options_page_asked_for_in_a_language_is_the_page_itself(): void {
-        $this->mcp( 'save-options-page', [
-            'slug'   => 'qa-show', 'expectedRevision' => 0,
-            'page'   => [ 'title' => 'QA show', 'menuTitle' => 'QA show', 'description' => 'Test page', 'position' => 6 ],
-            'fields' => [ self::field( 'phone', 'text' ) ],
-            'layout' => [ 'tabs' => [ [ 'label' => 'Contacts', 'items' => [ [ 'field' => 'phone' ] ] ] ] ],
-        ] );
-        $this->mcp( 'set-field-values', [ 'options' => 'qa-show', 'values' => [ 'phone' => '+1 555' ] ] );
-        $this->assertSame( [ '+1 555', '+1 555' ], $this->site_runs( "return [ fabrement()->options( 'qa-show' )->get( 'phone' ), fabrement()->options( 'qa-show', 'fr' )->get( 'phone' ) ];" ) );
-    }
-
     /**
      * terms( [] ) is an empty picker: nothing, quietly, a taxonomy named or not; terms( taxonomy: … )
      * with no ids lists the taxonomy; terms() with neither is a mistake: one line, nothing.
@@ -522,11 +509,11 @@ final class FabShowTest extends SiteTestCase {
             ];" );
         $this->assertSame( [ [], [], [], [] ], $empty, 'an empty picker: nothing, whatever the taxonomy' );
         $this->assertSame( [ true, false, true ], $listed, 'ids left out: the taxonomy\'s terms, empty ones as hide_empty says' );
-        $this->assertStringNotContainsString( '[Fabrement]', $this->take_log(), 'an empty picker says nothing' );
+        $this->assertStringNotContainsString( '[fabrement][api]', $this->take_log(), 'an empty picker says nothing' );
 
         $this->assertSame( [ [], [] ], $this->site_runs( "return [ fabrement()->terms(), fabrement()->terms( taxonomy: '' ) ];" ) );
         $log = $this->take_log();
-        $this->assertSame( 2, substr_count( $log, '[Fabrement]' ), 'one line for each call with neither' );
+        $this->assertSame( 2, substr_count( $log, '[fabrement][api]' ), 'one line for each call with neither' );
         $this->assertStringContainsString( 'Fabrement::terms(): name a taxonomy, or give term ids', $log );
     }
 
@@ -579,7 +566,7 @@ final class FabShowTest extends SiteTestCase {
         $this->assertSame( [ \Fabrement\Api\Content\Taxonomy::class, \Fabrement\Api\Content\Taxonomy::class ], $objects );
         $this->assertSame( [ [], [], [], [], [] ], $wrong );
         $log = $this->take_log();
-        $this->assertSame( 3, substr_count( $log, '[Fabrement]' ), 'a public: that is not a bool and a type that is not there; a missing record quietly' );
+        $this->assertSame( 3, substr_count( $log, '[fabrement][api]' ), 'a public: that is not a bool and a type that is not there; a missing record quietly' );
         $this->assertStringContainsString( 'Fabrement::taxonomies(): public: true or false, not string.', $log );
         $this->assertStringContainsString( 'Fabrement::taxonomies(): public: true or false, not int.', $log );
         $this->assertStringContainsString( 'Fabrement::taxonomies(): there is no post type "qa_no_such_type".', $log );
@@ -603,7 +590,7 @@ final class FabShowTest extends SiteTestCase {
         };
         \$list = static fn( array \$ids ): WP_Query => new WP_Query( [ 'post_type' => 'page', 'post__in' => \$ids, 'orderby' => 'post__in' ] );
         \$show = static function ( int \$id ): void { \$GLOBALS['post'] = get_post( \$id ); setup_postdata( \$GLOBALS['post'] ); };
-        \$kept = static fn(): int => count( ( new ReflectionProperty( \\Fabrement\\Modules\\Query\\Version::class, 'loops' ) )->getValue() );
+        \$kept = static fn(): int => count( ( new ReflectionProperty( \\Fabrement\\Modules\\Translation\\Version::class, 'loops' ) )->getValue() );
     ";
 
     /**
@@ -748,14 +735,14 @@ final class FabShowTest extends SiteTestCase {
     }
 
     /**
-     * \$this->loop() of a page bundle is a generator that rewinds its query when left — after the
-     * last post or a break. Lists that have ended are not kept: a page of many lists holds only
+     * A theme's loop written as a generator rewinds its query when left — after the last post or a
+     * break. Lists that have ended are not kept: a page of many lists holds only
      * the ones still running.
      */
     public function test_loops_that_ended_are_let_go_and_a_list_can_run_again(): void {
         [ $a, $b, $c ] = [ $this->record( 'page', 'Kept A' ), $this->record( 'page', 'Kept B' ), $this->record( 'page', 'Kept C' ) ];
         $seen = $this->site_runs( self::LOOPS . "
-            // As ArchivePage::loop() walks a query.
+            // A generator that walks a query and rewinds it when left.
             \$walk = static function ( WP_Query \$q ): Generator {
                 \$q->rewind_posts();
                 try {

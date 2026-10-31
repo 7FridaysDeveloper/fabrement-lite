@@ -25,8 +25,8 @@ final class ListLanguagesAbility extends AbstractAbility {
     public function description(): string {
         return 'The languages of this multilingual site: active, default, languages [{code, label, '
             . 'isDefault}]. Call it first when a task mentions a language — codes come from here, never '
-            . 'guessed. Another language of an EXISTING page or template is never a new record: '
-            . 'translate-content / translate-template make the version, then it is edited by its own id. '
+            . 'guessed. Another language of an EXISTING page is never a new record: '
+            . 'translate-content makes the version, then it is edited by its own id. '
             . '`capabilities` says what CAN be translated here — check it before planning a translation.';
     }
 
@@ -54,8 +54,7 @@ final class ListLanguagesAbility extends AbstractAbility {
                 'capabilities' => [
                     'type'       => 'object',
                     'properties' => [
-                        'contentTranslation' => [ 'type' => 'boolean', 'description' => 'Pages, posts, templates, patterns, terms.' ],
-                        'stringTranslation'  => [ 'type' => 'boolean', 'description' => 'SEO title/description templates per language (set-seo-defaults {language}).' ],
+                        'contentTranslation' => [ 'type' => 'boolean', 'description' => 'Pages, posts, patterns, terms.' ],
                         'formTranslation'    => [ 'type' => 'boolean', 'description' => 'Contact Form 7 forms (translate-cf7-form). Absent without Contact Form 7.' ],
                     ],
                 ],
@@ -104,9 +103,8 @@ final class ListLanguagesAbility extends AbstractAbility {
             ];
         }
 
-        $strings      = $bridge->supports_strings();
-        $capabilities = [ 'contentTranslation' => true, 'stringTranslation' => $strings ];
-        $notes        = $strings ? [] : [ Translation::STRINGS_MISSING ];
+        $capabilities = [ 'contentTranslation' => true ];
+        $notes        = [];
         // Only where there ARE forms to translate: without Contact Form 7 the question is moot.
         if ( class_exists( '\WPCF7_ContactForm' ) ) {
             $forms                           = $bridge->is_post_type_translatable( 'wpcf7_contact_form' ) === true;

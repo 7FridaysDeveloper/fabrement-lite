@@ -84,19 +84,8 @@ final class Translation {
     }
 
     /**
-     * What an agent is told wherever string translation is missing — list-languages and every tool
-     * that needs it say the SAME thing: what is out of reach, and that only the site admin can
-     * change it. The add-on is paid and comes from a WPML account;
-     * saying so stops an agent from trying, or from retrying the refused call.
-     */
-    public const STRINGS_MISSING = 'WPML String Translation (a WPML add-on) is not active, so SEO title/description '
-        . 'templates cannot be translated here — pages, '
-        . 'posts, templates and terms still can. Ask the site admin to install and activate it (it is paid, '
-        . 'from their WPML account); do not retry.';
-
-    /**
-     * The same, for forms: what makes Contact Form 7 forms translatable is a WPML add-on, and like
-     * String Translation it comes from a WPML account, not WordPress.org.
+     * What an agent is told wherever form translation is missing: what makes Contact Form 7 forms
+     * translatable is a WPML add-on, and it comes from a WPML account, not WordPress.org.
      */
     public const FORMS_MISSING = 'Contact Form 7 forms cannot be translated here: WPML Multilingual for CF7 (a WPML add-on) '
         . 'is not active. Ask the site admin to install and activate it from their WPML account; '
@@ -113,7 +102,7 @@ final class Translation {
 
     /**
      * The site's languages a translation group does NOT cover yet — the codes an agent would pass
-     * to translate-content / translate-template. Reads the language list once per
+     * to translate-content. Reads the language list once per
      * request (it is cached in the bridge), so calling it per row of a listing is free.
      *
      * @param array<string,int> $translations code → id of the group, as the bridge reports it.

@@ -2,6 +2,7 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateWriter;
 use Fabrement\Modules\SiteTemplate\Service\TemplateParts;
@@ -15,10 +16,16 @@ use Fabrement\Modules\Translation\Translation;
 /**
  * Create a site template or change one — written the way content is: `blocks` for its whole
  * frame, or `edits` against the frame the caller read. Checks each block where a bad one is an
- * error the agent can read, then hands the content to {@see SiteTemplateWriter::save()}, the write
- * path for MCP templates. Native Gutenberg saves use the same block validators.
+ * error the agent can read, then hands the content to {@see SiteTemplateWriter::save()}.
+ *
+ * Never touches what is set only in wp-admin: the theme-file rules (the stored ones are kept)
+ * and the site-wide assignments.
  */
 final class SaveTemplateAbility extends AbstractAbility {
+
+    public function check_permission() {
+        return parent::check_permission() && current_user_can( Capabilities::TEMPLATES );
+    }
 
     public function name(): string {
         return 'fabrement/save-template';
@@ -34,7 +41,8 @@ final class SaveTemplateAbility extends AbstractAbility {
             . 'mode "edit" takes `edits` against what get-template returned. Use exactly one fabrement/content-source or core/post-content block — '
             . 'the content slot, placed where the page\'s own content goes. Prefer GLOBAL BLOCKS for the header and footer '
             . '({"name":"core/block","attributes":{"ref": id}} — list-synced-patterns {kind:"header"}, or save-synced-pattern): one header '
-            . 'then serves every template' . self::multilingual_text( ' and is translated once' ) . '. Check list-templates first: edit the existing one rather than make a duplicate.';
+            . 'then serves every template' . self::multilingual_text( ' and is translated once' ) . '. Check list-templates first: edit the existing one rather than make a duplicate. '
+            . 'Theme files and site-wide assignments are set in wp-admin; a save keeps them.';
     }
 
     public function contract(): ?string {
@@ -74,13 +82,7 @@ final class SaveTemplateAbility extends AbstractAbility {
                 'edits'            => ContentEdits::schema( 'get-template' ),
                 'expectedHash'     => [ 'type' => 'string', 'description' => 'mode "edit": `hash` from get-template. If the frame changed since, nothing is saved.' ],
                 'contentWidth'     => [ 'type' => 'string', 'enum' => [ 'full', 'constrained' ], 'description' => 'Width of the content area; "full" on create.' ],
-                'contentSource' => [ 'type' => 'object', 'additionalProperties' => false, 'required' => [ 'rules' ],
-                    'description' => 'Existing theme PHP sources shared by this template and all translations. Omit to preserve; rules:[] returns to page content. Set choices here, not in block attributes. Use list-theme-templates; no file creation or PHP source input.',
-                    'properties' => [ 'rules' => [ 'type' => 'array', 'items' => [ 'type' => 'object', 'additionalProperties' => false,
-                        'required' => [ 'context', 'file' ], 'properties' => [ 'context' => [ 'type' => 'string', 'description' => 'singular:page, singular:<type>, archive:<type>, blog-home, 404, tax, tax:<taxonomy> or tax:<taxonomy>:<termId>.' ],
-                        'file' => [ 'type' => 'string', 'description' => 'Relative path returned by list-theme-templates.' ] ] ] ] ] ],
             ] + self::multilingual( [
-                // Absent on a single-language site, where they are one more thing to read and rule out.
                 'language'    => [ 'type' => 'string', 'description' => 'CREATE only: the language this template is the original in (list-languages code). Never to translate an existing template — that is translate-template.' ],
                 'newOriginal' => [ 'type' => 'boolean', 'description' => 'Required with a non-default language: you checked list-templates and no template like it exists in any language.' ],
             ] ),
@@ -105,11 +107,10 @@ final class SaveTemplateAbility extends AbstractAbility {
                         'hash'          => [ 'type' => 'string', 'description' => 'The frame\'s hash after this save — the expectedHash of the next mode "edit".' ],
                         'contentWidth'  => [ 'type' => 'string' ],
                         'problem'       => [ 'type' => 'string', 'description' => 'What is wrong with the template, in a sentence; "" when nothing is.' ],
-                        'pageCount'     => [ 'type' => 'integer' ],
                         'defaultFor'    => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+                        'editUrl'       => [ 'type' => 'string' ],
                     ],
                 ],
-
             ],
         ];
     }
@@ -128,9 +129,7 @@ final class SaveTemplateAbility extends AbstractAbility {
             if ( ! in_array( $language, $codes, true ) ) {
                 return ( new McpAbilityException( sprintf( '"%s" is not a language on this site — see list-languages.', $language ) ) )->to_error();
             }
-            // Off the default language the caller has to SAY it is a new original — the same
-            // rule save-content keeps: the usual second "Blog" template is a version made as
-            // a template. Nothing is inferred; it changes nothing but the asking.
+            // Off the default language the caller says it is a new original, as save-content asks.
             $default = Translation::bridge()->default_language();
             if ( $language !== $default && empty( $input['newOriginal'] ) ) {
                 return ( new McpAbilityException( sprintf(
@@ -152,16 +151,14 @@ final class SaveTemplateAbility extends AbstractAbility {
             return $content;
         }
 
-        $save = [
-            'id'            => $input['templateId'] ?? null,
-            'title'         => $input['title'] ?? '',
+        // No contentSource: the writer keeps the stored theme-file rules.
+        $result = SiteTemplateWriter::save( [
+            'id'           => $input['templateId'] ?? null,
+            'title'        => $input['title'] ?? '',
             // null: this call does not touch the frame.
-            'content'       => $content,
-            'contentWidth'  => $input['contentWidth'] ?? null,
-            'contentSource' => $input['contentSource'] ?? null,
-        ];
-
-        $result = SiteTemplateWriter::save( $save );
+            'content'      => $content,
+            'contentWidth' => $input['contentWidth'] ?? null,
+        ] );
         if ( is_wp_error( $result ) ) {
             // The same name translate-template gives this case, so one code means one thing.
             if ( $result->get_error_code() === 'fabrement_st_translation_not_manual' ) {
@@ -170,9 +167,7 @@ final class SaveTemplateAbility extends AbstractAbility {
             }
             return $result;
         }
-        // After the insert, as save-content does: the plugin stamps a new post with the
-        // request's language on insert, and this rewrites that stamp to the asked one, in a
-        // group of its own.
+        // After the insert, as save-content does: the asked language replaces the request's stamp.
         if ( $language !== '' ) {
             Translation::bridge()->set_language( (int) $result['id'], $language, SiteTemplatePostType::POST_TYPE );
         }
@@ -186,9 +181,8 @@ final class SaveTemplateAbility extends AbstractAbility {
     /**
      * The template's frame this call asks for, as stored block markup — or null when it names none.
      *
-     * Read as content is: `blocks` is the whole of it; `edits` are applied to the frame as
-     * get-template returned it, pinned by `expectedHash`. Each block is checked here. The content
-     * slot is written by the plugin, and stands in the frame exactly once.
+     * `blocks` is the whole of it; `edits` are applied to the frame as get-template returned it,
+     * pinned by `expectedHash`. The content slot stands in the frame exactly once.
      *
      * @return string|null|\WP_Error
      * @throws McpAbilityException
@@ -240,11 +234,11 @@ final class SaveTemplateAbility extends AbstractAbility {
         $content = implode( "\n\n", $pieces );
         SiteTemplateWriter::assert_slot( $content );
 
-        // A global block this call places — at any depth, written as a name or as markup — must be
-        // one WordPress draws. What the frame already placed is carried as it is.
+        // A global block this call places, at any depth, must be one WordPress draws. What the
+        // frame already placed is carried as it is.
         $placed = $id > 0 ? TemplateParts::refs( (string) get_post_field( 'post_content', $id ) ) : [];
         foreach ( array_diff( TemplateParts::refs( $content ), $placed ) as $ref ) {
-            // The original is what is placed and what "where is it used" is asked of; each language is shown its own version.
+            // The original is placed; each language is shown its own version.
             $original = TemplateParts::original_of( $ref );
             if ( $original !== $ref && $original > 0 ) {
                 throw new McpAbilityException( sprintf( 'Global block %1$d is a language version — place the original, {"ref": %2$d}; each language is shown its own version automatically. Nothing was saved.', (int) $ref, (int) $original ) );

@@ -5,7 +5,7 @@ namespace Fabrement\Tests\Api;
 use Fabrement\Api\Content\Post;
 use Fabrement\Api\Content\Term;
 use Fabrement\Api\Fabrement;
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Markup\Link;
 use Fabrement\Api\Media\File;
 use Fabrement\Api\Media\Image;
@@ -36,7 +36,7 @@ final class ValuesTest extends ApiTestCase {
             try {
                 $bad();
                 self::fail( 'case ' . $i . ' was accepted' );
-            } catch ( FieldsException $e ) {
+            } catch ( ApiException $e ) {
                 self::assertNotSame( '', $e->getMessage() );
             }
         }

@@ -18,6 +18,11 @@ use Fabrement\Modules\Mcp\Support\McpAbilityException;
  */
 final class UploadMediaAbility extends AbstractAbility {
 
+    /** The core cap for adding to the media library. */
+    public function check_permission() {
+        return parent::check_permission() && current_user_can( 'upload_files' );
+    }
+
     /** Image extensions — these REQUIRE altText and get a decodability check. */
     private const IMAGE_EXTENSIONS = [ 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif' ];
 
@@ -28,7 +33,7 @@ final class UploadMediaAbility extends AbstractAbility {
      */
     private const FILE_EXTENSIONS = [ 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'mp4', 'webm', 'mov', 'mp3', 'ogg', 'wav', 'zip' ];
 
-    /** download_url() deadline for a remote file, in seconds. */
+    /** Download deadline for a remote file, in seconds. */
     private const DOWNLOAD_TIMEOUT = 30;
 
     /**
@@ -91,7 +96,7 @@ final class UploadMediaAbility extends AbstractAbility {
             'type'       => 'object',
             'required'   => [ 'id', 'url', 'mimeType', 'filename', 'altText' ],
             'properties' => [
-                'id'       => [ 'type' => 'integer', 'description' => 'With `url`, the {id, url} pair an image attribute stores; alone, the siteIcon update-site-settings takes.' ],
+                'id'       => [ 'type' => 'integer', 'description' => 'With `url`, the {id, url} pair an image attribute stores.' ],
                 'url'      => [ 'type' => 'string' ],
                 // Null for everything without raster metadata, so a caller computing an aspect
                 // ratio cannot assume a number is there.
@@ -193,15 +198,50 @@ final class UploadMediaAbility extends AbstractAbility {
             throw new McpAbilityException( 'sourceUrl must be an http(s) URL.' );
         }
 
-        // download_url() runs through the HTTP API, so wp_http_validate_url() blocks
-        // loopback/private hosts for us — no SSRF hole from an agent-supplied URL.
-        $tmp = download_url( $url, self::DOWNLOAD_TIMEOUT );
-        if ( is_wp_error( $tmp ) ) {
-            throw new McpAbilityException( 'Could not download sourceUrl: ' . esc_html( $tmp->get_error_message() ) );
+        $name = wp_basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+        $tmp  = wp_tempnam( $name );
+        if ( ! $tmp ) {
+            throw new McpAbilityException( 'Could not create a temp file for the download.' );
         }
 
-        $name = wp_basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+        // wp_safe_remote_get() blocks loopback/private hosts, redirects included: no SSRF from an
+        // agent-supplied URL. download_url() has no size limit, so at most one byte past it is written.
+        $max  = self::max_bytes();
+        $args = [
+            'timeout'  => self::DOWNLOAD_TIMEOUT,
+            'stream'   => true,
+            'filename' => $tmp,
+        ];
+        if ( $max > 0 ) {
+            $args['limit_response_size'] = $max + 1;
+        }
+        $response = wp_safe_remote_get( $url, $args );
+        if ( is_wp_error( $response ) ) {
+            wp_delete_file( $tmp );
+            throw new McpAbilityException( 'Could not download sourceUrl: ' . esc_html( $response->get_error_message() ) );
+        }
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        if ( 200 !== $code ) {
+            wp_delete_file( $tmp );
+            throw new McpAbilityException( esc_html( sprintf( 'Could not download sourceUrl: HTTP %d.', $code ) ) );
+        }
+        $length = wp_remote_retrieve_header( $response, 'content-length' );
+        clearstatcache( true, $tmp );
+        if ( $max > 0 && ( ( is_numeric( $length ) && (int) $length > $max ) || (int) filesize( $tmp ) > $max ) ) {
+            wp_delete_file( $tmp );
+            throw self::too_large( $max ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- too_large() escapes what it prints.
+        }
+
         return [ $tmp, sanitize_file_name( '' !== $name ? $name : 'file' ) ];
+    }
+
+    /** The site's upload limit (wp_max_upload_size()), what a file added in wp-admin may weigh; 0 = none, as in core. */
+    private static function max_bytes(): int {
+        return (int) wp_max_upload_size();
+    }
+
+    private static function too_large( int $max ): McpAbilityException {
+        return new McpAbilityException( sprintf( 'The file is larger than this site\'s upload limit of %s.', esc_html( size_format( $max ) ) ) );
     }
 
     /**
@@ -227,6 +267,9 @@ final class UploadMediaAbility extends AbstractAbility {
                     (int) ( self::MAX_BASE64_BYTES / 1024 )
                 )
             );
+        }
+        if ( self::max_bytes() > 0 && strlen( $bytes ) > self::max_bytes() ) {
+            throw self::too_large( self::max_bytes() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- too_large() escapes what it prints.
         }
 
         $tmp = wp_tempnam( $filename );

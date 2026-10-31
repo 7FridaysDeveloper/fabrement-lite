@@ -118,7 +118,7 @@ final class UpdateTermAbility extends AbstractAbility {
             ? 'The slug and the parent both changed'
             : ( $slug_moved ? 'The slug changed' : 'The parent changed' );
 
-        $note = $what . ': the term archive URL moved and the old one now 404s (WordPress does not redirect it) — update any menu/content links.';
+        $note = $what . ': the term archive URL moved and the old one now 404s (WordPress does not redirect it) — update any content links.';
 
         // Children ride along, and nothing else tells the caller so: they are not in this answer,
         // and asking for one gives no hint that its address was rewritten by an ancestor.

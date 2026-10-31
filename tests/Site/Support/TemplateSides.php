@@ -14,15 +14,18 @@ trait TemplateSides {
     }
 
     /**
-     * Derived header/footer facts, read from the stored block frame:
-     * {headerPatternId, footerPatternId, headerBlockId, footerBlockId}. Nothing of it is stored,
-     * and the tools do not answer it — an agent reads the frame's blocks.
+     * A template's header and footer: the first synced pattern of each kind its blocks place,
+     * {headerPatternId, footerPatternId} (0 = none). Read from its content; nothing of it is stored.
      */
     protected function screen_sides( int $template ): array {
         return (array) $this->site_runs(
             '$r = \\Fabrement\\Modules\\SiteTemplate\\Service\\SiteTemplateRegistry::find_any( ' . $template . ' );'
-            . ' return $r === null ? [] : [ "headerPatternId" => $r->headerPatternId(), "footerPatternId" => $r->footerPatternId(), "headerBlockId" => $r->headerBlockId(), "footerBlockId" => $r->footerBlockId() ];'
-        ) + [ 'headerPatternId' => 0, 'footerPatternId' => 0, 'headerBlockId' => 0, 'footerBlockId' => 0 ];
+            . ' $sides = [ "headerPatternId" => 0, "footerPatternId" => 0 ];'
+            . ' foreach ( $r === null ? [] : \\Fabrement\\Modules\\SiteTemplate\\Service\\TemplateParts::refs( (string) $r->raw_content ) as $id ) {'
+            . ' $key = \\Fabrement\\Modules\\SiteTemplate\\Service\\SyncedPatterns::kind( (int) $id ) . "PatternId";'
+            . ' if ( ( $sides[ $key ] ?? -1 ) === 0 ) { $sides[ $key ] = (int) $id; } }'
+            . ' return $sides;'
+        );
     }
 
     /** The pattern inferred from a template's header / footer (0 = none). */
@@ -30,14 +33,10 @@ trait TemplateSides {
         return (int) $this->screen_sides( $template )[ $kind . 'PatternId' ];
     }
 
-    /** A template's row of list-templates, with independently read block-frame facts beside it. */
+    /** A template's summary, with independently read block-frame facts beside it. */
     protected function listed_with_sides( int $template ): array {
-        foreach ( (array) $this->mcp( 'list-templates' )['templates'] as $row ) {
-            if ( (int) $row['id'] === $template ) {
-                $this->assertArrayNotHasKey( 'headerPatternId', $row, 'the tools answer no sides: an agent reads the frame' );
-                return $row + $this->screen_sides( $template );
-            }
-        }
-        $this->fail( "list-templates has no template $template" );
+        $row = $this->template_row( $template );
+        $this->assertNotSame( [], $row, "no template $template" );
+        return $row + $this->screen_sides( $template );
     }
 }

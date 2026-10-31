@@ -2,7 +2,7 @@
 
 namespace Fabrement\Api\Support;
 
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Media\Attachment;
 
 defined( 'ABSPATH' ) || exit;
@@ -51,7 +51,7 @@ final class ReadResult {
                     $valid = get_debug_type( $value ) === get_debug_type( $defaults[ $key ] );
             }
             if ( ! $valid ) {
-                throw new FieldsException( esc_html( $key ) . ': invalid value (' . esc_html( get_debug_type( $value ) ) . ').' );
+                throw new ApiException( esc_html( $key ) . ': invalid value (' . esc_html( get_debug_type( $value ) ) . ').' );
             }
         }
         return $args + $defaults;

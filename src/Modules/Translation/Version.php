@@ -2,7 +2,7 @@
 
 namespace Fabrement\Modules\Translation;
 
-use Fabrement\Api\FieldsException;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Support\Quietly;
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 
@@ -164,7 +164,7 @@ final class Version {
      * null, false, '' and a number that is no id (0, -5) are none (0), quietly.
      *
      * @param mixed $value
-     * @throws FieldsException Anything that is not a number ("about", 7.5, true, an array): a mistake.
+     * @throws ApiException Anything that is not a number ("about", 7.5, true, an array): a mistake.
      */
     public static function id( $value ): int {
         if ( $value === null || $value === false || $value === '' ) {
@@ -179,7 +179,7 @@ final class Version {
         if ( is_string( $value ) && preg_match( '/^-?\d+$/', $value ) === 1 ) {
             return max( 0, (int) $value );
         }
-        throw new FieldsException( 'give an id (a number), not ' . ( is_string( $value ) ? '"' . esc_html( $value ) . '"' : ( is_scalar( $value ) ? esc_html( (string) wp_json_encode( $value ) ) : esc_html( get_debug_type( $value ) ) ) ) . '.' );
+        throw new ApiException( 'give an id (a number), not ' . ( is_string( $value ) ? '"' . esc_html( $value ) . '"' : ( is_scalar( $value ) ? esc_html( (string) wp_json_encode( $value ) ) : esc_html( get_debug_type( $value ) ) ) ) . '.' );
     }
 
     /**
@@ -189,21 +189,21 @@ final class Version {
      * @param mixed                      $value
      * @param (callable(mixed): int)|null $one Reads one item; default id().
      * @return list<int>
-     * @throws FieldsException Not a list.
+     * @throws ApiException Not a list.
      */
     public static function ids( $value, string $where, ?callable $one = null ): array {
         if ( $value === null || $value === false || $value === '' || $value === 0 ) {
             return [];
         }
         if ( ! is_array( $value ) ) {
-            throw new FieldsException( 'give a list of ids, not ' . esc_html( get_debug_type( $value ) ) . '.' );
+            throw new ApiException( 'give a list of ids, not ' . esc_html( get_debug_type( $value ) ) . '.' );
         }
         $read = $one ?? [ self::class, 'id' ];
         $out  = [];
         foreach ( $value as $item ) {
             try {
                 $id = $read( $item );
-            } catch ( FieldsException $e ) {
+            } catch ( ApiException $e ) {
                 Quietly::log( $where, $e->getMessage() );
                 continue;
             }
@@ -218,13 +218,13 @@ final class Version {
      * The lang: option as given: a language code, or null / '' for the page's language.
      *
      * @param mixed $value
-     * @throws FieldsException Anything else.
+     * @throws ApiException Anything else.
      */
     public static function lang( $value ): string {
         if ( $value === null || is_string( $value ) ) {
             return (string) $value;
         }
-        throw new FieldsException( 'lang: give a language code, not ' . esc_html( get_debug_type( $value ) ) . '.' );
+        throw new ApiException( 'lang: give a language code, not ' . esc_html( get_debug_type( $value ) ) . '.' );
     }
 
     public static function check_language( string $lang ): string {
@@ -253,12 +253,12 @@ final class Version {
         }
         $list = is_array( $status ) ? array_values( $status ) : [ $status ];
         if ( ! $list ) {
-            throw new FieldsException( 'status: give at least one of ' . esc_html( implode( ', ', self::STATUSES ) ) . ', or \'all\'.' );
+            throw new ApiException( 'status: give at least one of ' . esc_html( implode( ', ', self::STATUSES ) ) . ', or \'all\'.' );
         }
         foreach ( $list as $one ) {
             if ( ! is_string( $one ) || ! in_array( $one, self::STATUSES, true ) ) {
                 $hint = $one === 'all' ? " ('all' stands alone, not in a list)" : '';
-                throw new FieldsException( 'status: "' . ( is_scalar( $one ) ? esc_html( (string) $one ) : esc_html( gettype( $one ) ) ) . '" — use ' . esc_html( implode( ', ', self::STATUSES ) ) . ', or \'all\'' . esc_html( $hint ) . '.' );
+                throw new ApiException( 'status: "' . ( is_scalar( $one ) ? esc_html( (string) $one ) : esc_html( gettype( $one ) ) ) . '" — use ' . esc_html( implode( ', ', self::STATUSES ) ) . ', or \'all\'' . esc_html( $hint ) . '.' );
             }
         }
         return array_values( array_unique( $list ) );
@@ -356,7 +356,7 @@ final class Version {
             return in_array( $current, $codes, true ) ? $current : $bridge->default_language();
         }
         if ( ! in_array( $lang, $codes, true ) ) {
-            throw new FieldsException( 'lang: the site has no language "' . esc_html( $lang ) . '" (it has ' . esc_html( implode( ', ', $codes ) ) . ').' );
+            throw new ApiException( 'lang: the site has no language "' . esc_html( $lang ) . '" (it has ' . esc_html( implode( ', ', $codes ) ) . ').' );
         }
         return $lang;
     }

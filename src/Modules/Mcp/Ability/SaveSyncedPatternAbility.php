@@ -94,6 +94,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
                 'categories' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                 'status'    => [ 'type' => 'string', 'description' => 'publish, or draft — a draft draws nothing where it is placed.' ],
                 'blocks'    => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+                'hash'      => [ 'type' => 'string', 'description' => 'The body\'s hash after this save — the expectedHash of the next mode "edit".' ],
                 'usedBy'    => [ 'type' => 'array', 'items' => [ 'type' => 'object' ], 'description' => 'Records this change reached.' ],
                 'shownThrough' => [ 'type' => 'integer', 'description' => 'On a language version only: the id of its original. Nothing places a version itself — it is shown, to readers of its language, wherever the original stands, and `usedBy`' . '' . ' are those places.' ],
                 'placement' => [ 'type' => 'string', 'description' => 'The markup that places it — the id of the ORIGINAL, also when a language version was saved.' ],
@@ -139,7 +140,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
 
     /**
      * The language a NEW global block is the original in ('' = the request's, the default). The
-     * same asking as save-template and save-content: off the default language the caller says it
+     * same asking as save-content: off the default language the caller says it
      * is a new original, since the usual second one is a version made as a pattern.
      *
      * @throws McpAbilityException
@@ -186,14 +187,15 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
             $placed = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::original_of( $id ) ?: $id;
             $used   = SyncedPatterns::placements( $placed, 100 );
             if ( $used !== [] ) {
+                $listed = SyncedPatterns::refusal_list( $used, static fn( array $p ): string => sprintf( '%d "%s"', $p['id'], $p['title'] ) );
                 throw new McpAbilityException(
                     sprintf(
                         'Pattern %1$d is placed in %2$d record(s): %3$s. As a draft it would draw nothing there — take it out of each first (save-template / save-content mode "edit"), then make it a draft' . ( $placed !== $id ? '; to stop showing this language\'s version alone, delete the version (delete-synced-pattern) and its pages show the original' : '' ) . '.',
                         (int) $id,
                         count( $used ),
-                        implode( '; ', array_map( static fn( array $p ): string => sprintf( '%d "%s"', $p['id'], $p['title'] ), array_slice( $used, 0, 5 ) ) ) // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- a tool's answer, read as JSON text; escaping turns the titles' quotes into entities.
+                        $listed['text'] // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- a tool's answer, read as JSON text; escaping turns the titles' quotes into entities.
                     ),
-                    [ 'usedBy' => $used ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                    [ 'usedBy' => $listed['readable'], 'hidden' => $listed['hidden'] ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
                     'pattern_in_use'
                 );
             }
@@ -316,7 +318,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
                 if ( $templates !== [] ) {
                     throw new McpAbilityException(
                         sprintf( 'Pattern %d is the %s of %d template(s) — it stays a %s. Make a new global block instead.', (int) $id, esc_html( $was ), count( $templates ), esc_html( $was ) ),
-                        [ 'templates' => $templates ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                        [ 'templates' => SyncedPatterns::readable( $templates ), 'hidden' => count( $templates ) - count( SyncedPatterns::readable( $templates ) ) ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
                         'pattern_kind_change'
                     );
                 }
@@ -332,10 +334,47 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
             if ( $pages !== [] ) {
                 throw new McpAbilityException(
                     sprintf( 'Pattern %d is placed as a section in %d record(s); a %s is placed in templates only. Remove those placements first, or make a new global block.', (int) $id, count( $pages ), esc_html( $kind ) ),
-                    [ 'usedBy' => $pages ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                    [ 'usedBy' => SyncedPatterns::readable( $pages ), 'hidden' => count( $pages ) - count( SyncedPatterns::readable( $pages ) ) ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
                     'pattern_kind_change'
                 );
             }
+        }
+
+        if ( $kind !== null || $categories !== null ) {
+            // A category WordPress offers but the site lacks is made here: the editor asks edit_terms.
+            $new_terms = SyncedPatterns::terms_to_write( $kind, $categories );
+            if ( $new_terms !== [] && ! SyncedPatterns::may_edit_categories() ) {
+                throw new McpAbilityException(
+                    sprintf( 'Filing it would create the pattern category %s, and you may not create categories (edit_terms). Nothing was saved.', esc_html( implode( ', ', $new_terms ) ) ),
+                    [],
+                    'forbidden'
+                );
+            }
+            // Kind and categories go to every language version: each must be the user's to edit.
+            if ( $existing !== null && \Fabrement\Modules\Translation\Translation::is_multilingual() ) {
+                $versions = array_map( 'intval', array_values( \Fabrement\Modules\Translation\Translation::bridge()->all_versions( $id, SyncedPatterns::POST_TYPE ) ) );
+                $locked   = count( array_filter( $versions, static fn( int $v ): bool => $v !== $id && ! current_user_can( 'edit_post', $v ) ) );
+                if ( $locked > 0 ) {
+                    throw new McpAbilityException(
+                        sprintf( 'Kind and categories are set on every language version, and %d of them you may not edit. Nothing was saved.', (int) $locked ),
+                        [ 'hidden' => (int) $locked ],
+                        'forbidden'
+                    );
+                }
+            }
+        }
+
+        // The pattern type's own caps, as the editor asks: create one, and publish it (a new one
+        // is published unless `status` says draft). An edit was checked with edit_post above.
+        $type      = get_post_type_object( SyncedPatterns::POST_TYPE );
+        $publishes = $existing === null ? ( $status ?? 'publish' ) === 'publish' : ( $status === 'publish' && $existing->post_status !== 'publish' );
+        if ( $existing === null && ( ! $type || ! current_user_can( $type->cap->create_posts ) ) ) {
+            throw new McpAbilityException( 'You cannot create synced patterns on this site (create_posts).' );
+        }
+        // As the REST controller: the type's publish cap, no post id ('publish_post' on a wp_block
+        // maps to publish_blocks, which no role holds). Who may edit this one was checked above.
+        if ( $publishes && ! ( $type && current_user_can( $type->cap->publish_posts ) ) ) {
+            throw new McpAbilityException( 'You cannot publish this synced pattern (publish_posts). Save it with status "draft".' );
         }
 
         $postarr = [ 'post_type' => SyncedPatterns::POST_TYPE ];
@@ -361,7 +400,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
             throw new McpAbilityException( 'Could not save the pattern: ' . esc_html( $result->get_error_message() ) );
         }
         $id = (int) $result;
-        // After the insert, as save-template does: the plugin stamps a new post with the request's
+        // After the insert, as save-content does: the plugin stamps a new post with the request's
         // language, and this rewrites that stamp to the asked one, in a group of its own.
         if ( $existing === null && $language !== '' ) {
             \Fabrement\Modules\Translation\Translation::bridge()->set_language( $id, $language, SyncedPatterns::POST_TYPE );
@@ -393,7 +432,9 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
             'categories' => SyncedPatterns::categories( $id ),
             'status'    => (string) $post->post_status,
             'blocks'    => SyncedPatterns::block_names( (string) $post->post_content ),
-            'usedBy'    => SyncedPatterns::placements( $placed, 100 ),
+            // The hash pins the next edit.
+            'hash'      => TextEdits::hash( BlockEntry::of_post( $id ) ),
+            'usedBy'    => SyncedPatterns::readable( SyncedPatterns::placements( $placed, 100 ) ),
             // The original's: it is what a template or a page places, whichever language was saved.
             'placement' => '<!-- wp:block {"ref":' . $placed . '} /-->',
             'editUrl'   => (string) get_edit_post_link( $id, 'raw' ),

@@ -42,6 +42,10 @@ final class NullBridge implements TranslationBridge {
         return $fn();
     }
 
+    public function locale_of( string $lang ): string {
+        return '';
+    }
+
     public function default_language(): string {
         return '';
     }
@@ -89,16 +93,6 @@ final class NullBridge implements TranslationBridge {
         return [];
     }
 
-    public function originals_of_any( array $post_ids ): array {
-        $out = [];
-        foreach ( $post_ids as $id ) {
-            if ( (int) $id > 0 ) {
-                $out[ (int) $id ] = (int) $id;
-            }
-        }
-        return $out;
-    }
-
     public function visible_versions( int $post_id, string $type ): array {
         return [];
     }
@@ -112,22 +106,6 @@ final class NullBridge implements TranslationBridge {
 
     public function writes_translations_manually( int $post_id ): bool {
         return true;
-    }
-
-    public function original_changed( int $post_id ): void {
-        // No translations to mark outdated.
-    }
-
-    public function register_field_hooks(): void {
-        // No provider lifecycle to register.
-    }
-
-    public function pending_original( int $post_id ): int {
-        return 0;
-    }
-
-    public function duplicate_of( int $post_id ): int {
-        return 0;
     }
 
     public function is_original( int $post_id, string $type ): bool {
@@ -159,14 +137,6 @@ final class NullBridge implements TranslationBridge {
         // Nothing filters term links here, so core's own cache clearing is the whole story.
     }
 
-    public function translate_option( string $option, string $key, string $original, string $lang, string $value ): bool {
-        return false;
-    }
-
-    public function option_translations( string $option, string $key, string $original ): array {
-        return [];
-    }
-
     public function term_language( int $term_id, string $taxonomy ): string {
         return '';
     }
@@ -181,11 +151,6 @@ final class NullBridge implements TranslationBridge {
     }
 
     public function forget_languages(): void {
-    }
-
-    /** One language: nothing to translate strings into. */
-    public function supports_strings(): bool {
-        return false;
     }
 
     public function without_language( string $post_type ): array {

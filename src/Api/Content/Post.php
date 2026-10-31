@@ -3,8 +3,7 @@
 namespace Fabrement\Api\Content;
 
 use Fabrement\Api\Fabrement;
-use Fabrement\Api\FieldsException;
-use Fabrement\Api\Fields\Fields;
+use Fabrement\Api\ApiException;
 use Fabrement\Api\Markup\Link;
 use Fabrement\Api\Media\Image;
 use Fabrement\Api\Support\OrElse;
@@ -17,7 +16,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * A record (post, page, a custom type) as WordPress and WPML show it: the version fabrement()->post(),
- * posts(), viewed_post(), loop_post() and the record fields chose, read with WordPress's own
+ * posts(), viewed_post() and loop_post() chose, read with WordPress's own
  * functions — in the page's language, or inside the language asked for (lang:). A record that
  * cannot be shown is an empty Post.
  */
@@ -134,7 +133,7 @@ final class Post {
                 $taxonomy = $taxonomy->name();
             }
             if ( ! is_string( $taxonomy ) || ! taxonomy_exists( $taxonomy ) ) {
-                throw new FieldsException( $taxonomy === null ? 'give a taxonomy — fabrement()->taxonomies( $post ) lists them.' : 'there is no taxonomy ' . ( is_string( $taxonomy ) ? '"' . esc_html( $taxonomy ) . '"' : esc_html( get_debug_type( $taxonomy ) ) ) . '.' );
+                throw new ApiException( $taxonomy === null ? 'give a taxonomy — fabrement()->taxonomies( $post ) lists them.' : 'there is no taxonomy ' . ( is_string( $taxonomy ) ? '"' . esc_html( $taxonomy ) . '"' : esc_html( get_debug_type( $taxonomy ) ) ) . '.' );
             }
             if ( $this->id <= 0 ) {
                 return [];
@@ -149,11 +148,6 @@ final class Post {
             }
             return $out;
         }, [] );
-    }
-
-    public function fields( ...$unknown ): Fields {
-        Quietly::unknown( static::class . '::' . __FUNCTION__, $unknown );
-        return Fabrement::instance()->fields( $this->id > 0 ? $this->id : 0 )->in_language( $this->lang );
     }
 
     public function link( ...$options ): ?Link {
@@ -191,7 +185,7 @@ final class Post {
         if ( $id <= 0 ) {
             return '';
         }
-        $read = static fn(): string => (string) apply_filters( 'the_title', (string) get_post_field( 'post_title', $id, 'raw' ), $id );
+        $read = static fn(): string => (string) apply_filters( 'the_title', (string) get_post_field( 'post_title', $id, 'raw' ), $id ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core's own filter, applied as get_the_title() does.
         return $lang === '' ? $read() : (string) Version::in( $lang, $read );
     }
 

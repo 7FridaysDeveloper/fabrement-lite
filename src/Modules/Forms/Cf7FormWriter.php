@@ -216,7 +216,8 @@ final class Cf7FormWriter {
 			}
 			// As Contact Form 7 saves them (wpcf7_sanitize_messages() only trims; it escapes them on
 			// output): as typed for someone who may post unfiltered HTML, through kses for anyone else.
-			$text = trim( \Fabrement\Modules\Fields\Types\WordsType::words( $text ) );
+			$text = wp_check_invalid_utf8( $text );
+			$text = trim( current_user_can( 'unfiltered_html' ) ? $text : wp_kses_post( $text ) );
 			if ( strlen( $text ) > 500 ) {
 				return new WP_Error( 'message_too_long', sprintf( 'Message "%s" is longer than 500 characters.', $key ) );
 			}

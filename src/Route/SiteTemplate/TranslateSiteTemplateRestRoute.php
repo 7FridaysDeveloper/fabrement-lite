@@ -38,7 +38,7 @@ final class TranslateSiteTemplateRestRoute extends AbstractRestRoute {
     }
 
     public function permission_callback( WP_REST_Request $request ): bool {
-        return current_user_can( Capabilities::ADMIN );
+        return current_user_can( Capabilities::TEMPLATES );
     }
 
     public function get_route_args(): array {
@@ -49,8 +49,7 @@ final class TranslateSiteTemplateRestRoute extends AbstractRestRoute {
     }
 
     public function handle( WP_REST_Request $request ) {
-        // The work lives in SiteTemplateTranslator::open() — the agent's translate-template tool
-        // opens the same record through the same door, so a refusal here is a refusal there.
+        // The work lives in SiteTemplateTranslator::open().
         $opened = SiteTemplateTranslator::open(
             (int) $request->get_param( 'templateId' ),
             (string) $request->get_param( 'language' )

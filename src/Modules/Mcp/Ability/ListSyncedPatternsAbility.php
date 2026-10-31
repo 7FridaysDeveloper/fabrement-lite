@@ -63,6 +63,7 @@ final class ListSyncedPatternsAbility extends AbstractAbility {
                             'categories' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ], 'description' => 'The pattern categories it is filed under besides Headers / Footers, as slugs.' ],
                             'status'  => [ 'type' => 'string' ],
                             'templates' => [ 'type' => 'array', 'items' => [ 'type' => 'object' ], 'description' => 'The templates placing it: {id, title}' . self::multilingual_text( ', `language`, and on a language version `originalId` — rows with an originalId are versions of ONE template; count templates by their originals' ) . '.' ],
+                            'templatesHidden' => [ 'type' => 'integer', 'description' => 'Templates placing it that this user may not open.' ],
                             'blocks'  => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                             'foreign' => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
                             'usedBy'  => [ 'type' => 'integer' ],
@@ -114,6 +115,10 @@ final class ListSyncedPatternsAbility extends AbstractAbility {
             if ( $facts !== null && empty( $facts['isOriginal'] ) ) {
                 continue;
             }
+            // Only patterns this user may read: another's draft stays out (read_post).
+            if ( ! current_user_can( 'read_post', (int) $post->ID ) ) {
+                continue;
+            }
             $row = SyncedPatterns::describe( $post );
             if ( $kind !== '' && $row['kind'] !== $kind ) {
                 continue;
@@ -125,7 +130,10 @@ final class ListSyncedPatternsAbility extends AbstractAbility {
                 break;
             }
             if ( $row['kind'] !== 'section' ) {
-                $row['templates'] = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::templates_using( (int) $post->ID );
+                // Only templates this user may read; the rest is a count.
+                $templates              = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::templates_using( (int) $post->ID );
+                $row['templates']       = SyncedPatterns::readable( $templates );
+                $row['templatesHidden'] = count( $templates ) - count( $row['templates'] );
             }
             $row['editUrl'] = (string) get_edit_post_link( (int) $post->ID, 'raw' );
             if ( $multilingual ) {
@@ -140,7 +148,7 @@ final class ListSyncedPatternsAbility extends AbstractAbility {
         // Where every row is placed, in one search of the site's content for the whole list.
         $placed = SyncedPatterns::placements_of( array_column( $out, 'id' ) );
         foreach ( $out as $i => $row ) {
-            $out[ $i ] = array_slice( $row, 0, 3, true ) + [ 'usedBy' => count( $placed[ $row['id'] ] ?? [] ) ] + $row;
+            $out[ $i ] = array_slice( $row, 0, 3, true ) + [ 'usedBy' => count( SyncedPatterns::readable( $placed[ $row['id'] ] ?? [] ) ) ] + $row;
         }
 
         return [ 'patterns' => $out ];

@@ -13,14 +13,6 @@
       "base": true,
       "translation": false
     },
-    "fields-contract": {
-      "base": true,
-      "translation": false
-    },
-    "options-contract": {
-      "base": true,
-      "translation": false
-    },
     "site-assets-contract": {
       "base": true,
       "translation": false

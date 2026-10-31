@@ -19,7 +19,7 @@ final class GetCf7FormAbility extends AbstractAbility {
 	}
 
 	public function description(): string {
-		return 'Read one Contact Form 7 form: title, raw template, mail recipient/subject, every message key '
+		return 'Read one Contact Form 7 form: title, raw template (`form`), mail recipient/subject, every message key '
 			. '(current, default, description), shortcode (page content only — the Contact Form 7 block takes the form id in its `id` attribute). Read before update-cf7-form.';
 	}
 
@@ -55,7 +55,11 @@ final class GetCf7FormAbility extends AbstractAbility {
 	}
 
 	public function execute( array $input ) {
-		$result = Cf7FormWriter::get( (int) ( $input['formId'] ?? 0 ) );
+		$id = (int) ( $input['formId'] ?? 0 );
+		if ( class_exists( '\WPCF7_ContactForm' ) && ! current_user_can( 'wpcf7_read_contact_form', $id ) ) {
+			return new \WP_Error( 'forbidden', sprintf( 'You may not read form %d (wpcf7_read_contact_form).', $id ) );
+		}
+		$result = Cf7FormWriter::get( $id );
 		return is_wp_error( $result ) ? $result : array( 'form' => $result );
 	}
 }

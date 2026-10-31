@@ -55,6 +55,10 @@ final class DeleteCf7FormAbility extends DestructiveAbility {
 	}
 
 	public function execute( array $input ) {
-		return Cf7FormWriter::delete( (int) ( $input['formId'] ?? 0 ) );
+		$id = (int) ( $input['formId'] ?? 0 );
+		if ( class_exists( '\WPCF7_ContactForm' ) && ! current_user_can( 'wpcf7_delete_contact_form', $id ) ) {
+			return new \WP_Error( 'forbidden', sprintf( 'You may not delete form %d (wpcf7_delete_contact_form).', $id ) );
+		}
+		return Cf7FormWriter::delete( $id );
 	}
 }

@@ -7,7 +7,7 @@ use Fabrement\Framework\Keys;
 /**
  * CPT `fabrement_template`: a frame composed from installed Gutenberg blocks.
  * The title names the template; post_content stores its complete serialized frame.
- * Administrators edit it in Gutenberg or through MCP. Both theme appliers use
+ * Editors edit it in Gutenberg or through MCP. Both theme appliers use
  * that content, including its Content Source slot and reusable header/footer patterns.
  */
 final class SiteTemplatePostType {
@@ -124,36 +124,20 @@ final class SiteTemplatePostType {
      * The one page a post-type default cannot reach, and why — or nothing at all.
      *
      * On a CLASSIC theme a theme's own `front-page.php` outranks the post-type default
-     * ({@see \Fabrement\Modules\SiteTemplate\Service\TemplateResolver::singular_template()}), and
-     * that is deliberate: a homepage somebody designed in the theme should not be overwritten by a
-     * site-wide default. A block theme needs none of this — `front-page` wins inside WordPress's own
-     * hierarchy there, with no rule of ours involved.
+     * ({@see \Fabrement\Modules\SiteTemplate\Service\TemplateResolver::singular_template()}), so the
+     * front page lists with `template: ""` and still does not take the default. Said where pages
+     * are listed. A block theme needs none of this: `front-page` wins inside WordPress's own
+     * hierarchy there.
      *
-     * The rule was never the problem; the silence was. set-default-template answered "done", every
-     * page of the type changed, and the front page kept the theme's frame with nothing anywhere
-     * connecting the two. Worse in the listing: the front page comes back with `template: ""`, which
-     * reads as "no pick yet, so it will take the default" — the one row where that inference is
-     * wrong. So both callers say it out loud instead.
-     *
-     * Computed per ANSWER, never per row: the condition is a fact about the site (a classic theme
-     * with a front-page.php), not about a page, and locate_template() touches the filesystem.
-     *
-     * @param string $post_type Limit to a front page of this type ('' = any).
      * @return array<string,string> A `note` key, or an empty array when the rule does not apply.
      */
-    public static function front_page_override_note( string $post_type = '' ): array {
+    public static function front_page_override_note(): array {
         if ( wp_is_block_theme() ) {
             return array();
         }
 
         $front_id = get_option( 'show_on_front' ) === 'page' ? (int) get_option( 'page_on_front' ) : 0;
-        if ( $front_id <= 0 ) {
-            return array();
-        }
-        if ( $post_type !== '' && get_post_type( $front_id ) !== $post_type ) {
-            return array();
-        }
-        if ( locate_template( 'front-page.php' ) === '' ) {
+        if ( $front_id <= 0 || locate_template( 'front-page.php' ) === '' ) {
             return array();
         }
 

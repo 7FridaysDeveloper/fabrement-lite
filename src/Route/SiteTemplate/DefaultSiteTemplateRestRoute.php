@@ -32,7 +32,7 @@ final class DefaultSiteTemplateRestRoute extends AbstractRestRoute {
     }
 
     public function permission_callback( WP_REST_Request $request ): bool {
-        return current_user_can( Capabilities::ADMIN );
+        return current_user_can( Capabilities::TEMPLATES );
     }
 
     public function get_route_args(): array {
@@ -46,7 +46,7 @@ final class DefaultSiteTemplateRestRoute extends AbstractRestRoute {
         $post_type   = (string) $request->get_param( 'postType' );
         $template_id = (int) $request->get_param( 'templateId' );
 
-        // Clearing (templateId 0) is never gated — see SetDefaultTemplateAbility: a type that
+        // Clearing (templateId 0) is never gated: a type that
         // has gone private since it took a default must still be able to give it back.
         // "404" is the not-found view, kept in the same default map (see SiteTemplatePostType::NOT_FOUND).
         if ( $template_id > 0 && $post_type !== SiteTemplatePostType::NOT_FOUND && ! isset( SiteTemplatePostType::available_post_types()[ $post_type ] ) ) {

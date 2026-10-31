@@ -78,10 +78,6 @@ final class SchemaTokensTest extends WP_UnitTestCase {
             $this->assertSame( 'protected_meta', $out->get_error_code(), $key );
         }
         $this->assertSame( [], SchemaStore::read_post( $id ) );
-
-        $type = $this->set_schema( [ 'postType' => 'post', 'graph' => [ [ '@type' => 'Thing', 'name' => '{{meta:_edit_last}}' ] ] ] );
-        $this->assertSame( 'protected_meta', $type->get_error_code() );
-        $this->assertSame( [], SchemaStore::read_type( 'post' ) );
     }
 
     public function test_the_page_body_is_not_a_token(): void {
@@ -91,12 +87,11 @@ final class SchemaTokensTest extends WP_UnitTestCase {
         $this->assertSame( 'unknown_token', $out->get_error_code() );
     }
 
-    public function test_a_fabrement_field_is_a_field_token_not_raw_meta(): void {
-        $out = $this->set_schema( [ 'contentId' => $this->record(), 'graph' => [ [ '@type' => 'Product', 'sku' => '{{meta:fab_price}}' ] ] ] );
-
-        $this->assertInstanceOf( WP_Error::class, $out );
-        $this->assertSame( 'meta_is_a_field', $out->get_error_code() );
-        $this->assertStringContainsString( '{{field:price}}', $out->get_error_message() );
+    public function test_field_and_option_tokens_are_unknown(): void {
+        foreach ( [ '{{field:price}}', '{{option:site.phone}}' ] as $token ) {
+            $out = $this->set_schema( [ 'contentId' => $this->record(), 'graph' => [ [ '@type' => 'Product', 'sku' => $token ] ] ] );
+            $this->assertSame( 'unknown_token', $out instanceof WP_Error ? $out->get_error_code() : 'accepted', $token );
+        }
     }
 
     public function test_the_page_values_are_yoasts_and_removed_tokens_are_refused(): void {
@@ -154,14 +149,5 @@ final class SchemaTokensTest extends WP_UnitTestCase {
         }
         $this->assertStringNotContainsString( 'Secret body', (string) wp_json_encode( $node ) );
         $this->assertStringNotContainsString( 'protected post', (string) wp_json_encode( $node ), 'no "There is no excerpt…" sentence' );
-    }
-
-    public function test_the_type_template_follows_the_same_rules(): void {
-        $open   = $this->record();
-        $locked = $this->record( [ 'post_password' => 'letmein' ] );
-        $this->set_schema( [ 'postType' => 'post', 'graph' => $this->template() ] );
-
-        $this->assertSame( 'CH-1', SchemaStore::resolve_for_post( $open )[0]['sku'] );
-        $this->assertArrayNotHasKey( 'sku', SchemaStore::resolve_for_post( $locked )[0] );
     }
 }

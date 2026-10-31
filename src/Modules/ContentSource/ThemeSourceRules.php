@@ -15,7 +15,7 @@ final class ThemeSourceRules {
             if ( ! preg_match( '/^(?:singular:[a-z0-9_-]+|archive:[a-z0-9_-]+|blog-home|404|tax(?::[a-z0-9_-]+(?::[1-9][0-9]*)?)?)$/D', $context ) || isset( $seen[$context] ) ) {
                 throw new McpAbilityException( 'Source contexts must be valid and unique: ' . esc_html( $context ) );
             }
-            if ( ThemeTemplateFiles::resolve( $file ) === null ) { throw new McpAbilityException( 'Choose an existing PHP file from list-theme-templates: ' . esc_html( $file ) ); }
+            if ( ThemeTemplateFiles::resolve( $file ) === null ) { throw new McpAbilityException( 'Choose an existing PHP file from the theme\'s templates folder: ' . esc_html( $file ) ); }
             if ( ! RenderKindHeader::fits( ThemeTemplateFiles::declares_of( $file ), $context ) ) { throw new McpAbilityException( 'The theme file declares a different view kind: ' . esc_html( $file ) ); }
             $seen[$context] = true; $out[] = [ 'context' => $context, 'file' => $file ];
         }

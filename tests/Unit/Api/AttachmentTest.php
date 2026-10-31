@@ -188,7 +188,7 @@ final class AttachmentTest extends ApiTestCase {
             try {
                 Attachment::of( $wrong );
                 self::fail( 'accepted ' . var_export( $wrong, true ) );
-            } catch ( \Fabrement\Api\FieldsException $e ) {
+            } catch ( \Fabrement\Api\ApiException $e ) {
                 self::assertNotSame( '', $e->getMessage() );
             }
         }

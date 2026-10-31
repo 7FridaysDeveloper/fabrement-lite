@@ -23,7 +23,7 @@ final class SingleSiteOnly {
     /** The one sentence every guard says, so the reason never differs between them. */
     public static function message(): string {
         return __(
-            'Fabrement Lite does not support WordPress multisite. It stores its templates, field definitions and connection credentials per install, so it cannot run on a network. Use it on a single-site WordPress install instead.',
+            'Fabrement Lite does not support WordPress multisite. It stores its templates and connection credentials per install, so it cannot run on a network. Use it on a single-site WordPress install instead.',
             'fabrement-lite'
         );
     }

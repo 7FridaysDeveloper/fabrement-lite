@@ -13,8 +13,7 @@ use Fabrement\Modules\Translation\Translation;
  * The one place that knows how Yoast SEO stores things — the {@see SeoBridge} for Yoast.
  *
  * Yoast keeps per-post SEO in post meta under the `_yoast_wpseo_` prefix, per-term SEO in the
- * `wpseo_taxonomy_meta` option, per-type and site-wide defaults and the organisation ("knowledge
- * graph") in `wpseo_titles`, and derives what it prints into its own index (indexables). None of
+ * `wpseo_taxonomy_meta` option, per-type and site-wide defaults in `wpseo_titles`, and derives what it prints into its own index (indexables). None of
  * that is a public API; it is stable across many major versions, but it is still storage, so every
  * key name lives in this bridge and nowhere else — an ability asks for "metaDesc", not for
  * "_yoast_wpseo_metadesc".
@@ -24,11 +23,10 @@ use Fabrement\Modules\Translation\Translation;
  * it keeps the vocabulary and the questions that need no storage, and says when Yoast must be
  * running for an answer.
  *
- * Writes go through Yoast's own setters when it is loaded (`WPSEO_Meta::set_value`,
- * `WPSEO_Options::set`): they validate and, for meta, wake the indexable watcher that rebuilds the
- * indexable row the front end actually reads. Without Yoast, post meta is written raw — it is
- * picked up the moment Yoast is activated — but option defaults are REFUSED: there is no
- * `wpseo_titles` to merge into and a half-built one would be overwritten by Yoast's installer.
+ * Post meta is written through Yoast's own setter when it is loaded (`WPSEO_Meta::set_value`): it
+ * validates and wakes the indexable watcher that rebuilds the indexable row the front end actually
+ * reads. Without Yoast, post meta is written raw — it is picked up the moment Yoast is activated.
+ * Defaults are only read, for what a record or term falls back to.
  */
 final class YoastBridge implements SeoBridge {
 
@@ -86,20 +84,8 @@ final class YoastBridge implements SeoBridge {
         return PostMeta::ROBOTS_ADVANCED;
     }
 
-    public function separators(): array {
-        return Options::separators();
-    }
-
     public function has_variables( string $text ): bool {
         return strpos( $text, '%%' ) !== false;
-    }
-
-    public function default_fields( string $scope ): array {
-        return Options::fields( $scope );
-    }
-
-    public function translatable_fields( string $scope ): array {
-        return Options::translatable( $scope );
     }
 
     // ── a record ────────────────────────────────────────────────────────────────────────────
@@ -194,16 +180,27 @@ final class YoastBridge implements SeoBridge {
         return array_values( array_filter( $names ) );
     }
 
+    /**
+     * Yoast's metabox shows its Advanced tab (robots, canonical, breadcrumb title) and Schema tab
+     * only to wpseo_edit_advanced_metadata or wpseo_manage_options while "disableadvanced_meta" is
+     * on (its default), and saves nothing from them otherwise (WPSEO_Meta, 'advanced' / 'schema').
+     * 'schema' is a record's own graph (set-schema).
+     */
+    public function not_allowed( array $fields ): array {
+        if ( ! $this->is_active() || ! class_exists( '\WPSEO_Capability_Utils' ) || ! class_exists( '\WPSEO_Options' )
+            || \WPSEO_Capability_Utils::current_user_can( 'wpseo_edit_advanced_metadata' ) || ! \WPSEO_Options::get( 'disableadvanced_meta' ) ) {
+            return [];
+        }
+
+        return array_values( array_intersect( $fields, [ 'canonical', 'noindex', 'nofollow', 'robotsAdvanced', 'breadcrumbTitle', 'schemaPageType', 'schemaArticleType', 'schema' ] ) );
+    }
+
     public function not_kept_post( string $post_type, array $fields ): array {
         return $this->is_active() ? PostMeta::not_kept( $post_type, $fields ) : [];
     }
 
     public function not_kept_term( \WP_Term $term, array $fields ): array {
         return $this->is_active() && TermMeta::supported() ? TermMeta::not_kept( $term, $fields ) : [];
-    }
-
-    public function not_kept_defaults( array $fields ): array {
-        return $this->is_active() ? Options::not_kept( $fields ) : [];
     }
 
     public function breadcrumb_taxonomy( string $post_type ): string {
@@ -268,37 +265,5 @@ final class YoastBridge implements SeoBridge {
             'seo'   => Options::summary( $stored, $scope, $slug ),
             'texts' => [ 'title' => (string) ( $stored['title'] ?? '' ), 'metaDesc' => (string) ( $stored['metaDesc'] ?? '' ) ],
         ];
-    }
-
-    // ── defaults ────────────────────────────────────────────────────────────────────────────
-
-    public function read_defaults( string $scope, string $slug = '' ): array {
-        return $this->is_active() ? Options::read( $scope, $slug ) : [];
-    }
-
-    public function write_defaults( string $scope, string $slug, array $fields ): array {
-        return Options::write( $scope, $slug, $fields );
-    }
-
-    public function knowledge_graph(): ?array {
-        return $this->is_active() ? Options::knowledge_graph() : null;
-    }
-
-    public function read_defaults_translations( string $scope, string $slug = '' ): array {
-        return $this->is_active() ? Options::translations( $scope, $slug ) : [];
-    }
-
-    public function write_defaults_translation( string $scope, string $slug, string $lang, array $fields ): array {
-        return Options::write_translation( $scope, $slug, $lang, $fields );
-    }
-
-    // ── the archive of a post type ───────────────────────────────────────────────────────────
-
-    public function read_archive_defaults( string $post_type ): array {
-        return $this->is_active() ? Options::read_archive( $post_type ) : [];
-    }
-
-    public function write_archive_defaults( string $post_type, array $fields ): array {
-        return Options::write_archive( $post_type, $fields );
     }
 }

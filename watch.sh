@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rebuild the field editor and the Templates screen on every change; Ctrl-C stops both.
+# Rebuild the template editor and the Templates screen on every change; Ctrl-C stops both.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 

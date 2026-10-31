@@ -2,6 +2,7 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+use Fabrement\Modules\SiteTemplate\Service\SyncedPatterns;
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;
 
@@ -55,6 +56,7 @@ final class DeleteMediaAbility extends DestructiveAbility {
                 'id'      => [ 'type' => 'integer' ],
                 'title'   => [ 'type' => 'string' ],
                 'usedBy'  => [ 'type' => 'array', 'items' => [ 'type' => 'string' ], 'description' => 'Where it was still shown; those places have lost the image.' ],
+                'hidden'  => [ 'type' => 'integer', 'description' => 'Places you cannot open, not named.' ],
             ] + self::multilingual( [
                 'alsoDeleted' => [ 'type' => 'array', 'items' => [ 'type' => 'integer' ], 'description' => 'Language duplicates of the same file removed with it.' ],
             ] ),
@@ -95,6 +97,12 @@ final class DeleteMediaAbility extends DestructiveAbility {
         $group = self::group_for( $id );
         // One language's copy: the original keeps the file, and pages showing that file keep it.
         $keeps_file = Translation::bridge()->is_active() && ! Translation::bridge()->is_original( $id, 'attachment' );
+        // Every copy this call deletes is a delete of its own.
+        foreach ( $group as $member ) {
+            if ( ! current_user_can( 'delete_post', $member ) ) {
+                return new WP_Error( 'forbidden', sprintf( 'You are not allowed to delete media %d (a language copy of %d).', $member, $id ) );
+            }
+        }
 
         $used = [];
 
@@ -119,8 +127,10 @@ final class DeleteMediaAbility extends DestructiveAbility {
                 $group
             )
         );
+        // Records are named only when the user may read them; the rest is a count.
+        $places = [];
         foreach ( (array) $thumb_of as $post_id ) {
-            $used[] = sprintf( 'the featured image of "%s" (id %d)', (string) get_post_field( 'post_title', (int) $post_id, 'raw' ), (int) $post_id );
+            $places[] = [ 'id' => (int) $post_id, 'title' => (string) get_post_field( 'post_title', (int) $post_id, 'raw' ), 'as' => 'the featured image of' ];
         }
 
         // Three shapes, because wp_json_encode writes the id wherever it falls in the object:
@@ -141,12 +151,18 @@ final class DeleteMediaAbility extends DestructiveAbility {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- usage check right before a delete: a LIKE over post content of every type, which WP_Query cannot express; must see live rows.
         $in_posts = $wpdb->get_col(
             $wpdb->prepare(
-                "SELECT ID FROM {$wpdb->posts} WHERE post_status != 'trash' AND ( {$clause} ) LIMIT 5", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $clause is a run of "post_content LIKE %s" counted from $patterns; every value is in $patterns.
+                "SELECT ID FROM {$wpdb->posts} WHERE post_status NOT IN ( 'trash', 'auto-draft' ) AND post_type != 'revision' AND ( {$clause} ) LIMIT 5", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- $clause is a run of "post_content LIKE %s" counted from $patterns; every value is in $patterns.
                 $patterns
             )
         );
         foreach ( (array) $in_posts as $post_id ) {
-            $used[] = sprintf( 'content of "%s" (id %d)', (string) get_post_field( 'post_title', (int) $post_id, 'raw' ), (int) $post_id );
+            $places[] = [ 'id' => (int) $post_id, 'title' => (string) get_post_field( 'post_title', (int) $post_id, 'raw' ), 'as' => 'content of' ];
+        }
+        $name   = static fn( array $p ): string => sprintf( '%s "%s" (id %d)', $p['as'], $p['title'], $p['id'] );
+        $listed = SyncedPatterns::refusal_list( $places, $name );
+        $used   = array_merge( $used, array_map( $name, $listed['readable'] ) );
+        if ( $listed['hidden'] > 0 ) {
+            $used[] = sprintf( $used === [] ? '%d you cannot open' : 'and %d you cannot open', $listed['hidden'] );
         }
 
         $title = (string) $attachment->post_title;
@@ -180,7 +196,7 @@ final class DeleteMediaAbility extends DestructiveAbility {
             'id'          => $id,
             'title'       => $title,
             'usedBy'      => $used,
-        ] + self::multilingual( [
+        ] + ( $listed['hidden'] > 0 ? [ 'hidden' => $listed['hidden'] ] : [] ) + self::multilingual( [
             'alsoDeleted' => $also,
         ] );
     }

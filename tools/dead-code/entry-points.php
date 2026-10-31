@@ -1,11 +1,10 @@
 <?php
 
-/** Public field/content contracts called by themes and integrations outside this repository. */
+/** Public content contracts called by themes and integrations outside this repository. */
 return [
     'protectedPrefixes' => [],
     'prefixes' => [
         'Fabrement\\Api\\Content\\',
-        'Fabrement\\Api\\Fields\\',
     ],
     'classes' => [
         'Fabrement\\Api\\Fabrement',

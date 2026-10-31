@@ -12,8 +12,7 @@ use WP_Error;
  *
  * Taking one of those away (trash, draft, delete) empties the home, the blog or the 404 with no
  * error anywhere, so an agent must not do it as a side effect of another task: the setting is
- * re-pointed first (the home and posts page by the administrator in Settings, the not-found page
- * with update-site-settings), and then the page is an ordinary one.
+ * re-pointed first by the administrator in Settings, and then the page is an ordinary one.
  *
  * Compared by ORIGINAL: the settings store the original of the page's translation group, so a
  * version is recognised by its original.
@@ -37,7 +36,7 @@ final class SitePageGuard {
         if ( NotFoundPage::is_assigned( $id ) ) {
             return new WP_Error(
                 'is_site_page',
-                sprintf( '"%s" is the site\'s not-found (404) page (or a language version of it) — clear it first with update-site-settings {notFoundPage: 0}, if the user wants it gone.', $title )
+                sprintf( '"%s" is the site\'s not-found (404) page (or a language version of it). The site administrator clears it first (Settings → Reading), if the user wants it gone.', $title )
             );
         }
         return null;

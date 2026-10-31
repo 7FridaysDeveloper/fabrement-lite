@@ -2,6 +2,7 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+use Fabrement\Capabilities;
 use Fabrement\Modules\Mcp\Support\ToolResult;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateTranslator;
@@ -9,17 +10,18 @@ use Fabrement\Modules\Translation\Translation;
 use WP_Error;
 
 /**
- * Start one language's version of a site template — the agent's door into the same record the
- * Templates screen's language control opens. The version is a template record of its own, a copy of the
- * original: this tool makes it and hands back its body; the text is then changed with
- * save-template {templateId: version id}, the ordinary edit.
+ * Start one language's version of a site template — the same record the Templates screen's
+ * language control opens. This tool makes it and hands back its frame; the text is then
+ * changed with save-template {templateId: version id}.
  *
- * Offered only on a site with languages: elsewhere the tool is absent from tools/list, so a
- * single-language site keeps the surface it always had. Where the translation plugin's own
- * editor owns the words (ATE) the tool stays listed — the skill doc that describes it must
- * describe a tool that exists — and refuses in execute() with the screen to go to instead.
+ * Offered only on a site with languages. Where the translation plugin's own editor owns the
+ * words the tool stays listed and refuses in execute() with the screen to go to instead.
  */
 final class TranslateTemplateAbility extends DestructiveAbility {
+
+    public function check_permission() {
+        return parent::check_permission() && current_user_can( Capabilities::TEMPLATES );
+    }
 
     public function name(): string {
         return 'fabrement/translate-template';
@@ -42,8 +44,6 @@ final class TranslateTemplateAbility extends DestructiveAbility {
         return 'template-translation';
     }
 
-
-
     public function is_available(): bool {
         return Translation::is_multilingual();
     }
@@ -65,14 +65,14 @@ final class TranslateTemplateAbility extends DestructiveAbility {
             'type'       => 'object',
             'required'   => [ 'templateId', 'language', 'created', 'editUrl' ],
             'properties' => [
-                'templateId'       => [ 'type' => 'integer', 'description' => 'The language version\'s own id — edit it with get-template / save-template; NOT assignable, assign the original.' ],
-                'language'         => [ 'type' => 'string' ],
-                'created'          => [ 'type' => 'boolean', 'description' => 'true when this call created the version, false when it already existed.' ],
-                'editUrl'          => [ 'type' => 'string' ],
-                'title'            => [ 'type' => 'string', 'description' => 'The version\'s title: the original\'s with the language code beside it. Only admins read it — leave it.' ],
-                'blocks'           => [ 'type' => 'array', 'items' => [ 'type' => 'object' ], 'description' => 'The version\'s frame, as save-template takes it back.' ],
-                'outline'          => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
-                'hash'             => [ 'type' => 'string' ],
+                'templateId' => [ 'type' => 'integer', 'description' => 'The language version\'s own id — edit it with get-template / save-template; NOT assignable, assign the original.' ],
+                'language'   => [ 'type' => 'string' ],
+                'created'    => [ 'type' => 'boolean', 'description' => 'true when this call created the version, false when it already existed.' ],
+                'editUrl'    => [ 'type' => 'string' ],
+                'title'      => [ 'type' => 'string', 'description' => 'The version\'s title: the original\'s with the language code beside it. Only wp-admin shows it — leave it.' ],
+                'blocks'     => [ 'type' => 'array', 'items' => [ 'type' => 'object' ], 'description' => 'The version\'s frame, as save-template takes it back.' ],
+                'outline'    => [ 'type' => 'array', 'items' => [ 'type' => 'string' ] ],
+                'hash'       => [ 'type' => 'string' ],
             ],
         ];
     }
