@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\Service\SyncedPatterns;
 
 /**

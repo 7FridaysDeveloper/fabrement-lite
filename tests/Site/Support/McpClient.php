@@ -6,26 +6,18 @@ use RuntimeException;
 
 /**
  * An MCP client of a test site, as Claude connects: HTTPS to /wp-json/fabrement/v1/mcp, signed in
- * with the administrator's application password, a session opened with `initialize`, tools run
- * with `tools/call`. Answers are what the agent reads.
+ * with an OAuth access token (the administrator's by default, Site::access_token()), a session
+ * opened with `initialize`, tools run with `tools/call`. Answers are what the agent reads.
  */
 final class McpClient {
 
     private ?string $session = null;
 
-    /** Where the server answers: the pretty address, or ?rest_route= on a site with plain permalinks. */
-    private string $path = '/wp-json/fabrement/v1/mcp';
+    /** Where the server answers. */
+    private const PATH = '/wp-json/fabrement/v1/mcp';
 
-    /** Signed in with an application password (user + password), or with an OAuth access token ($bearer). */
-    public function __construct( private Site $site, private string $user = 'admin', private ?string $password = null, private ?string $bearer = null ) {}
-
-    /** The same client at the address a site with plain permalinks gives (rest_url(): ?rest_route=). */
-    public function via_rest_route(): self {
-        $client          = clone $this;
-        $client->path    = '/?rest_route=/fabrement/v1/mcp';
-        $client->session = null;
-        return $client;
-    }
+    /** Signed in with this OAuth access token; null: the administrator's. */
+    public function __construct( private Site $site, private ?string $bearer = null ) {}
 
     /**
      * Run a tool, named without the server's prefix ('save-content').
@@ -72,14 +64,14 @@ final class McpClient {
         $headers = [
             'Content-Type'  => 'application/json',
             'Accept'        => 'application/json, text/event-stream',
-            'Authorization' => $this->bearer !== null ? 'Bearer ' . $this->bearer : 'Basic ' . base64_encode( $this->user . ':' . ( $this->password ?? $this->site->password ) ),
+            'Authorization' => 'Bearer ' . ( $this->bearer ?? $this->site->access_token() ),
         ];
         if ( $this->session ) {
             // MCP 2025-06-18: every request after initialize names the negotiated version.
             $headers['Mcp-Session-Id']       = $this->session;
             $headers['MCP-Protocol-Version'] = '2025-06-18';
         }
-        $response = Http::request( $this->site, 'POST', $this->site->url( $this->path ), $headers, (string) json_encode( $call ) );
+        $response = Http::request( $this->site, 'POST', $this->site->url( self::PATH ), $headers, (string) json_encode( $call ) );
         $answer   = (array) json_decode( $response['body'], true );
         return $answer + [ '_http' => $response ];
     }

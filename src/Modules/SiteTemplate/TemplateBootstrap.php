@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 use Fabrement\Modules\SiteTemplate\Service\BlockThemeApplier;
 use Fabrement\Modules\SiteTemplate\Service\ClassicThemeApplier;

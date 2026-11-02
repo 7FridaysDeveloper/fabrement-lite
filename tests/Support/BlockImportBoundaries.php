@@ -38,20 +38,16 @@ function get_posts( $args ) {
     return 'ids' === ( $args['fields'] ?? '' ) ? array_map( static fn( $post ) => $post->ID, $posts ) : $posts;
 }
 function wp_insert_post( $post, $wp_error = false ) {
-    if ( null !== WordPressState::$insert_error ) { return WordPressState::$insert_error; }
     $id = max( array_merge( [ 100 ], array_keys( WordPressState::$posts ) ) ) + 1;
     WordPressState::$posts[ $id ] = new WP_Post( (object) ( [ 'ID' => $id, 'post_content' => '' ] + $post ) );
-    WordPressState::$inserted_posts[] = $id;
     return $id;
 }
 function wp_delete_post( $id, $force = false ) {
-    WordPressState::$deleted_posts[] = $id;
     unset( WordPressState::$posts[ $id ], WordPressState::$post_meta[ $id ] );
     return true;
 }
 function wp_remote_get( $url, $args = [] ) {
     WordPressState::$http_requests[] = $url;
-    WordPressState::$http_request_args[] = [ 'url' => $url, 'args' => $args ];
     if ( ! array_key_exists( $url, WordPressState::$http_responses ) ) {
         throw new RuntimeException( 'Unexpected HTTP request: ' . $url );
     }
@@ -59,5 +55,4 @@ function wp_remote_get( $url, $args = [] ) {
 }
 function wp_remote_retrieve_response_code( $response ) { return $response['response']['code']; }
 function wp_remote_retrieve_body( $response ) { return $response['body']; }
-function wp_remote_post( $url, $args = [] ) { return wp_remote_get( $url, $args ); }
 function wp_json_encode( $value, $flags = 0 ) { return json_encode( $value, $flags ); }

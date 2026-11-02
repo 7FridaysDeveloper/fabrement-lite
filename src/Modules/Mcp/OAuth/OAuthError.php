@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\OAuth;
 
+defined( 'ABSPATH' ) || exit;
+
 final class OAuthError extends \RuntimeException {
     public string $error;
     public int $status;

@@ -4,13 +4,14 @@
  * (WordPress defines WP_UNINSTALL_PLUGIN before including this file; it does NOT
  * run on deactivate).
  *
- * Removes Lite's connection state (OAuth storage, the application passwords it issued, schema
- * version) and its own transients.
+ * Removes Lite's connection state (OAuth storage, schema version) and its own transients.
  * What the site built stays — templates and SEO schema — so installing the plugin again brings
  * everything back as it was.
  *
  * @package Fabrement
  */
+
+defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
     exit;
@@ -21,7 +22,9 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 if ( ! class_exists( \Fabrement\Modules\Lifecycle\LiteEdition::class, false ) ) {
     require_once __DIR__ . '/src/Modules/Lifecycle/LiteEdition.php';
 }
-require_once ABSPATH . 'wp-admin/includes/plugin.php';
+if ( ! function_exists( 'get_plugins' ) ) {
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+}
 foreach ( array_keys( get_plugins() ) as $fabrement_candidate ) {
     if ( \Fabrement\Modules\Lifecycle\LiteEdition::other( $fabrement_candidate, __DIR__ . '/fabrement-lite.php' ) ) {
         return;
@@ -46,25 +49,11 @@ $fabrement_cleanup = static function (): void {
     \Fabrement\Modules\Updates\DatabaseUpdater::uninstall();
     ( new \Fabrement\Modules\Mcp\OAuth\Store() )->uninstall();
 
-    // The application passwords the MCP Connection screen issued: left behind, a connected client
-    // would keep its access to the site's REST API after the plugin is gone.
-    if ( class_exists( \WP_Application_Passwords::class ) ) {
-        $holders = get_users( array( 'meta_key' => \WP_Application_Passwords::USERMETA_KEY_APPLICATION_PASSWORDS, 'fields' => 'ID' ) ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- once, on uninstall: the users who hold any application password.
-        foreach ( $holders as $holder ) {
-            foreach ( \WP_Application_Passwords::get_user_application_passwords( (int) $holder ) as $password ) {
-                if ( \Fabrement\Modules\Mcp\McpPasswordScope::is_mcp_password( $password ) ) {
-                    \WP_Application_Passwords::delete_application_password( (int) $holder, (string) $password['uuid'] );
-                }
-            }
-        }
-    }
-
     // Another edition's data (credentials, generated files, its caches and journal) is not Lite's
     // to remove. Lite's own short-lived transients are named at run time, so they are swept by
-    // prefix (value + timeout rows): shared content previews, the once-a-day adapter notice and
-    // the connection command shown once to the user who made it.
+    // prefix (value + timeout rows): shared content previews and the once-a-day adapter notice.
     global $wpdb;
-    foreach ( array( $keys::TRANSIENT_CONTENT_PREVIEW_PREFIX, $keys::TRANSIENT_MCP_ADAPTER_NOTICE_PREFIX, $keys::TRANSIENT_MCP_COMMAND . '_' ) as $prefix ) {
+    foreach ( array( $keys::TRANSIENT_CONTENT_PREVIEW_PREFIX, $keys::TRANSIENT_MCP_ADAPTER_NOTICE_PREFIX ) as $prefix ) {
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- uninstall cleanup of transients that cannot be listed by name.
         $wpdb->query(
             $wpdb->prepare(

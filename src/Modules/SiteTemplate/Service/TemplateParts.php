@@ -2,7 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
-use Fabrement\Framework\Keys;
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;

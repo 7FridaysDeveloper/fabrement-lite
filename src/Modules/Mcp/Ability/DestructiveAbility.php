@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Base for DESTRUCTIVE abilities (delete / irreversible replace): advertises the MCP
  * `destructiveHint` so a client never silently auto-approves the call. Each tool checks

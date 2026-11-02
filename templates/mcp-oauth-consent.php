@@ -9,11 +9,11 @@ defined( 'ABSPATH' ) || exit;
     <meta charset="<?php bloginfo( 'charset' ); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
-    <title><?php esc_html_e( 'Connect to Fabrement', 'fabrement-lite' ); ?></title>
+    <title><?php esc_html_e( 'Allow AI client access', 'fabrement-lite' ); ?></title>
     <?php wp_print_styles( 'fabrement-oauth-consent' ); ?>
 </head>
 <body><main>
-    <h1><?php esc_html_e( 'Connect to Fabrement', 'fabrement-lite' ); ?></h1>
+    <h1><?php esc_html_e( 'Allow AI client access', 'fabrement-lite' ); ?></h1>
     <dl>
         <div>
             <dt><?php esc_html_e( 'Website', 'fabrement-lite' ); ?></dt>
@@ -41,18 +41,18 @@ defined( 'ABSPATH' ) || exit;
     <p class="warning"><?php esc_html_e( 'This is not read-only access: the connected agent can change this site\'s content.', 'fabrement-lite' ); ?></p>
     <p><?php esc_html_e( 'The agent acts as this WordPress account: it can do only what this account may do in wp-admin, and never more than an Editor. An Administrator\'s account works here with an Editor\'s permissions.', 'fabrement-lite' ); ?></p>
     <ul>
-        <li><?php esc_html_e( 'Read, create, edit and delete pages and posts, blocks on pages, media, forms and terms.', 'fabrement-lite' ); ?></li>
+        <li><?php esc_html_e( 'Read, create, edit and delete pages and posts, blocks on pages, media, terms and forms, including the address that form messages are emailed to.', 'fabrement-lite' ); ?></li>
         <li><?php esc_html_e( 'Edit synced patterns, including a header or footer that templates show on every page.', 'fabrement-lite' ); ?></li>
         <li><?php esc_html_e( 'Build templates from blocks and assign them to pages.', 'fabrement-lite' ); ?></li>
         <li><?php esc_html_e( 'Edit the SEO data of pages, posts and terms through Yoast SEO.', 'fabrement-lite' ); ?></li>
         <li><?php esc_html_e( 'Send requested site data to the connected AI provider.', 'fabrement-lite' ); ?></li>
     </ul>
-    <p><?php esc_html_e( 'It cannot install or change plugins, themes or users, and cannot change site-wide template defaults, menus, site settings, site-wide SEO settings, post types, taxonomies or permalinks, or change content that takes more than an Editor\'s permissions, such as WooCommerce products.', 'fabrement-lite' ); ?></p>
-    <p><?php esc_html_e( 'Access ends when disconnected, after 90 days unused, or when this account\'s password changes. You can disconnect it at any time in Fabrement → MCP Connection. Your WordPress password is not shared.', 'fabrement-lite' ); ?></p>
+    <p><?php esc_html_e( 'It cannot install or change plugins, themes or users, and cannot assign site-wide template defaults (deleting a template takes it off them), menus, site settings, site-wide SEO settings, post types, taxonomies or permalinks, or change content that takes more than an Editor\'s permissions, such as WooCommerce products.', 'fabrement-lite' ); ?></p>
+    <p><?php esc_html_e( 'Access ends when disconnected, after 90 days unused, when this account\'s password changes, or when Fabrement Lite is deactivated. You can disconnect it at any time in Fabrement → MCP Connection. Your WordPress password is not shared.', 'fabrement-lite' ); ?></p>
     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
         <input type="hidden" name="action" value="fabrement_mcp_authorize">
         <input type="hidden" name="pending" value="<?php echo esc_attr( $pending ); ?>">
-        <?php wp_nonce_field( 'fabrement_mcp_consent_' . $pending ); ?>
+        <?php wp_nonce_field( 'fabrement_mcp_consent' ); ?>
         <div class="actions">
             <button class="allow" name="decision" value="allow"><?php esc_html_e( 'Allow access', 'fabrement-lite' ); ?></button>
             <button name="decision" value="deny"><?php esc_html_e( 'Cancel', 'fabrement-lite' ); ?></button>

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Integration;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Schema\SchemaOutput;
 use Fabrement\Modules\Seo\Seo;
 use Yoast\WP\SEO\Generators\Schema\Abstract_Schema_Piece;

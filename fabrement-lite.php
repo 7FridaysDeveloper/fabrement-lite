@@ -96,11 +96,19 @@ register_activation_hook(
     }
 );
 
-// Deactivation: stop the OAuth cleanup event; activation schedules it again.
+// Deactivation: stop the OAuth cleanup event (activation schedules it again) and end every OAuth
+// connection, so a client approved here needs a new consent after any later activation.
 register_deactivation_hook(
     __FILE__,
     static function (): void {
         wp_clear_scheduled_hook( 'fabrement_mcp_oauth_cleanup' );
+        if ( class_exists( \Fabrement\Modules\Mcp\OAuth\Bootstrap::class ) ) {
+            \Fabrement\Modules\Mcp\OAuth\Bootstrap::end_all_connections();
+        }
+        // The OAuth well-known rewrite rules are flushed again on the next activation.
+        delete_option( \Fabrement\Framework\Keys::OPTION_MCP_OAUTH_REWRITE );
+        // This request already added them: WordPress rebuilds the rules on the next one, without them.
+        delete_option( 'rewrite_rules' );
     }
 );
 

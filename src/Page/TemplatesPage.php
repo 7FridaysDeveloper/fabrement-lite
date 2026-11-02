@@ -2,6 +2,8 @@
 
 namespace Fabrement\Page;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Framework\App;
 

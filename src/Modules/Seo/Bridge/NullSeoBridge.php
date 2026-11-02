@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Contract\SeoBridge;
 
 /**

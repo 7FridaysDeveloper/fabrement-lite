@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Translation\Bridge;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Translation\Contract\TranslationBridge;
 
 /**

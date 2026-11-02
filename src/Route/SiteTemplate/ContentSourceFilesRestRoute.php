@@ -2,6 +2,8 @@
 
 namespace Fabrement\Route\SiteTemplate;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\ContentSource\ThemeTemplateFiles;
 use Fabrement\Route\AbstractRestRoute;

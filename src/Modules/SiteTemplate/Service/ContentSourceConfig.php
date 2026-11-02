@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 use Fabrement\Framework\Keys;
 use Fabrement\Modules\ContentSource\ThemeSourceRules;
@@ -46,7 +48,7 @@ final class ContentSourceConfig {
     public static function write( int $template_id, array $config ) {
         $post = get_post( $template_id );
         if ( ! $post || $post->post_type !== SiteTemplatePostType::POST_TYPE ) {
-            return new \WP_Error( 'fabrement_st_not_found', 'Template not found.', [ 'status' => 404 ] );
+            return new \WP_Error( 'fabrement_st_not_found', __( 'Template not found.', 'fabrement-lite' ), [ 'status' => 404 ] );
         }
         $refusal = SiteTemplateTranslator::refusal_for_version( $template_id );
         if ( $refusal !== null ) { return $refusal; }
@@ -58,7 +60,7 @@ final class ContentSourceConfig {
         if ( $key === '' ) { $key = SiteTemplatePostType::manifest_key( $template_id ); }
         if ( $key === '' ) { $key = TemplateManifestStore::mint_key( $owner ? $owner->title : $post->post_title ); }
         if ( ! TemplateManifestStore::save( $key, [ 'title' => $owner ? $owner->title : $post->post_title, 'rules' => $config['rules'] ] ) ) {
-            return new \WP_Error( 'fabrement_st_manifest_write', 'The template frame was saved, but its shared source rules could not be saved. Check the templates storage directory and retry.', [ 'status' => 500 ] );
+            return new \WP_Error( 'fabrement_st_manifest_write', __( 'The template frame was saved, but its shared source rules could not be saved. Check the templates storage directory and retry.', 'fabrement-lite' ), [ 'status' => 500 ] );
         }
         $ids = Translation::bridge()->all_versions( $owner_id, SiteTemplatePostType::POST_TYPE );
         $ids[] = $owner_id; $ids[] = $template_id;

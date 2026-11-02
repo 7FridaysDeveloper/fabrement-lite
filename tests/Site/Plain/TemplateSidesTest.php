@@ -132,7 +132,7 @@ final class TemplateSidesTest extends SiteTestCase {
         $renamed  = $this->rest( 'POST', 'fabrement_template/' . $existing, [ 'title' => 'Editor renamed' ], 'qa-editor', $password );
         $this->assertSame( 200, $renamed['status'], $renamed['body'] );
         $this->assertSame( 'Editor renamed', $this->read( $existing )['title'] );
-        $refused = ( new McpClient( $this->site(), 'qa-editor', $password ) )->rpc( 'initialize', [ 'protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => [ 'name' => 'qa', 'version' => '1' ] ] );
+        $refused = ( new McpClient( $this->site(), $this->site()->access_token( 'qa-editor' ) ) )->rpc( 'initialize', [ 'protocolVersion' => '2025-06-18', 'capabilities' => (object) [], 'clientInfo' => [ 'name' => 'qa', 'version' => '1' ] ] );
         $this->assertSame( 403, $refused['_http']['status'], 'an Editor cannot connect' );
 
         $this->assertContains( $existing, array_column( $this->mcp( 'list-templates' )['templates'], 'id' ) );

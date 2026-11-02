@@ -338,7 +338,7 @@ final class Fabrement {
 
     /**
      * $code when the site has that language, else null. Takes anything, logs nothing: it is the
-     * check for a code from an address — fabrement()->post( $id, lang: fabrement()->has_language( $_GET['lang'] ?? '' ) ).
+     * check for a code from an address — fabrement()->post( $id, lang: fabrement()->has_language( get_query_var( 'lang' ) ) ).
      *
      * @param mixed $code
      */

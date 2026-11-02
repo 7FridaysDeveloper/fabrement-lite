@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Ability\AbilityInterface;
 use Pimple\Container;
 

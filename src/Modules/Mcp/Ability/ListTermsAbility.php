@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Taxonomy\TermWriter;
 
 /** Read the terms in a taxonomy — what a classification actually holds. */
@@ -91,7 +93,7 @@ final class ListTermsAbility extends AbstractAbility {
             // Empty terms are exactly what an agent needs to see: a vocabulary it just
             // created has no posts yet, and hiding it would read as "nothing is there".
             'hide_empty' => false,
-            'search'     => (string) ( $input['search'] ?? '' ),
+            'search'     => trim( wp_strip_all_tags( (string) ( $input['search'] ?? '' ) ) ),
             'number'     => $limit,
             'orderby'    => 'name',
         ];

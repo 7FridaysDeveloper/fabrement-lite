@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\ContentSource;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The `Fabrement:` file header — how a render file says which view it fills.
  *

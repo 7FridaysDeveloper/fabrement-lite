@@ -6,7 +6,8 @@ use RuntimeException;
 
 /**
  * One of the two test sites (tests/Site/docker-compose.yml) seen from outside: where it answers,
- * its container, its database, the administrator's application password. Nothing of WordPress is
+ * its container, its database, the administrator's application password and OAuth access tokens
+ * the MCP server takes. Nothing of WordPress is
  * loaded in the test process — everything goes through what a real client has: HTTP, the database,
  * and the site's own WP-CLI.
  */
@@ -34,6 +35,9 @@ final class Site {
     private static array $known = [];
 
     private ?\mysqli $db = null;
+
+    /** @var array<string,array{0:string,1:int}> login => [ access token, when it was made ] */
+    private array $tokens = [];
 
     private function __construct( public readonly string $name, public readonly string $password ) {}
 
@@ -118,6 +122,48 @@ final class Site {
     /** Back to the state right after install. */
     public function restore(): void {
         $this->exec( 'sh', '/var/www/setup/snapshot.sh', 'restore' );
+        // Their rows are gone with the database the snapshot replaced.
+        $this->tokens = [];
+    }
+
+    /**
+     * An OAuth access token for $login, what the MCP server takes: a client registered and the code
+     * exchanged on the site, by the plugin's own OAuth code. A user who may not connect gets the rows
+     * an approval would have written, as for an Administrator demoted after approving. Made once per
+     * user until the next restore(); an access token lasts an hour.
+     */
+    public function access_token( string $login = 'admin' ): string {
+        [ $token, $made ] = $this->tokens[ $login ] ?? [ '', 0 ];
+        if ( $token !== '' && $made > time() - 45 * 60 ) {
+            return $token;
+        }
+        $out = $this->php( strtr( <<<'PHP'
+use Fabrement\Modules\Mcp\OAuth\{Clients, Config, Protocol, Store};
+$store    = new Store();
+$protocol = new Protocol( $store );
+$callback = 'http://127.0.0.1/callback/fabrement-site-tests';
+$client   = ( new Clients( $store ) )->register( [ 'client_name' => 'Fabrement site tests', 'redirect_uris' => [ $callback ], 'token_endpoint_auth_method' => 'none' ] );
+$verifier = bin2hex( random_bytes( 32 ) );
+$asked    = $protocol->authorization( [ 'client_id' => $client['client_id'], 'redirect_uri' => $callback, 'response_type' => 'code', 'resource' => Config::resource(),
+    'code_challenge_method' => 'S256', 'code_challenge' => rtrim( strtr( base64_encode( hash( 'sha256', $verifier, true ) ), '+/', '-_' ), '=' ), 'state' => '' ] );
+$user = get_user_by( 'login', LOGIN );
+if ( \Fabrement\Capabilities::can_connect( $user ) ) {
+    $code   = $protocol->approve( $asked, $user->ID );
+    $access = $protocol->token( [ 'grant_type' => 'authorization_code', 'code' => $code, 'code_verifier' => $verifier, 'redirect_uri' => $callback,
+        'client_id' => $client['client_id'], 'resource' => Config::resource() ] )['access_token'];
+} else {
+    $family = bin2hex( random_bytes( 32 ) );
+    $store->put( 'grant', $family, $asked + [ 'user_id' => $user->ID, 'created' => time() ], time() + Config::IDLE_EXPIRY, $family, $user->ID );
+    $access = Config::ACCESS_PREFIX . bin2hex( random_bytes( 32 ) );
+    $store->put( 'access', $access, [ 'client_id' => $client['client_id'] ], time() + 3600, $family, $user->ID );
+}
+echo 'TOKEN=' . $access;
+PHP, [ 'LOGIN' => var_export( $login, true ) ] ) );
+        if ( ! preg_match( '/TOKEN=(\S+)/', $out, $match ) ) {
+            throw new RuntimeException( "No access token for $login on the {$this->name} site:\n$out" );
+        }
+        $this->tokens[ $login ] = [ $match[1], time() ];
+        return $match[1];
     }
 
     /** What WordPress wrote to wp-content/debug.log since the last restore ('' = nothing). */
@@ -153,10 +199,6 @@ final class Site {
     /** @return list<string> All rows of a post's meta key, in the order they were written. */
     public function meta( int $post, string $key ): array {
         return array_column( $this->rows( 'SELECT meta_value FROM wp_postmeta WHERE post_id = ? AND meta_key = ? ORDER BY meta_id', [ $post, $key ] ), 'meta_value' );
-    }
-
-    public function has_meta( int $post, string $key ): bool {
-        return $this->meta( $post, $key ) !== [];
     }
 
     /** An option as WordPress stores it, unserialized; null when the row does not exist. */

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\Service\SyncedPatterns;
 use Fabrement\Modules\Translation\Translation;
 
@@ -86,7 +88,7 @@ final class ListSyncedPatternsAbility extends AbstractAbility {
     public function execute( array $input ) {
         $limit = max( 1, min( (int) ( $input['limit'] ?? self::DEFAULT_LIMIT ), self::MAX_LIMIT ) );
         $kind     = (string) ( $input['kind'] ?? '' );
-        $category = trim( (string) ( $input['category'] ?? '' ) );
+        $category = sanitize_title( (string) ( $input['category'] ?? '' ) );
         // A category the site does not have is a mistake in the asking, not "no such global blocks".
         if ( $category !== '' && ! SyncedPatterns::is_category( $category ) ) {
             return new \WP_Error(
@@ -96,7 +98,7 @@ final class ListSyncedPatternsAbility extends AbstractAbility {
             );
         }
         $posts    = SyncedPatterns::find(
-            trim( (string) ( $input['search'] ?? '' ) ),
+            trim( wp_strip_all_tags( (string) ( $input['search'] ?? '' ) ) ),
             // The kind and the categories are read per pattern, so a filtered listing reads the wider set and trims.
             $kind === '' && $category === '' ? $limit : self::MAX_LIMIT * 5
         );

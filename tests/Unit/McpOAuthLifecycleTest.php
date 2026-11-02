@@ -133,7 +133,7 @@ final class McpOAuthLifecycleTest extends TestCase {
             // Not the MCP route: the token is no login there.
             $_SERVER['REQUEST_URI'] = '/subsite/wp-json/wp/v2/posts';
             self::assertFalse( Bootstrap::determine_user( false ) );
-            // A user already found (cookie, application password) is kept.
+            // A user already found (a cookie login) is kept.
             $_SERVER['REQUEST_URI'] = '/subsite/wp-json/fabrement/v1/mcp';
             self::assertSame( 12, Bootstrap::determine_user( 12 ) );
             // Refused (OAuth off): no user, and the route answers why before any tool runs.
@@ -182,6 +182,23 @@ final class McpOAuthLifecycleTest extends TestCase {
             self::assertNull( Bootstrap::refuse_other_route( null ) );
         } finally {
             unset( $GLOBALS['wp'] );
+        }
+    }
+
+    /** The MCP endpoint takes only OAuth tokens: core's application-password login is off there, and only there. */
+    public function test_application_passwords_are_no_api_login_on_the_mcp_route(): void {
+        try {
+            $_SERVER['REQUEST_URI'] = '/subsite/wp-json/fabrement/v1/mcp';
+            self::assertFalse( Bootstrap::refuse_application_password( true ) );
+            $_SERVER['REQUEST_URI'] = '/subsite/?rest_route=/fabrement/v1/mcp';
+            self::assertFalse( Bootstrap::refuse_application_password( true ) );
+            foreach ( [ '/subsite/wp-json/wp/v2/posts', '/subsite/xmlrpc.php', '/subsite/wp-json/fabrement/v1/mcp?rest_route=/wp/v2/posts' ] as $uri ) {
+                $_SERVER['REQUEST_URI'] = $uri;
+                self::assertTrue( Bootstrap::refuse_application_password( true ), $uri );
+                self::assertFalse( Bootstrap::refuse_application_password( false ), $uri );
+            }
+        } finally {
+            unset( $_SERVER['REQUEST_URI'] );
         }
     }
 

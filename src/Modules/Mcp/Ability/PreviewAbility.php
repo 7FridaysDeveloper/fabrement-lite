@@ -1,5 +1,7 @@
 <?php
 namespace Fabrement\Modules\Mcp\Ability;
+
+defined( 'ABSPATH' ) || exit;
 use Fabrement\Modules\ContentPreview\ContentPreview;
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 use WP_Error;

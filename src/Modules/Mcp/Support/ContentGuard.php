@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The one answer to "that id is not content on this site".
  *

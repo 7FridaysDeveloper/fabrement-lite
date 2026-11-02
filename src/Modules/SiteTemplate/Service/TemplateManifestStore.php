@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Storage\FabrementStorage;
 use Fabrement\Modules\Storage\StorageFiles;
 

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\OAuth;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use Fabrement\Capabilities;
 use Fabrement\Modules\Mcp\McpBootstrap;
@@ -27,10 +29,17 @@ final class Bootstrap {
         add_action( 'after_password_reset', [ self::class, 'password_reset' ] );
         add_action( 'wp_set_password', [ self::class, 'password_set' ], 10, 3 );
         add_action( 'profile_update', [ self::class, 'profile_updated' ], 10, 2 );
-        add_action( 'init', [ self::class, 'discovery' ], 0 );
+        // The well-known metadata addresses: rewrite rules to a query var, served before the main query.
+        add_action( 'init', [ self::class, 'discovery_rules' ] );
+        add_filter( 'query_vars', [ self::class, 'query_vars' ] );
+        add_action( 'parse_request', [ self::class, 'discovery' ], 0 );
+        // A refusal of the OAuth endpoints, whoever answers it, in OAuth's own shape.
+        add_filter( 'rest_post_dispatch', [ self::class, 'oauth_error_shape' ], 20, 3 );
         add_action( 'rest_api_init', [ self::class, 'routes' ] );
         // After core's cookie (10) and application-password (20) checks, as a login of its own.
         add_filter( 'determine_current_user', [ self::class, 'determine_user' ], 30 );
+        // The MCP endpoint takes only the plugin's OAuth tokens, never an application password.
+        add_filter( 'application_password_is_api_request', [ self::class, 'refuse_application_password' ] );
         // After core's own checks (cookie, application password).
         add_filter( 'rest_authentication_errors', [ self::class, 'refuse_other_route' ], 100 );
         add_filter( 'rest_request_before_callbacks', [ self::class, 'authenticate' ], 5, 3 );
@@ -72,13 +81,13 @@ final class Bootstrap {
     }
 
     public static function routes(): void {
-        foreach ( [ 'metadata', 'resource', 'register', 'token', 'revoke' ] as $name ) {
+        foreach ( [ 'metadata', 'resource', 'authorize', 'register', 'token', 'revoke' ] as $name ) {
             register_rest_route( Config::NAMESPACE, '/' . $name, [
-                'methods' => in_array( $name, [ 'metadata', 'resource' ], true ) ? 'GET' : 'POST',
-                // Public by the OAuth standard (RFC 8414, 7591, 6749, 7009): a client calls them before it
-                // has a user. They do nothing unless an administrator enabled OAuth, are rate limited,
-                // and a token is issued only for a code a signed-in user approved (authorize() below).
-                'permission_callback' => '__return_true',
+                'methods' => in_array( $name, [ 'metadata', 'resource', 'authorize' ], true ) ? 'GET' : 'POST',
+                // Open to clients by the OAuth standard (RFC 8414, 7591, 6749, 7009): a client calls them
+                // before it has a user. Closed while OAuth is off; rate limited; a token is issued only
+                // for a code a signed-in administrator approved (authorize() below).
+                'permission_callback' => [ self::class, 'oauth_available' ],
                 'callback' => static function ( \WP_REST_Request $request ) use ( $name ): \WP_REST_Response {
                     return self::endpoint( $name, $request );
                 },
@@ -91,6 +100,9 @@ final class Bootstrap {
             self::available();
             if ( 'metadata' === $name || 'resource' === $name ) {
                 return self::json( 'metadata' === $name ? Config::authorization_metadata() : Config::resource_metadata() );
+            }
+            if ( 'authorize' === $name ) {
+                return self::keep_authorization( $request );
             }
             if ( strlen( $request->get_body() ) > 32768 ) {
                 throw new OAuthError( 'invalid_request', 'Request is too large.', 413 );
@@ -108,7 +120,8 @@ final class Bootstrap {
             if ( 'application/x-www-form-urlencoded' !== trim( $content_type ) ) {
                 throw new OAuthError( 'invalid_request', 'Form-encoded parameters are required.' );
             }
-            $input = self::form( $request->get_body() );
+            // WordPress has parsed and unslashed the form; only the parameters OAuth defines are taken.
+            $input = self::fields( (array) $request->get_body_params(), self::TOKEN_FIELDS );
             if ( Protocol::value( $input, 'client_secret' ) !== '' || (string) $request->get_header( 'authorization' ) !== '' ) {
                 throw new OAuthError( 'invalid_client', 'Use a public client with PKCE, without a client secret.' );
             }
@@ -123,33 +136,159 @@ final class Bootstrap {
         }
     }
 
-    /** Do not let PHP collapse duplicate or array-valued OAuth parameters. */
-    public static function form( string $raw ): array {
-        $params = [];
-        if ( strlen( $raw ) > 32768 ) {
-            throw new OAuthError( 'invalid_request', 'Request is too large.', 413 );
+    /** What the token and revocation endpoints read (RFC 6749, 7009, 8707). */
+    private const TOKEN_FIELDS = [ 'grant_type', 'code', 'refresh_token', 'code_verifier', 'redirect_uri', 'client_id',
+        'client_secret', 'scope', 'resource', 'token', 'token_type_hint' ];
+
+    /** What an authorization request carries (RFC 6749 4.1.1, 7636, 8707). */
+    private const AUTHORIZE_FIELDS = [ 'client_id', 'redirect_uri', 'response_type', 'scope', 'state',
+        'code_challenge', 'code_challenge_method', 'resource' ];
+
+    /**
+     * The authorization endpoint (RFC 6749 4.1.1): the external client sends the user's browser here.
+     * The request is checked and kept for 10 minutes, then the browser goes on to the consent page,
+     * where a signed-in administrator allows or cancels it through a form with a nonce.
+     */
+    private static function keep_authorization( \WP_REST_Request $request ): \WP_REST_Response {
+        $store = new Store();
+        self::throttle( $store, 'authorize', 60 );
+        $authorization = ( new Protocol( $store ) )->authorization( self::fields( (array) $request->get_query_params(), self::AUTHORIZE_FIELDS ) );
+        if ( ! Clients::allowed_redirect( $authorization['redirect_uri'] ) ) {
+            throw new OAuthError( 'invalid_request', 'Unsupported callback.' );
         }
-        foreach ( explode( '&', $raw ) as $part ) {
-            if ( '' === $part ) {
+        $pending = 'fabrement_pending_' . bin2hex( random_bytes( 32 ) );
+        $store->put( 'pending', $pending, $authorization, time() + 600 );
+        return new \WP_REST_Response( null, 302, [ 'Location' => Config::consent_url( $pending ), 'Cache-Control' => 'no-store', 'Pragma' => 'no-cache', 'Referrer-Policy' => 'no-referrer' ] );
+    }
+
+    /**
+     * The named parameters, checked and never altered, since OAuth compares them exactly: each must
+     * be a string of printable ASCII (RFC 6749 allows 0x20-0x7E in its values), at most 4096 bytes.
+     * The per-field rules are Protocol's.
+     *
+     * @param array<string,mixed> $source  A REST request's parsed params (already unslashed).
+     * @param list<string>        $keys
+     * @return array<string,string>
+     */
+    public static function fields( array $source, array $keys ): array {
+        $params = [];
+        foreach ( $keys as $key ) {
+            if ( ! array_key_exists( $key, $source ) ) {
                 continue;
             }
-            $pair = explode( '=', $part, 2 );
-            $key = urldecode( $pair[0] );
-            if ( ! preg_match( '/\A[A-Za-z_][A-Za-z0-9_]*\z/D', $key ) || array_key_exists( $key, $params ) ) {
-                throw new OAuthError( 'invalid_request', 'Duplicate or invalid OAuth parameter.' );
+            if ( ! is_string( $source[ $key ] ) ) {
+                throw new OAuthError( 'invalid_request', 'Invalid ' . esc_html( $key ) . '.' );
             }
-            $params[ $key ] = urldecode( $pair[1] ?? '' );
+            $value = $source[ $key ];
+            if ( strlen( $value ) > 4096 || ! preg_match( '/\A[ -~]*\z/D', $value ) ) {
+                throw new OAuthError( 'invalid_request', 'Invalid ' . esc_html( $key ) . '.' );
+            }
+            $params[ $key ] = $value;
         }
         return $params;
     }
 
-    public static function discovery(): void {
-        $path = wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '', PHP_URL_PATH );
-        $as = '/.well-known/oauth-authorization-server' . wp_parse_url( Config::issuer(), PHP_URL_PATH );
-        // Plain permalinks share a path with unrelated resources; discovery then uses the 401 URL only.
-        $resource = wp_parse_url( Config::resource(), PHP_URL_QUERY ) ? null
-            : '/.well-known/oauth-protected-resource' . wp_parse_url( Config::resource(), PHP_URL_PATH );
-        if ( $path !== $as && $path !== $resource ) {
+    /** The query var the well-known rewrite rules set: which metadata the address asks for. */
+    public const META_VAR = 'fabrement_oauth_meta';
+
+    /**
+     * The OAuth endpoints are open to clients while an administrator has OAuth on, and closed otherwise.
+     *
+     * @return true|\WP_Error
+     */
+    public static function oauth_available() {
+        try {
+            self::available();
+            return true;
+        } catch ( OAuthError $error ) {
+            return new \WP_Error( $error->error, $error->getMessage(), [ 'status' => $error->status ] );
+        }
+    }
+
+    /**
+     * A refusal of an OAuth endpoint (its permission check included) as RFC 6749 5.2 shapes it.
+     *
+     * @param mixed $response
+     * @return mixed
+     */
+    public static function oauth_error_shape( $response, $server, \WP_REST_Request $request ) {
+        if ( ! $response instanceof \WP_REST_Response || ! $response->is_error() || ! str_starts_with( $request->get_route(), '/' . Config::NAMESPACE . '/' ) ) {
+            return $response;
+        }
+        $data = (array) $response->get_data();
+        if ( isset( $data['error'] ) ) {
+            return $response;
+        }
+        $response->set_data( [ 'error' => (string) ( $data['code'] ?? 'invalid_request' ), 'error_description' => (string) ( $data['message'] ?? '' ) ] );
+        $response->header( 'Cache-Control', 'no-store' );
+        return $response;
+    }
+
+    /**
+     * The well-known metadata addresses (RFC 8414, RFC 9728) under the home URL, by kind. Empty where
+     * WordPress cannot serve them: in a sub-folder (they sit at the domain root) or with plain permalinks.
+     *
+     * @return array<string,string>
+     */
+    private static function well_known(): array {
+        if ( ! self::at_domain_root() || '' === (string) get_option( 'permalink_structure' ) ) {
+            return [];
+        }
+        $paths = [ 'authorization-server' => self::authorization_server_path() ];
+        if ( ! wp_parse_url( Config::resource(), PHP_URL_QUERY ) ) {
+            $paths['protected-resource'] = '.well-known/oauth-protected-resource' . wp_parse_url( Config::resource(), PHP_URL_PATH );
+        }
+        return $paths;
+    }
+
+    private static function at_domain_root(): bool {
+        return '' === rtrim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+    }
+
+    /** The authorization-server metadata address (RFC 8414), without the leading slash. */
+    private static function authorization_server_path(): string {
+        return '.well-known/oauth-authorization-server' . wp_parse_url( Config::issuer(), PHP_URL_PATH );
+    }
+
+    /** Rewrite rules for the well-known addresses; flushed once when they change. */
+    public static function discovery_rules(): void {
+        $paths = self::well_known();
+        foreach ( $paths as $kind => $path ) {
+            add_rewrite_rule( preg_quote( $path, '#' ) . '/?$', 'index.php?' . self::META_VAR . '=' . $kind, 'top' );
+        }
+        $signature = md5( (string) wp_json_encode( $paths ) );
+        if ( get_option( Keys::OPTION_MCP_OAUTH_REWRITE ) !== $signature ) {
+            flush_rewrite_rules( false );
+            // Read on every init: autoloaded.
+            update_option( Keys::OPTION_MCP_OAUTH_REWRITE, $signature, true );
+        }
+    }
+
+    /**
+     * @param array<int,string> $vars
+     * @return array<int,string>
+     */
+    public static function query_vars( $vars ): array {
+        $vars   = (array) $vars;
+        $vars[] = self::META_VAR;
+        return $vars;
+    }
+
+    /**
+     * @param \WP|object $wp WordPress's parsed request: the well-known rewrite rules set META_VAR.
+     * With plain permalinks no rewrite rule runs; a server that hands every address to index.php
+     * (nginx try_files) still brings the authorization-server address here, matched by its path.
+     */
+    public static function discovery( $wp ): void {
+        $kind = is_object( $wp ) && isset( $wp->query_vars[ self::META_VAR ] ) && is_string( $wp->query_vars[ self::META_VAR ] ) ? $wp->query_vars[ self::META_VAR ] : '';
+        if ( '' === $kind && '' === (string) get_option( 'permalink_structure' ) && self::at_domain_root() ) {
+            $address = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+            $path    = trim( (string) wp_parse_url( $address, PHP_URL_PATH ), '/' );
+            if ( '' !== $path && $path === self::authorization_server_path() ) {
+                $kind = 'authorization-server';
+            }
+        }
+        if ( ! in_array( $kind, [ 'authorization-server', 'protected-resource' ], true ) ) {
             return;
         }
         nocache_headers();
@@ -168,7 +307,7 @@ final class Bootstrap {
         } catch ( OAuthError $error ) {
             wp_send_json( [ 'error' => $error->error, 'error_description' => $error->getMessage() ], $error->status );
         }
-        wp_send_json( $path === $as ? Config::authorization_metadata() : Config::resource_metadata() );
+        wp_send_json( 'authorization-server' === $kind ? Config::authorization_metadata() : Config::resource_metadata() );
     }
 
     /**
@@ -183,7 +322,7 @@ final class Bootstrap {
         if ( $user_id || self::$resolving || ! ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ! McpBootstrap::is_mcp_request() ) {
             return $user_id;
         }
-        $header = \Fabrement\Modules\Mcp\BearerApplicationPasswordAuth::authorization_header();
+        $header = self::authorization_header();
         if ( ! preg_match( '/\ABearer\s+(' . Config::ACCESS_PREFIX . '\S+)\z/iD', $header, $matches ) ) {
             return $user_id;
         }
@@ -200,6 +339,25 @@ final class Bootstrap {
         }
     }
 
+    /** application_password_is_api_request: false on the MCP route, untouched elsewhere. */
+    public static function refuse_application_password( $is_api_request ) {
+        return McpBootstrap::is_mcp_request() ? false : $is_api_request;
+    }
+
+    /** The raw Authorization header of this request, sanitized; '' when there is none. */
+    private static function authorization_header(): string {
+        foreach ( [ 'HTTP_AUTHORIZATION', 'REDIRECT_HTTP_AUTHORIZATION' ] as $key ) {
+            if ( isset( $_SERVER[ $key ] ) && is_string( $_SERVER[ $key ] ) ) {
+                $value = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
+                if ( '' !== $value ) {
+                    return $value;
+                }
+            }
+        }
+
+        return '';
+    }
+
     /**
      * At dispatch: an access token opens the MCP route only. Checked against the route WordPress
      * actually serves, which the address alone does not decide (a POSTed `rest_route`, /batch/v1).
@@ -212,15 +370,19 @@ final class Bootstrap {
         }
         // What rest_api_loaded() hands to the server.
         $route = rtrim( (string) ( $GLOBALS['wp']->query_vars['rest_route'] ?? '' ), '/' );
-        if ( Config::ROUTE === $route ) {
+        if ( self::is_mcp_route( $route ) ) {
             return $result;
         }
         return new \WP_Error( 'fabrement_oauth_scope', __( 'This access token works only for the Fabrement MCP endpoint.', 'fabrement-lite' ), [ 'status' => 403 ] );
     }
 
-    /** On the MCP route: a refused token, or no login at all, is answered before any tool runs. */
+    /**
+     * On the MCP route only the plugin's own OAuth access token lets anyone in: a refused token, no
+     * login, or a login of any other kind (a browser cookie, another plugin's authentication) is
+     * answered before any tool runs.
+     */
     public static function authenticate( $result, $server, \WP_REST_Request $request ) {
-        if ( rtrim( $request->get_route(), '/' ) !== Config::ROUTE || null !== $result ) {
+        if ( ! self::is_mcp_route( $request->get_route() ) || null !== $result ) {
             return $result;
         }
         if ( self::$token_error !== null ) {
@@ -229,7 +391,7 @@ final class Bootstrap {
                 ? new \WP_Error( 'fabrement_oauth_unavailable', $error->getMessage(), [ 'status' => $error->status ] )
                 : self::challenge();
         }
-        if ( ! get_current_user_id() ) {
+        if ( self::$token_user === 0 || get_current_user_id() !== self::$token_user ) {
             try {
                 self::available();
             } catch ( OAuthError $error ) {
@@ -241,7 +403,7 @@ final class Bootstrap {
     }
 
     public static function response( $response, $server, \WP_REST_Request $request ) {
-        if ( ! $response instanceof \WP_REST_Response || rtrim( $request->get_route(), '/' ) !== Config::ROUTE ) {
+        if ( ! $response instanceof \WP_REST_Response || ! self::is_mcp_route( $request->get_route() ) ) {
             return $response;
         }
         if ( ! Config::enabled() ) {
@@ -268,6 +430,11 @@ final class Bootstrap {
         }
         $response->header( 'Cache-Control', 'no-store' );
         return $response;
+    }
+
+    /** WordPress matches REST routes case-insensitively, so this does too. */
+    private static function is_mcp_route( string $route ): bool {
+        return 0 === strcasecmp( rtrim( $route, '/' ), Config::ROUTE );
     }
 
     private static function challenge(): \WP_Error {
@@ -316,36 +483,32 @@ final class Bootstrap {
             $store = new Store();
             $protocol = new Protocol( $store );
             $method = isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : 'GET';
-            if ( ! in_array( $method, [ 'GET', 'POST' ], true ) ) {
-                throw new OAuthError( 'invalid_request', esc_html__( 'Unsupported request method.', 'fabrement-lite' ) );
-            }
-            // Raw on purpose: OAuth needs the exact values and must refuse a repeated parameter, which $_GET / $_POST
-            // would merge. Each value is then checked against a strict format: here and in Protocol::authorization().
-            $input = self::form( 'POST' === $method ? (string) file_get_contents( 'php://input' ) : (string) ( $_SERVER['QUERY_STRING'] ?? '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- OAuth parameters must reach Protocol exactly as sent; Protocol validates them.
-            // GET only keeps the client's request for 10 minutes and shows the consent page; the POST that approves is checked
-            // below: a logged-in user who may connect (current_user_can) and the consent form's nonce.
-            $pending = Protocol::value( $input, 'pending' );
-            if ( '' !== $pending && ! preg_match( '/\Afabrement_pending_[a-f0-9]{64}\z/D', $pending ) ) {
-                throw new OAuthError( 'invalid_request', esc_html__( 'This authorization request has expired. Reconnect your client.', 'fabrement-lite' ) );
-            }
-            if ( ! in_array( Protocol::value( $input, 'decision' ), [ '', 'allow', 'deny' ], true ) ) {
-                throw new OAuthError( 'invalid_request', esc_html__( 'Start a new authorization request.', 'fabrement-lite' ) );
-            }
-            if ( '' === $pending ) {
-                if ( 'GET' !== $method ) {
+            if ( 'POST' === $method ) {
+                // The consent form approves: its nonce is checked before anything it sent is read.
+                check_admin_referer( 'fabrement_mcp_consent' );
+                $input = [
+                    'pending'  => isset( $_POST['pending'] ) && is_string( $_POST['pending'] ) ? sanitize_text_field( wp_unslash( $_POST['pending'] ) ) : '',
+                    'decision' => isset( $_POST['decision'] ) && is_string( $_POST['decision'] ) ? sanitize_key( wp_unslash( $_POST['decision'] ) ) : '',
+                ];
+                if ( '' === Protocol::value( $input, 'pending' ) || ! in_array( Protocol::value( $input, 'decision' ), [ 'allow', 'deny' ], true ) ) {
                     throw new OAuthError( 'invalid_request', esc_html__( 'Start a new authorization request.', 'fabrement-lite' ) );
                 }
-                self::throttle( $store, 'authorize', 60 );
-                $authorization = $protocol->authorization( $input );
-                $pending = 'fabrement_pending_' . bin2hex( random_bytes( 32 ) );
-                $store->put( 'pending', $pending, $authorization, time() + 600 );
+            } elseif ( 'GET' === $method ) {
+                // Only shows the consent page for a request the authorization endpoint kept; nothing is changed here.
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only: which kept request the consent page shows; approval needs the form's nonce.
+                $input = [ 'pending' => isset( $_GET['pending'] ) && is_string( $_GET['pending'] ) ? sanitize_text_field( wp_unslash( $_GET['pending'] ) ) : '' ];
             } else {
-                $row = $store->get( 'pending', $pending );
-                if ( ! $row || $row['used'] || $row['revoked'] ) {
-                    throw new OAuthError( 'invalid_request', esc_html__( 'This authorization request has expired. Reconnect your client.', 'fabrement-lite' ) );
-                }
-                $authorization = $row['payload'];
+                throw new OAuthError( 'invalid_request', esc_html__( 'Unsupported request method.', 'fabrement-lite' ) );
             }
+            $pending = Protocol::value( $input, 'pending' );
+            if ( ! preg_match( '/\Afabrement_pending_[a-f0-9]{64}\z/D', $pending ) ) {
+                throw new OAuthError( 'invalid_request', esc_html__( 'This authorization request has expired. Reconnect your client.', 'fabrement-lite' ) );
+            }
+            $row = $store->get( 'pending', $pending );
+            if ( ! $row || $row['used'] || $row['revoked'] ) {
+                throw new OAuthError( 'invalid_request', esc_html__( 'This authorization request has expired. Reconnect your client.', 'fabrement-lite' ) );
+            }
+            $authorization = $row['payload'];
             if ( ! Clients::allowed_redirect( $authorization['redirect_uri'] ) ) {
                 throw new OAuthError( 'invalid_request', esc_html__( 'Unsupported callback.', 'fabrement-lite' ) );
             }
@@ -354,15 +517,13 @@ final class Bootstrap {
             header( "Content-Security-Policy: default-src 'none'; style-src " . $styles . "; form-action 'self' "
                 . $authorization['redirect_uri'] . "; frame-ancestors 'none'; base-uri 'none'" );
             if ( ! is_user_logged_in() ) {
-                $resume = add_query_arg( [ 'action' => 'fabrement_mcp_authorize', 'pending' => $pending ], admin_url( 'admin-post.php' ) );
-                wp_safe_redirect( wp_login_url( $resume ) );
+                wp_safe_redirect( wp_login_url( Config::consent_url( $pending ) ) );
                 exit;
             }
             if ( ! Capabilities::can_connect() ) {
                 throw new OAuthError( 'access_denied', esc_html__( 'Only Administrators can connect an agent.', 'fabrement-lite' ), 403 );
             }
             if ( 'POST' === $method ) {
-                check_admin_referer( 'fabrement_mcp_consent_' . $pending );
                 if ( ! $store->consume( 'pending', $pending ) ) {
                     throw new OAuthError( 'invalid_request', esc_html__( 'This authorization request has already been used.', 'fabrement-lite' ) );
                 }
@@ -378,8 +539,9 @@ final class Bootstrap {
                 // The external callback was checked against the client's exact, allowlisted URI.
                 // wp_safe_redirect() would send it to wp-admin: the host is another site's, and
                 // wp_validate_redirect() cannot allow the [::1] loopback callback even when told to.
+                // add_query_arg() does not encode: the client's state may hold &, # or quotes.
                 // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- validated by Clients::allowed_redirect() above.
-                wp_redirect( add_query_arg( $args, $authorization['redirect_uri'] ), 302, 'Fabrement OAuth' );
+                wp_redirect( add_query_arg( array_map( 'rawurlencode', $args ), $authorization['redirect_uri'] ), 302, 'Fabrement OAuth' );
                 exit;
             }
             // A standalone page with no wp_head(): its template prints this one sheet itself.
@@ -441,7 +603,7 @@ final class Bootstrap {
                     throw new OAuthError( 'temporarily_unavailable', esc_html__( 'OAuth storage is not ready. Deactivate and reactivate Fabrement Lite to repair it.', 'fabrement-lite' ), 503 );
                 }
                 $family = Protocol::value( $form, 'family' );
-                $grant = $store->get( 'grant', $family );
+                $grant = preg_match( '/\A[a-f0-9]{64}\z/D', $family ) ? $store->get( 'grant', $family ) : null;
                 if ( ! $grant ) {
                     throw new OAuthError( 'invalid_request', esc_html__( 'This connection no longer exists.', 'fabrement-lite' ), 404 );
                 }
@@ -457,6 +619,24 @@ final class Bootstrap {
             : Config::settings_url();
         wp_safe_redirect( $destination . ( $client !== '' ? '#fabrement-oauth' : '#fabrement-access' ) );
         exit;
+    }
+
+    /**
+     * Ends every OAuth connection on the site: a new token generation, and every grant revoked.
+     * On deactivation, so an approval given here never carries over to another edition of the
+     * plugin or to a later activation without a new consent.
+     */
+    public static function end_all_connections(): void {
+        update_option( Keys::OPTION_MCP_OAUTH_GENERATION, bin2hex( random_bytes( 32 ) ), false );
+        $store = new Store();
+        if ( $store->ready() ) {
+            try {
+                $store->revoke_all();
+            } catch ( OAuthError $error ) {
+                // The new generation already refuses every earlier token.
+                \Fabrement\Framework\Log::debug( '[fabrement][oauth] Could not revoke connections on deactivation: ' . $error->getMessage() );
+            }
+        }
     }
 
     private static function save_setting( string $name, $value ): void {

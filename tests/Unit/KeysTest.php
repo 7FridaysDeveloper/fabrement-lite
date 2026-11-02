@@ -43,6 +43,5 @@ final class KeysTest extends TestCase {
 
     public function test_names_built_at_run_time(): void {
         self::assertSame( 'fabrement_content_preview_abc', Keys::content_preview( 'abc' ) );
-        self::assertSame( 'fabrement_mcp_command_7', Keys::for_user( Keys::TRANSIENT_MCP_COMMAND, 7 ) );
     }
 }

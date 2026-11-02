@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\ContentSource;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\Service\ArchiveTemplateBinding;
 use Fabrement\Modules\Translation\Translation;
 use WP_Post;

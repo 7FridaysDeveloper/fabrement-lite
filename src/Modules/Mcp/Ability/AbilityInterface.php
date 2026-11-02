@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * One MCP tool of the Fabrement server, registered as a WP Ability.
  *

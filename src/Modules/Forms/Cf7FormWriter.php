@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Forms;
 
+defined( 'ABSPATH' ) || exit;
+
 use WPCF7_ContactForm;
 use WP_Error;
 
@@ -100,9 +102,10 @@ final class Cf7FormWriter {
 		$mail = self::apply_reply_to( $mail, $built['reply_to'] );
 		$mail = self::apply_attachments( $mail, $built['attachments'] );
 
+		// What CF7's own save runs on its form and mail (wpcf7_save_contact_form()).
 		$props = array(
-			'form' => $form_template,
-			'mail' => $mail,
+			'form' => wpcf7_sanitize_form( $form_template ),
+			'mail' => wpcf7_sanitize_mail( $mail ),
 		);
 		if ( is_array( $options['messages'] ?? null ) && $options['messages'] !== array() ) {
 			$merged = self::merge_messages( $form, $options['messages'] );
@@ -274,7 +277,7 @@ final class Cf7FormWriter {
 			if ( is_wp_error( $built ) ) {
 				return $built;
 			}
-			$props['form'] = $template;
+			$props['form'] = wpcf7_sanitize_form( $template );
 			$mail['body']  = self::mail_body( $built['rows'], $title !== '' ? $title : (string) $form->title() );
 			$mail          = self::apply_reply_to( $mail, $built['reply_to'] );
 			$mail          = self::apply_attachments( $mail, $built['attachments'] );
@@ -304,7 +307,7 @@ final class Cf7FormWriter {
 			$props['messages'] = $merged;
 		}
 
-		$props['mail'] = $mail;
+		$props['mail'] = wpcf7_sanitize_mail( $mail );
 		$form->set_properties( $props );
 
 		$post_id = (int) $form->save();
@@ -579,7 +582,7 @@ final class Cf7FormWriter {
 		if ( $value === '' ) {
 			return '';
 		}
-		if ( ! is_email( $value ) ) {
+		if ( ! is_email( $value ) || sanitize_email( $value ) !== $value ) {
 			return new WP_Error( 'invalid_recipient', sprintf( 'recipient "%s" is not a valid email address. Nothing was saved.', $value ) );
 		}
 		return $value;

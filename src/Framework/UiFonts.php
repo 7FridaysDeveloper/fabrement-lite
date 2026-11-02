@@ -2,6 +2,8 @@
 
 namespace Fabrement\Framework;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The interface face (Manrope, OFL), served from the plugin: no admin screen asks a font host for it.
  */

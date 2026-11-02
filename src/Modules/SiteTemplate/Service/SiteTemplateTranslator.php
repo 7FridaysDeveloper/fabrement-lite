@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\SiteTemplate\Dto\SiteTemplateRecord;

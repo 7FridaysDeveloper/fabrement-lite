@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 
 use Fabrement\Modules\Translation\Translation;
@@ -74,6 +76,9 @@ final class SetContentStatusAbility extends DestructiveAbility {
     public function execute( array $input ) {
         $id     = (int) ( $input['contentId'] ?? 0 );
         $asked  = (string) ( $input['status'] ?? 'publish' );
+        if ( ! in_array( $asked, [ 'publish', 'draft', 'trash', 'restore' ], true ) ) {
+            return new \WP_Error( 'invalid_status', 'status must be publish, draft, trash or restore.' );
+        }
         $target = $asked === 'draft' ? 'draft' : 'publish';
 
         $post = get_post( $id );

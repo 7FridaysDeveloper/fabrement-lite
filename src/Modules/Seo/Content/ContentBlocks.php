@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Content;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Translation\Translation;
 
 /**

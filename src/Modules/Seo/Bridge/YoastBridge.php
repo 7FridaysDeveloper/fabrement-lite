@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Bridge\Yoast\Indexables;
 use Fabrement\Modules\Seo\Bridge\Yoast\Options;
 use Fabrement\Modules\Seo\Bridge\Yoast\PostMeta;
@@ -55,10 +57,7 @@ final class YoastBridge implements SeoBridge {
 
     /** Whether Yoast is on disk, active or not. */
     public static function installed(): bool {
-        if ( ! function_exists( 'get_plugins' ) ) {
-            require_once ABSPATH . 'wp-admin/includes/plugin.php';
-        }
-        return isset( get_plugins()[ self::PLUGIN_FILE ] );
+        return is_file( WP_PLUGIN_DIR . '/' . self::PLUGIN_FILE );
     }
 
     // ── vocabulary ──────────────────────────────────────────────────────────────────────────

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Schema;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use WP_Error;
 use Fabrement\Modules\Seo\Seo;

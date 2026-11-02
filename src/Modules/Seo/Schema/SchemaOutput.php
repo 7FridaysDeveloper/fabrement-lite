@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Schema;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Seo;
 
 /**

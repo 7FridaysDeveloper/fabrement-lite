@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplatePages;
@@ -85,7 +87,7 @@ final class ListTemplatePagesAbility extends AbstractAbility {
 
     public function execute( array $input ) {
         $template_id = (int) ( $input['templateId'] ?? 0 );
-        $search      = (string) ( $input['search'] ?? '' );
+        $search      = trim( wp_strip_all_tags( (string) ( $input['search'] ?? '' ) ) );
         $limit       = (int) ( $input['limit'] ?? 50 );
 
         // A given-but-unknown templateId is an error, not a silent unscoped listing.

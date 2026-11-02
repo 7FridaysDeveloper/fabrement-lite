@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\ContentSource;
 
+defined( 'ABSPATH' ) || exit;
+
 /** Existing template slot: page content or an existing, confined theme template. */
 final class ContentSourceBlock {
     public const NAME = 'fabrement/content-source';

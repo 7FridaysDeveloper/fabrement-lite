@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
 
 /**
@@ -124,6 +126,17 @@ final class UploadMediaAbility extends AbstractAbility {
     private function upload( array $input ): array {
         $source_url = trim( (string) ( $input['sourceUrl'] ?? '' ) );
         $base64     = trim( (string) ( $input['base64'] ?? '' ) );
+        if ( '' !== $source_url ) {
+            // The scheme as given: esc_url_raw() would add http:// to a bare host and empty other schemes.
+            $scheme = strtolower( (string) wp_parse_url( $source_url, PHP_URL_SCHEME ) );
+            if ( ! in_array( $scheme, [ 'http', 'https' ], true ) ) {
+                throw new McpAbilityException( 'sourceUrl must be an http(s) URL.' );
+            }
+            $source_url = esc_url_raw( $source_url, [ 'http', 'https' ] );
+            if ( '' === $source_url ) {
+                throw new McpAbilityException( 'sourceUrl must be an http(s) URL.' );
+            }
+        }
 
         $given = array_filter( [ $source_url, $base64 ], static fn( $v ) => '' !== $v );
         if ( 1 !== count( $given ) ) {
@@ -134,10 +147,6 @@ final class UploadMediaAbility extends AbstractAbility {
         if ( '' !== $base64 && '' === $filename ) {
             throw new McpAbilityException( 'filename is required with base64 — it carries the extension (e.g. "hero.png").' );
         }
-
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-        require_once ABSPATH . 'wp-admin/includes/media.php';
-        require_once ABSPATH . 'wp-admin/includes/image.php';
 
         if ( '' !== $source_url ) {
             [ $tmp_path, $default_name ] = $this->fetch_remote( $source_url );
@@ -166,10 +175,15 @@ final class UploadMediaAbility extends AbstractAbility {
         // The alt text goes in with the attachment (meta_input is written before `add_attachment`
         // fires), so a translation plugin copying the image per language on that hook — WPML —
         // copies the alt text with it.
+        // media_handle_sideload() and the image sizes it makes (wp_generate_attachment_metadata()).
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        $title         = trim( wp_strip_all_tags( (string) ( $input['title'] ?? '' ) ) );
         $attachment_id = media_handle_sideload(
             [ 'name' => $filename, 'tmp_name' => $tmp_path ],
             0,
-            isset( $input['title'] ) ? (string) $input['title'] : null,
+            '' !== $title ? $title : null,
             $is_image && '' !== $alt ? [ 'meta_input' => [ '_wp_attachment_image_alt' => $alt ] ] : []
         );
         if ( is_wp_error( $attachment_id ) ) {
@@ -199,6 +213,7 @@ final class UploadMediaAbility extends AbstractAbility {
         }
 
         $name = wp_basename( (string) wp_parse_url( $url, PHP_URL_PATH ) );
+        require_once ABSPATH . 'wp-admin/includes/file.php';
         $tmp  = wp_tempnam( $name );
         if ( ! $tmp ) {
             throw new McpAbilityException( 'Could not create a temp file for the download.' );
@@ -272,6 +287,7 @@ final class UploadMediaAbility extends AbstractAbility {
             throw self::too_large( self::max_bytes() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- too_large() escapes what it prints.
         }
 
+        require_once ABSPATH . 'wp-admin/includes/file.php';
         $tmp = wp_tempnam( $filename );
         if ( ! $tmp ) {
             throw new McpAbilityException( 'Could not create a temp file for the decoded payload.' );

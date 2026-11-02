@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Storage;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The disk work every store under {@see FabrementStorage} shares: writing a file so a crash
  * cannot leave half of one, reading and writing JSON, and guarding a folder against direct

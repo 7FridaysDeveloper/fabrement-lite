@@ -18,14 +18,25 @@ const REACT_GLOBALS = { react: 'React', 'react-dom': 'ReactDOM', 'react-dom/clie
 const SRC_DIR = fileURLToPath(new URL('./src', import.meta.url));
 const NOTE = /\/\*\s*(translators:[^*]*?)\s*\*\/[\s\S]{0,400}?\b(?:__|_n)\(\s*('(?:\\.|[^'\\])*'|"(?:\\.|[^"\\])*")/g;
 const CALL = /wp\.i18n\.(?:__|_n)\(("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\$])*`),/g;
-const literal = (text) => new Function('return ' + text)();
+// A quoted string literal read as JSON: its own quote and escapes turned into JSON's.
+// One JSON cannot read gives null: its translator note goes missing, the build goes on.
+const literal = (text) => {
+    try {
+        return JSON.parse('"' + text.slice(1, -1).replace(/\\(.)|"/g, (m, c) => (c === undefined ? '\\"' : c === "'" || c === '`' ? c : '\\' + c)) + '"');
+    } catch {
+        return null;
+    }
+};
 
 function translatorNotes(dir = SRC_DIR, notes = new Map()) {
     for (const entry of readdirSync(dir, {withFileTypes: true})) {
         const file = join(dir, entry.name);
         if (entry.isDirectory()) translatorNotes(file, notes);
         else if (/\.tsx?$/.test(entry.name)) {
-            for (const match of readFileSync(file, 'utf8').matchAll(NOTE)) notes.set(literal(match[2]), match[1]);
+            for (const match of readFileSync(file, 'utf8').matchAll(NOTE)) {
+                const key = literal(match[2]);
+                if (key !== null) notes.set(key, match[1]);
+            }
         }
     }
     return notes;
@@ -42,7 +53,8 @@ const i18nForTools = {
                 .replace(/([\w$]?)\(0,\s*wp\.i18n\.(__|_n)\)\(/g,
                     (_call, before, fn) => before + (before ? ' ' : '') + 'wp.i18n.' + fn + '(')
                 .replace(CALL, (call, text, at, code) => {
-                    const note = notes.get(literal(text));
+                    const key = literal(text);
+                    const note = key === null ? undefined : notes.get(key);
                     if (!note) return call;
                     // A line break is only safe inside an argument list: never after `return`.
                     const lead = '(,'.includes(code[at - 1]) ? '\n' : '';

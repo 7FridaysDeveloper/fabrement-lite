@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Translation\Contract;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Everything this plugin needs from a translation plugin, and the only shape it knows.
  *

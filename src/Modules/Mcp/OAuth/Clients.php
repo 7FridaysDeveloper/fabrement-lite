@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\OAuth;
 
+defined( 'ABSPATH' ) || exit;
+
 class Clients {
     private Store $store;
 

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Framework;
 
+defined( 'ABSPATH' ) || exit;
+
 use Pimple\Container;
 
 /**

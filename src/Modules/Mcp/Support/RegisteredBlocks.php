@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /** Local discovery; no project membership or backend credentials required. */
 final class RegisteredBlocks {
     public static function write_mode( \WP_Block_Type $type ): string {

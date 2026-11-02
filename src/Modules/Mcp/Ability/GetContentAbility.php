@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\Mcp\Support\ContentEdits;
 use Fabrement\Modules\Mcp\Support\ContentGuard;

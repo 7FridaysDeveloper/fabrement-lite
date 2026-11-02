@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;
 use WP_Query;
@@ -97,6 +99,16 @@ final class ListContentAbility extends AbstractAbility {
         return [ 'readOnlyHint' => true ];
     }
 
+    /** "any", or a comma list of statuses WordPress has registered; none of those reads as "any". */
+    private static function status( array $input ): string {
+        $statuses = array_map( 'sanitize_key', explode( ',', (string) ( $input['status'] ?? '' ) ) );
+        if ( in_array( 'any', $statuses, true ) ) {
+            return 'any';
+        }
+        $statuses = array_values( array_unique( array_intersect( $statuses, get_post_stati() ) ) );
+        return [] !== $statuses ? implode( ',', $statuses ) : 'any';
+    }
+
     public function execute( array $input ) {
         $type = isset( $input['postType'] ) ? sanitize_key( (string) $input['postType'] ) : 'page';
         if ( $type === '' ) {
@@ -124,8 +136,8 @@ final class ListContentAbility extends AbstractAbility {
             'post_type'      => $type === 'any'
                 ? array_values( array_diff( array_values( get_post_types( [ 'public' => true ] ) ), [ 'attachment' ] ) )
                 : $type,
-            'post_status'    => isset( $input['status'] ) && (string) $input['status'] !== '' ? (string) $input['status'] : 'any',
-            's'              => (string) ( $input['search'] ?? '' ),
+            'post_status'    => self::status( $input ),
+            's'              => trim( wp_strip_all_tags( (string) ( $input['search'] ?? '' ) ) ),
             'posts_per_page' => $limit,
             'orderby'        => 'modified',
             'order'          => 'DESC',
@@ -165,7 +177,7 @@ final class ListContentAbility extends AbstractAbility {
         // Native rather than a `posts_where` of our own, because the query below is widened to
         // every language and that suppresses the clause filters — including one we added
         // ourselves, which would have quietly turned a title lookup back into "everything".
-        $title = isset( $input['title'] ) ? trim( (string) $input['title'] ) : '';
+        $title = isset( $input['title'] ) ? trim( wp_strip_all_tags( (string) $input['title'] ) ) : '';
         if ( $title !== '' ) {
             // Both write to the same `s`, and only one set of columns can apply to it. Said out
             // loud rather than letting one quietly win: a caller who passed both would otherwise

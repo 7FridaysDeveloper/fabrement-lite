@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Forms\Cf7FormWriter;
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;
@@ -113,7 +115,8 @@ final class TranslateCf7FormAbility extends AbstractAbility {
 
 		// CF7's own copy: form, mail, mail_2, messages and additional settings, as they stand.
 		$copy = $source->copy();
-		$copy->set_title( (string) ( $input['title'] ?? '' ) !== '' ? (string) $input['title'] : $source->title() . ' (' . strtoupper( $lang ) . ')' );
+		$title = trim( wp_strip_all_tags( (string) ( $input['title'] ?? '' ) ) );
+		$copy->set_title( $title !== '' ? $title : $source->title() . ' (' . strtoupper( $lang ) . ')' );
 		$id = (int) $copy->save();
 		if ( $id <= 0 ) {
 			return new WP_Error( 'save_failed', 'Contact Form 7 refused to save the copy.' );

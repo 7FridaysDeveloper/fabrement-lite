@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Forms\FormCatalog;
 
 /** Read-only: the site's Contact Form 7 forms. */

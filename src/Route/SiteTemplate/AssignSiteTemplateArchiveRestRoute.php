@@ -2,6 +2,8 @@
 
 namespace Fabrement\Route\SiteTemplate;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\Service\ArchiveTemplateBinding;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;
@@ -46,7 +48,7 @@ final class AssignSiteTemplateArchiveRestRoute extends AbstractRestRoute {
         return [
             // Not sanitize_key: the context carries a colon ("archive:product"),
             // which sanitize_key would silently eat into "archiveproduct".
-            'context'    => [ 'type' => 'string', 'required' => true ],
+            'context'    => [ 'type' => 'string', 'required' => true, 'validate_callback' => 'rest_validate_request_arg', 'sanitize_callback' => 'sanitize_text_field' ],
             'templateId' => [ 'type' => 'integer', 'required' => true, 'minimum' => 0 ],
         ];
     }

@@ -2,13 +2,15 @@
 
 namespace Fabrement;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * WordPress capability names for plugin features (admin UI, REST, …).
  */
 final class Capabilities {
 
     /**
-     * Who may connect an MCP client, issue its token or password and keep using it: an
+     * Who may connect an MCP client, approve its OAuth access and keep using it: an
      * Administrator. The client then works with an Editor's caps at most
      * ({@see \Fabrement\Modules\Mcp\McpCapabilityCeiling}); ask through can_connect().
      */

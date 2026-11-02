@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Lifecycle;
 
+defined( 'ABSPATH' ) || exit;
+
 /** Loaded explicitly before either edition's shared autoloader and constants. */
 final class LiteEdition {
     public static function other( string $plugin, string $self ): bool {

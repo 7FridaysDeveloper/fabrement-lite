@@ -1,5 +1,7 @@
 <?php
 namespace Fabrement\Container\Provider;
+
+defined( 'ABSPATH' ) || exit;
 use Pimple\Container;
 use Pimple\ServiceProviderInterface;
 final class RestRouteServiceProvider implements ServiceProviderInterface {

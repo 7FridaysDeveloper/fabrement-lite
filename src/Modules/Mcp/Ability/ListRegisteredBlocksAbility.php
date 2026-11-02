@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\RegisteredBlocks;
 
 /** Lite discovery has no cloud catalog or generated-block records. */
@@ -33,7 +35,7 @@ final class ListRegisteredBlocksAbility extends AbstractAbility {
         if ( ! in_array( $source, [ 'all', 'core', 'acf', 'registered' ], true ) ) {
             return new \WP_Error( 'invalid_source', 'Use all, core, acf or registered.' );
         }
-        $search = trim( (string) ( $input['search'] ?? '' ) );
+        $search = trim( wp_strip_all_tags( (string) ( $input['search'] ?? '' ) ) );
         $rows = array_values( array_filter( RegisteredBlocks::summaries(), static function ( array $row ) use ( $source, $search ): bool {
             return ( $source === 'all' || $row['source'] === $source )
                 && ( $search === '' || stripos( $row['name'] . ' ' . $row['title'] . ' ' . $row['description'], $search ) !== false );

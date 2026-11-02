@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\Mcp\Support\ContentEdits;
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
@@ -378,8 +380,9 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
         }
 
         $postarr = [ 'post_type' => SyncedPatterns::POST_TYPE ];
-        if ( trim( (string) ( $input['title'] ?? '' ) ) !== '' ) {
-            $postarr['post_title'] = trim( (string) $input['title'] );
+        $title = trim( wp_strip_all_tags( (string) ( $input['title'] ?? '' ) ) );
+        if ( $title !== '' ) {
+            $postarr['post_title'] = $title;
         }
         if ( $content !== null ) {
             // See save-content: the attribute JSON must survive wp_unslash().

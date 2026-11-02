@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Lite's own copy of the MCP adapter (vendor/), loaded only when no other copy is there: the MCP
  * Adapter plugin's, or one another plugin bundles. PHP keeps one copy of a class, so the first one

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\OAuth;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 
 final class Config {
@@ -24,8 +26,14 @@ final class Config {
         return rest_url( self::NAMESPACE . '/' . $name );
     }
 
+    /** The authorization endpoint the client sends the browser to. */
     public static function authorize_url(): string {
-        return add_query_arg( [ 'action' => 'fabrement_mcp_authorize' ], admin_url( 'admin-post.php' ) );
+        return self::endpoint( 'authorize' );
+    }
+
+    /** The consent page for one kept authorization request. */
+    public static function consent_url( string $pending ): string {
+        return add_query_arg( [ 'action' => 'fabrement_mcp_authorize', 'pending' => $pending ], admin_url( 'admin-post.php' ) );
     }
 
     public static function enabled(): bool {

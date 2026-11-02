@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Storage;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Where everything Fabrement writes to disk lives: `uploads/fabrement-lite/`, beside the media, where
  * WordPress keeps files a plugin writes. One root, always.

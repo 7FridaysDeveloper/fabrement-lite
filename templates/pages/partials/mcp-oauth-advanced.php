@@ -4,7 +4,6 @@
  * Recommended guide, folded into one accordion with each way laid out as text beside its
  * code. Claude Code's command and .mcp.json for Claude; the CLI commands, config.toml and
  * AI instructions for Codex.
- * The application password, which every such client also has, follows in the template.
  *
  * Set by templates/pages/mcp-connection.php before it requires this partial.
  *
@@ -15,29 +14,28 @@ defined( 'ABSPATH' ) || exit;
 require __DIR__ . '/mcp-oauth-state.php';
 $fabrement_code_box = require __DIR__ . '/mcp-code-box.php';
 
-// OAuth off: point at the one place it is turned on, instead of a second Connect button.
-$fabrement_oauth_off_hint = static function () use ( $fabrement_oauth_https ): void {
+// OAuth off: point at the one place it is turned on, instead of a second Connect button;
+// what blocks it (HTTPS, storage) worded as on the Recommended tab.
+$fabrement_oauth_off_hint = static function () use ( $fabrement_oauth_https, $fabrement_oauth_storage_ready ): void {
+    if ( ! $fabrement_oauth_https ) {
+        $fabrement_hint = __( 'HTTPS is required to connect.', 'fabrement-lite' );
+    } elseif ( ! $fabrement_oauth_storage_ready ) {
+        $fabrement_hint = __( 'OAuth storage is not ready. Deactivate and reactivate Fabrement Lite to retry setup.', 'fabrement-lite' );
+    } else {
+        $fabrement_hint = __( 'Turn on OAuth under Connection access first.', 'fabrement-lite' );
+    }
     ?>
     <p class="fabrement-cred__hint">
-        <?php
-        echo esc_html( $fabrement_oauth_https
-            ? __( 'Turn on OAuth under Connection access first.', 'fabrement-lite' )
-            : __( 'HTTPS required for OAuth. Use an application password below.', 'fabrement-lite' ) );
-        ?>
+        <?php echo esc_html( $fabrement_hint ); ?>
     </p>
     <?php
 };
 ?>
 <?php if ( 'claude' === $fabrement_oauth_client ) : ?>
     <?php
-    /*
-     * Claude's two ways are the same Claude Code with a different sign-in, so they fold into
-     * an accordion, both closed. The password one opens only when its one-time setup was just
-     * generated — it is shown once and must not be missed; the template reads the flag.
-     */
-    $fabrement_alt_password_open = ! empty( $fabrement_mcp_connection );
+    // Claude Code's two ways (a terminal command, a .mcp.json file) in one fold, open: it is all the tab holds.
     ?>
-    <details class="fabrement-cred__alt fabrement-cred__alt--fold">
+    <details class="fabrement-cred__alt fabrement-cred__alt--fold" open>
         <summary><h3 id="fabrement-alt-oauth-title" class="fabrement-cred__alt-title"><span class="dashicons dashicons-shield" aria-hidden="true"></span><?php esc_html_e( 'Claude Code (OAuth)', 'fabrement-lite' ); ?></h3></summary>
         <?php
         // $fabrement_ui (bold names in a sentence) comes from mcp-oauth.php, rendered on the Recommended tab first.
@@ -94,11 +92,8 @@ $fabrement_oauth_off_hint = static function () use ( $fabrement_oauth_https ): v
         <?php endif; ?>
     </details>
 <?php elseif ( 'codex' === $fabrement_oauth_client ) : ?>
-    <?php
-    // The same fold as Claude's: closed, with the password one opening after it is generated.
-    $fabrement_alt_password_open = ! empty( $fabrement_mcp_connection );
-    ?>
-    <details class="fabrement-cred__alt fabrement-cred__alt--fold">
+    <?php // The same fold as Claude's. ?>
+    <details class="fabrement-cred__alt fabrement-cred__alt--fold" open>
         <summary><h3 id="fabrement-alt-oauth-title" class="fabrement-cred__alt-title"><span class="dashicons dashicons-shield" aria-hidden="true"></span><?php esc_html_e( 'Codex (OAuth)', 'fabrement-lite' ); ?></h3></summary>
         <?php
         // $fabrement_ui (bold names in a sentence) comes from mcp-oauth.php, rendered on the Recommended tab first.

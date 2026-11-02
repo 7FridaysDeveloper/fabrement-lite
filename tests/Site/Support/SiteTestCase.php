@@ -92,27 +92,10 @@ abstract class SiteTestCase extends TestCase {
         return $this->client ??= new McpClient( $this->site() );
     }
 
-    /** Use another client from here on (another user, OAuth, the ?rest_route= address); null: the default again. */
-    protected function use_client( ?McpClient $client ): void {
-        $this->client = $client;
-    }
-
     /** @return array{status:int, body:string, headers:array<string,string>} A page as a visitor gets it. */
     protected function get( string $path_or_url, array $headers = [] ): array {
         $url = str_starts_with( $path_or_url, 'https://' ) ? $path_or_url : $this->site()->url( $path_or_url );
         return Http::request( $this->site(), 'GET', $url, $headers );
-    }
-
-    /**
-     * A call of the plugin's own REST API, as a wp-admin screen makes one (signed in with an
-     * application password instead of the cookie and nonce).
-     *
-     * @return array{status:int, data:array}
-     */
-    protected function fabrement_rest( string $method, string $path, ?array $body = null, string $user = 'admin', ?string $password = null ): array {
-        $headers  = [ 'Authorization' => 'Basic ' . base64_encode( $user . ':' . ( $password ?? $this->site()->password ) ) ];
-        $response = Http::request( $this->site(), $method, $this->site()->url( '/wp-json/fabrement/v1' . $path ), $headers + ( $body === null ? [] : [ 'Content-Type' => 'application/json' ] ), $body === null ? null : (string) json_encode( (object) $body ) );
-        return [ 'status' => $response['status'], 'data' => (array) json_decode( $response['body'], true ) ];
     }
 
     // ── templates: set up through the services behind the Templates screen's REST routes ─────

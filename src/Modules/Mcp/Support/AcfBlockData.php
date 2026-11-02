@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /** ACF's stored flat data format. */
 final class AcfBlockData {
     private const SCALARS = [ 'text', 'textarea', 'wysiwyg', 'number', 'range', 'true_false', 'select', 'checkbox', 'radio', 'button_group', 'image', 'file', 'gallery', 'link', 'url', 'email', 'date_picker', 'date_time_picker', 'time_picker', 'color_picker', 'post_object', 'relationship', 'user', 'taxonomy' ];
@@ -98,7 +100,7 @@ final class AcfBlockData {
                 acf_validate_value( $values[ $field['key'] ] ?? null, $field, $where . '.data.' . $field['name'] );
             }
             $errors = acf_get_validation_errors();
-            if ( $errors ) { throw new McpAbilityException( $where . ': ' . implode( '; ', array_column( $errors, 'message' ) ), [ 'errors' => $errors ], 'invalid_acf_data' ); }
+            if ( $errors ) { throw new McpAbilityException( esc_html( $where . ': ' . implode( '; ', array_column( $errors, 'message' ) ) ), [ 'errors' => $errors ], 'invalid_acf_data' ); }
         } finally { $validation->errors = $previous; }
         return $data;
     }

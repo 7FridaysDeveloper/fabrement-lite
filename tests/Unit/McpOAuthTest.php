@@ -562,18 +562,18 @@ final class McpOAuthTest extends TestCase {
         }
     }
 
-    /** @dataProvider ambiguous_forms */
-    public function test_form_rejects_ambiguous_parameters( string $body ): void {
-        $this->error( 'invalid_request', fn() => Bootstrap::form( $body ) );
+    /** @dataProvider unusable_fields */
+    public function test_fields_refuse_arrays_non_ascii_and_over_long_values( array $source ): void {
+        $this->error( 'invalid_request', fn() => Bootstrap::fields( $source, [ 'code', 'state' ] ) );
     }
 
-    public static function ambiguous_forms(): array {
-        return [ [ 'code=one&code=two' ], [ 'resource%5B%5D=one' ], [ 'client_id=one&client%5fid=two' ], [ 'client.id=one' ] ];
+    public static function unusable_fields(): array {
+        return [ [ [ 'code' => [ 'one' ] ] ], [ [ 'state' => "a\tb" ] ], [ [ 'state' => 'é' ] ], [ [ 'code' => str_repeat( 'a', 4097 ) ] ] ];
     }
 
-    public function test_form_keeps_exact_resource_and_state(): void {
+    public function test_fields_keep_exact_resource_and_state_and_drop_others(): void {
         $params = [ 'resource' => Config::resource() . '?rest_route=/fabrement/v1/mcp', 'state' => 'a+b &c' ];
-        self::assertSame( $params, Bootstrap::form( http_build_query( $params ) ) );
+        self::assertSame( $params, Bootstrap::fields( $params + [ 'other' => 'x' ], [ 'resource', 'state' ] ) );
     }
 
     public function test_disabled_o_auth_is_explicit_and_enabled_challenge_is_namespaced(): void {
@@ -599,9 +599,10 @@ final class McpOAuthTest extends TestCase {
         $request->set_header( 'authorization', 'Bearer fabrement_oauth_at_invalid' );
         self::assertNull( Bootstrap::authenticate( null, null, $request ) );
         self::assertSame( 12, get_current_user_id() );
+        // On the MCP route a user signed in some other way (cookie, Basic) is refused: only the token lets in.
         $request = new \WP_REST_Request( 'POST', Config::ROUTE );
         $request->set_header( 'authorization', 'Basic ' . base64_encode( 'user:password' ) );
-        self::assertNull( Bootstrap::authenticate( null, null, $request ) );
+        self::assertSame( 401, Bootstrap::authenticate( null, null, $request )->get_error_data()['status'] ?? null );
         $existing = new \WP_Error( 'denied' );
         self::assertSame( $existing, Bootstrap::authenticate( $existing, null, $request ) );
     }
@@ -633,11 +634,10 @@ final class McpOAuthTest extends TestCase {
     public function test_root_discovery_paths_are_left_for_other_plugins(): void {
         WordPressState::$options[ Keys::OPTION_MCP_OAUTH_ENABLED ] = true;
         $this->expectOutputString( '' );
-        foreach ( [ '/.well-known/oauth-protected-resource', '/.well-known/oauth-authorization-server', '/.well-known/openid-configuration' ] as $path ) {
-            $_SERVER['REQUEST_URI'] = $path;
-            Bootstrap::discovery();
+        foreach ( [ [], [ 'pagename' => 'about' ], [ Bootstrap::META_VAR => 'openid-configuration' ], [ Bootstrap::META_VAR => [ 'x' ] ] ] as $vars ) {
+            Bootstrap::discovery( (object) [ 'query_vars' => $vars ] );
         }
-        unset( $_SERVER['REQUEST_URI'] );
+        Bootstrap::discovery( null );
     }
 
     public function test_o_auth_settings_require_a_user_who_can_connect(): void {
@@ -687,6 +687,5 @@ final class McpOAuthTest extends TestCase {
             self::assertSame( 'HTTPS and a compatible MCP Adapter are required.', $error->getMessage() );
         }
         self::assertFalse( Config::enabled() );
-        self::assertSame( [], WordPressState::$created_passwords );
     }
 }

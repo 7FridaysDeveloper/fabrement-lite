@@ -9,7 +9,7 @@ use WP_REST_Request;
  * with `initialize`, tools run with `tools/call` — through rest_do_request(): the MCP server, the
  * tools' input schemas, their permission checks and the answer's shape are the real ones. Left out:
  * the network, and how the caller signs in — the caller is the current WordPress user, not a checked
- * application password or OAuth token (McpOAuthFlowTest covers those).
+ * OAuth access token (McpOAuthTest covers that, in tests/Unit and tests/Site/Plain).
  */
 trait McpCalls {
 

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge\Yoast;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * What Yoast derives and prints, through its runtime (`YoastSEO()`): the output of a record or a
  * term, the context its schema graph is built from, its own index (indexables) and caches. The

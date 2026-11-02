@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\Mcp\Support\Instructions;
 

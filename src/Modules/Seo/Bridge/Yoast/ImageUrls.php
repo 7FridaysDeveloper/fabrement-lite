@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge\Yoast;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Yoast keeps an image twice: the attachment id and, beside it, the address it prints. A write of
  * the id brings the address with it, for every store of the bridge (post meta, term meta, options).

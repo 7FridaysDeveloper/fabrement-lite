@@ -94,20 +94,12 @@ function get_post_ancestors( $id ) {
 // A record's type, read straight off the stubbed post — what the caption helper asks for when a
 // link is named after the page it points at. (get_the_title lives in BlockImportBoundaries.)
 function get_post_type( $id = null ) { $p = get_post( $id ); return $p ? ( $p->post_type ?? 'post' ) : false; }
-// Whether a record may be shown to a visitor — what the link helpers ask before naming a record
-// or sending anyone to it. Core answers from the registered status object
-// (`publicly_queryable || (_builtin && public)`), which among the built-in statuses is true for
-// `publish` ALONE: `future` is scheduled and 404s for a logged-out reader, `private` is private,
-// and the rest are drafts. A stub that were any more generous would let a test pass on behaviour
-// the site does not have.
 function get_post_status( $id = null ) { $p = get_post( $id ); return $p ? ( $p->post_status ?? 'publish' ) : false; }
-function is_post_publicly_viewable( $id = null ) { return get_post_status( $id ) === 'publish'; }
 function get_permalink( $post = 0 ) { $p = get_post( $post ); return $p ? 'https://example.org/?p=' . $p->ID : false; }
 function get_post_field( $field, $id = null ) { $p = get_post( $id ); return $p ? ( $p->$field ?? '' ) : ''; }
 function is_admin() { return false; }
 function wp_doing_ajax() { return false; }
 function is_user_logged_in() { return false; }
-function is_preview() { return false; }
 function get_post_status_object( $status ) { return (object) [ 'public' => $status === 'publish' ]; }
 function register_post_type( $name, $args ) {
     $args['name'] = $name;
@@ -118,20 +110,8 @@ function wp_die( $message ) { throw new RuntimeException( $message ); }
 function check_admin_referer( ...$args ) {
     if ( ! Fabrement\Tests\WordPressState::$valid_nonce ) { wp_die( 'Invalid nonce.' ); }
 }
-function wp_is_application_passwords_available_for_user( $user ) { return Fabrement\Tests\WordPressState::$passwords_available; }
-function wp_is_application_passwords_available() { return Fabrement\Tests\WordPressState::$passwords_available; }
 // A stand-in hash: "$wp$" + the password.
 function wp_check_password( $password, $hash, $user_id = '' ) { return $hash === '$wp$' . $password; }
-// Core's check: records the credentials it got; a user for the one known login and password.
-function wp_authenticate_application_password( $input_user, $username, $password ) {
-    Fabrement\Tests\WordPressState::$password_logins[] = [ $username, $password ];
-    if ( 'editor' === $username && 'SYNTHETIC_PASSWORD' === $password ) {
-        $user = ( new ReflectionClass( WP_User::class ) )->newInstanceWithoutConstructor();
-        $user->ID = 5;
-        return $user;
-    }
-    return new WP_Error( 'incorrect_password', 'The provided password is an invalid application password.' );
-}
 function wp_date( $format, $timestamp = null, $timezone = null ) {
     if ( $timestamp === null ) { return '2026-09-14 12:00'; }
     return ( new DateTimeImmutable( '@' . $timestamp ) )->setTimezone( $timezone ?? wp_timezone() )->format( $format );
@@ -145,6 +125,7 @@ function rest_url( $route ) { return 'https://example.test/subsite/wp-json/' . $
 function rest_get_url_prefix() { return 'wp-json'; }
 function home_url( $path = '' ) { return ( Fabrement\Tests\WordPressState::$options['home'] ?? 'https://example.test/subsite' ) . $path; }
 function is_ssl() { return true; }
+function wp_parse_str( $input, &$result ) { parse_str( (string) $input, $result ); }
 // Mirror WordPress URL normalization without loading http.php, whose network helpers are stubbed.
 function wp_parse_url( $url, $component = -1 ) {
     $url = (string) $url;
@@ -166,10 +147,6 @@ function wp_parse_url( $url, $component = -1 ) {
     return isset( $keys[ $component ] ) ? ( $parts[ $keys[ $component ] ] ?? null ) : null;
 }
 function wp_safe_remote_get( $url, $args = [] ) { return wp_remote_get( $url, $args ); }
-function wp_set_current_user( $id ) {
-    if ( get_current_user_id() !== $id ) { Fabrement\Tests\WordPressState::select_user( $id, [] ); }
-    return wp_get_current_user();
-}
 function admin_url( $route ) { return 'https://example.test/subsite/wp-admin/' . $route; }
 function wp_unslash( $value ) { return is_array( $value ) ? array_map( 'wp_unslash', $value ) : ( is_string( $value ) ? stripslashes( $value ) : $value ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( $value ) ); }
@@ -185,10 +162,6 @@ function set_transient( $key, $value, $ttl ) {
     return true;
 }
 function get_transient( $key ) { return Fabrement\Tests\WordPressState::$transients[ $key ]['value'] ?? false; }
-function delete_transient( $key ) { unset( Fabrement\Tests\WordPressState::$transients[ $key ] ); }
-if ( ! function_exists( 'content_url' ) ) {
-    function content_url( $path = '' ) { return 'https://example.test/wp-content' . ( $path !== '' ? '/' . ltrim( (string) $path, '/' ) : '' ); }
-}
 function update_option( $key, $value, $autoload = null ) {
     if ( in_array( $key, Fabrement\Tests\WordPressState::$failed_options, true ) ) { return false; }
     Fabrement\Tests\WordPressState::$options[ $key ] = $value;
@@ -244,26 +217,5 @@ if ( ! class_exists( 'WP_Query' ) ) {
                 }
             }
         }
-    }
-}
-// Core reads the uuid that wp_authenticate_application_password() left in this global.
-function rest_get_authenticated_app_password() { return $GLOBALS['wp_rest_application_password_uuid'] ?? null; }
-class WP_Application_Passwords {
-    public static function create_new_application_password( $user_id, $args ) {
-        Fabrement\Tests\WordPressState::$created_passwords[] = [ $user_id, $args ];
-        return Fabrement\Tests\WordPressState::$password_error ?? [ 'SYNTHETIC_PASSWORD', [] ];
-    }
-    public static function get_user_application_passwords( $user_id ) {
-        return Fabrement\Tests\WordPressState::$passwords[ $user_id ] ?? [];
-    }
-    public static function get_user_application_password( $user_id, $uuid ) {
-        foreach ( self::get_user_application_passwords( $user_id ) as $item ) {
-            if ( $item['uuid'] === $uuid ) { return $item; }
-        }
-        return null;
-    }
-    public static function delete_application_password( $user_id, $uuid ) {
-        Fabrement\Tests\WordPressState::$deleted_passwords[] = [ $user_id, $uuid ];
-        return true;
     }
 }

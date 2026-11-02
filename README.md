@@ -1,7 +1,7 @@
 # Fabrement Lite
 
 A WordPress plugin that makes your site an MCP (Model Context Protocol) server. Connect the AI client
-you already use — Claude, ChatGPT, Codex, Cursor or any other MCP client — say what you want in plain
+you already use — Claude (claude.ai and Claude Code), ChatGPT or Codex — say what you want in plain
 words, and it is done on your site with the blocks, theme and plugins it already has.
 
 - Website: [fabrement.com](https://fabrement.com/)
@@ -41,9 +41,9 @@ Download `fabrement-lite.zip` from the
 3. Approve the access with your WordPress account. The client then acts as you, with an Editor's
    permissions at most: each tool checks the permission WordPress asks for in wp-admin.
 
-Claude and ChatGPT sign in with OAuth (HTTPS). Claude Code, Codex, Cursor and local sites can use an
-application password instead; the one the plugin issues works **only** on the MCP endpoint — every
-other REST route and XML-RPC refuse it. A client can be disconnected at any time on the same screen.
+Clients sign in with OAuth, so the site must use HTTPS. The MCP endpoint takes only the plugin's own
+OAuth access tokens — WordPress application passwords are refused there — and a token opens nothing
+but that endpoint. A client can be disconnected at any time on the same screen.
 
 The client talks to your site directly. Nothing is sent to Fabrement or 7Fridays: no account, no
 telemetry, no licence check and no update service.
@@ -86,7 +86,7 @@ fabrement-lite.php       plugin header and bootstrap
 uninstall.php            removes the connection state; the site's content stays
 readme.txt               the WordPress.org readme
 src/                     PHP (namespace Fabrement\)
-  Modules/Mcp/           MCP server, tools (Roster.php lists them), OAuth, password scope
+  Modules/Mcp/           MCP server, tools (Roster.php lists them), OAuth, Editor capability ceiling
   Modules/ContentSource/ the content slot block of templates
   Modules/Seo/           Yoast SEO bridge
   Modules/Translation/   WPML bridge

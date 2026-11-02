@@ -1,6 +1,8 @@
 <?php
 namespace Fabrement\Modules\ContentSource;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
 
 /** Validate choices, never PHP code. Every render rechecks the confined file path. */

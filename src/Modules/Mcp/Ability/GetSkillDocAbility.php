@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\LocalSkillDocs;
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
 use Fabrement\Modules\Mcp\Support\ToolResult;

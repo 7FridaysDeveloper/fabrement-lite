@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Translation;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * How the translation plugin treats a post type's records or a taxonomy's terms, as list answers
  * report it on a site with languages:

@@ -10,14 +10,13 @@
         copyButton.addEventListener('click', async function () {
             var text = document.getElementById(copyButton.getAttribute('data-mcp-copy'));
             if (!text) return;
-            var status = document.getElementById(copyButton.getAttribute('data-mcp-copy').indexOf('fabrement-oauth-') === 0
-                ? 'fabrement-oauth-copy-status' : 'fabrement-mcp-copy-status');
+            var status = document.getElementById('fabrement-oauth-copy-status');
             var copied = false;
             if (navigator.clipboard && window.isSecureContext) {
                 try { await navigator.clipboard.writeText(text.value); copied = true; } catch (error) {}
             }
             if (!copied) {
-                // A temporary text field also supports copying a masked password over local HTTP.
+                // A temporary text field copies where the Clipboard API is unavailable.
                 var fallback = document.createElement('textarea');
                 fallback.value = text.value;
                 fallback.style.cssText = 'position:fixed;left:-9999px;top:0;';
@@ -47,7 +46,6 @@
         });
     });
 
-    var mcpForm = document.getElementById('fabrement-mcp-form');
     function bindConnectionTabs(prefix) {
         var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-' + prefix + '-tab]'));
         var panels = Array.prototype.slice.call(document.querySelectorAll('[data-' + prefix + '-panel]'));
@@ -79,22 +77,8 @@
         });
     }
     bindConnectionTabs('setup');
-    var mcpSubmitButtons = document.querySelectorAll('#fabrement-mcp-form button[type="submit"]');
-    if (mcpForm) mcpForm.addEventListener('submit', function (event) {
-        if (mcpForm.dataset.submitting) { event.preventDefault(); return; }
-        mcpForm.dataset.submitting = 'true';
-        mcpSubmitButtons.forEach(function (button) {
-            // The submitter must stay enabled for its client value to be posted.
-            button.disabled = button !== event.submitter;
-        });
-    });
-    window.addEventListener('pageshow', function () {
-        if (!mcpForm) return;
-        delete mcpForm.dataset.submitting;
-        mcpSubmitButtons.forEach(function (button) { button.disabled = false; });
-    });
 
-    // Actions that cannot be undone (turn off OAuth, disconnect, revoke) ask first. The question
+    // Actions that cannot be undone (turn off OAuth, disconnect) ask first. The question
     // rides on the control as data-fabrement-confirm; captured so it runs before the submit/link.
     document.addEventListener('click', function (e) {
         var el = e.target && e.target.closest ? e.target.closest('[data-fabrement-confirm]') : null;

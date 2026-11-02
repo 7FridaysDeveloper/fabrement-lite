@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * An MCP session holds an Editor's capabilities at most, whoever signed in: on the MCP route
  * every cap the site's Editor role does not hold reads as absent (other plugins' admin caps

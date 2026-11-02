@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Text a client sends for a block, a title, a field value or a form template is
  * refused when it carries a script, an event handler, an iframe or style tag, or an executable

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge\Yoast;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * A record's SEO as Yoast stores it: post meta under the `_yoast_wpseo_` prefix — the fields, and
  * the main term per taxonomy. Part of {@see \Fabrement\Modules\Seo\Bridge\YoastBridge}; nothing
@@ -85,6 +87,9 @@ final class PostMeta {
             }
         }
         $out = [];
+        if ( $keys === [] ) {
+            return $out;
+        }
         foreach ( array_chunk( array_values( array_unique( array_map( 'intval', $post_ids ) ) ), 1000 ) as $chunk ) {
             // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- one read for a listing of many records; placeholders are built for each id and key.
             $rows = $wpdb->get_results( $wpdb->prepare( "SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id IN (" . implode( ',', array_fill( 0, count( $chunk ), '%d' ) ) . ') AND meta_key IN (' . implode( ',', array_fill( 0, count( $keys ), '%s' ) ) . ')', ...array_merge( $chunk, array_keys( $keys ) ) ) );

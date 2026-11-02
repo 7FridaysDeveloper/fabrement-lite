@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge\Yoast;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Yoast's settings, read only: the templates and flags per post type and taxonomy a record or
  * term falls back to, and the breadcrumb taxonomy. Part of

@@ -13,7 +13,7 @@
  *
  * STRUCTURE
  *   .wrap.fabrement-page            full-bleed page, brand background
- *     [data-fabrement-topnav]       the dark bar (or the SPA's own <TopNav>)
+ *     .fabrement-lite-nav           the dark bar (templates/partials/lite-nav.php)
  *     .fabrement-page__content      the 40/32/60 content column
  *       .fabrement-head             title + one-line description (+ optional actions)
  *       …the screen's own content
@@ -27,10 +27,8 @@
 	--fabrement-page-bg: #edf3f8;
 	--fabrement-fg: #2e3442;
 	--fabrement-muted: #667185;
-	--fabrement-card: #ffffff;
 	--fabrement-card-border: #d9e0e6;
 	--fabrement-green: #2cc486;
-	--fabrement-green-hover: #21865d;
 	/* Green for WORDS on a light surface. --fabrement-green is the fill and edge
 	   green: at ~2:1 on white it is a shape, not something to read. This is the
 	   same hue carried to a weight that survives being set in text. Use it
@@ -64,10 +62,6 @@
 	.fabrement-page {
 		margin: 0 0 0 -10px;
 	}
-}
-
-.fabrement-page > [data-fabrement-topnav] {
-	flex-shrink: 0;
 }
 
 .fabrement-page__content {
@@ -124,110 +118,3 @@
 	border-radius: 4px;
 	font-size: 12px;
 }
-
-/* ── Sub-tabs ──────────────────────────────────────────────────────────────
-   One screen in the menu, several things to do on it. Sits directly under the
-   page head, above that screen's cards.
-
-   Links, not buttons: each tab is a real URL (`?tab=…`) the server renders,
-   so it survives the admin-post round trip every action on these screens makes,
-   and it can be bookmarked, opened in a new tab and linked to from elsewhere.
-
-   Lives here rather than on one screen because it is page furniture — the same
-   strip, in the same place, whichever screen grows a second thing to do.
-
-   SHAPE — a row of white tabs, 50px tall with generous side padding, standing
-   on a grey rule that runs under the whole strip. Tabs are rounded at the top
-   only and have no bottom border, so they sit flush on the rule. The active one
-   carries a green bar along its top edge and a green label; the bar is an inset
-   box-shadow, so it takes no layout space and nothing shifts when it moves. */
-
-.fabrement-subtabs {
-	display: flex;
-	align-items: stretch;
-	gap: 8px;
-	flex-wrap: wrap;
-	margin: 0 0 24px;
-	border-bottom: 1px solid var(--fabrement-card-border, #d9e0e6);
-}
-
-.fabrement-subtabs__tab {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	gap: 8px;
-	box-sizing: border-box;
-	height: 50px;
-	padding: 0 32px;
-	border: 1px solid var(--fabrement-card-border, #d9e0e6);
-	border-bottom: 0;
-	font-size: 14px;
-	font-weight: 600;
-	line-height: 1;
-	white-space: nowrap;
-	/* !important defeats wp-admin's a:link/:visited blue, which otherwise wins. */
-	color: var(--fabrement-muted, #667185) !important;
-	text-decoration: none !important;
-	background: #fff;
-	transition: color .14s, border-color .14s, box-shadow .14s, background .14s;
-}
-
-/* wp-admin's `a:focus` (common.css) restyles EVERY focused link: a blue ring, and
-   `border-radius: 2px`. The ring fired on plain mouse clicks and left a blue box
-   around the tab you had just used; the radius squared the button off the moment
-   you clicked it. In the React screens the clicked tab keeps focus and keeps the
-   damage. `a:focus` (0,1,1) outweighs `.fabrement-subtabs__tab` (0,1,0), so the
-   tab's own shape has to be declared HERE, where the selector carries a
-   pseudo-class of its own. Keyboard focus gets its own ring below. */
-.fabrement-subtabs__tab,
-.fabrement-subtabs__tab:hover,
-.fabrement-subtabs__tab:focus,
-.fabrement-subtabs__tab:active {
-	border-radius: 10px 10px 0 0;
-	box-shadow: none;
-	outline: none;
-}
-
-.fabrement-subtabs__tab:not(.is-active):hover,
-.fabrement-subtabs__tab:not(.is-active):focus {
-	color: var(--fabrement-fg, #2e3442) !important;
-	border-color: #c5ced8;
-}
-
-/* Keyboard only — a mouse click does not match :focus-visible, so tabbing
-   still shows where you are without putting a ring around every click. */
-.fabrement-subtabs__tab:focus-visible {
-	outline: 2px solid var(--fabrement-green, #2cc486);
-	outline-offset: -4px;
-}
-
-/* Repeats the pseudo-classes so the green bar survives the all-states block above. */
-.fabrement-subtabs__tab.is-active,
-.fabrement-subtabs__tab.is-active:hover,
-.fabrement-subtabs__tab.is-active:focus,
-.fabrement-subtabs__tab.is-active:active {
-	color: var(--fabrement-green-text, #229d6b) !important;
-	border-color: var(--fabrement-card-border, #d9e0e6);
-	box-shadow: inset 0 3px 0 var(--fabrement-green, #2cc486);
-}
-
-/* A count or state chip beside a tab label ("2" connections, "Not set"). */
-.fabrement-subtabs__badge {
-	display: inline-flex;
-	align-items: center;
-	min-width: 20px;
-	height: 20px;
-	padding: 0 7px;
-	border-radius: 10px;
-	background: #e6ecf2;
-	color: var(--fabrement-muted, #667185);
-	font-size: 12px;
-	font-weight: 600;
-	line-height: 1;
-}
-
-.fabrement-subtabs__tab.is-active .fabrement-subtabs__badge {
-	background: #dff3e9;
-	color: var(--fabrement-green-text, #229d6b);
-}
-

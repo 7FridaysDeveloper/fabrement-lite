@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\TermLanguages;
 use Fabrement\Modules\Seo\Seo;
 use Fabrement\Modules\Seo\SeoTranslations;

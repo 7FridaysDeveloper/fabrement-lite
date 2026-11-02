@@ -2,6 +2,8 @@
 
 namespace Fabrement\Page;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Registers {@see AbstractAdminPage} screens. Top-level items first (`get_menu_parent_slug()` is null),
  * then submenus when the parent slug is already registered (order of {@see register()} calls does not matter).

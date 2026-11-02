@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Storage;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * THE one place a stored text is changed by fragment instead of re-sent whole — used by the
  * `text` edit of block content (a block's markup or one string attribute). An agent changes

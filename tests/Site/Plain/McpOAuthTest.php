@@ -17,6 +17,9 @@ final class McpOAuthTest extends SiteTestCase {
 
     private const CLOUD = 'https://claude.ai/api/mcp/auth_callback';
 
+    /** A state with what a URL query must encode: &, =, #, + and a space. */
+    private const STATE = 'qa&code=forged#part +1';
+
     private string $verifier = '';
 
     protected function setUp(): void {
@@ -46,17 +49,24 @@ final class McpOAuthTest extends SiteTestCase {
     private function approve( string $client, string $callback ): string {
         $browser = new Browser( $this->site() );
         $browser->login( 'admin', 'admin' );
-        $consent = $browser->get( $this->site()->url( '/wp-admin/admin-post.php' ) . '?' . http_build_query( [
-            'action' => 'fabrement_mcp_authorize', 'response_type' => 'code', 'client_id' => $client, 'redirect_uri' => $callback,
-            'resource' => $this->site()->url( '/wp-json/fabrement/v1/mcp' ), 'code_challenge_method' => 'S256', 'code_challenge' => $this->challenge(), 'state' => 'qa',
+        // The authorization endpoint the metadata names keeps the request and sends the browser on to the consent page.
+        $metadata = json_decode( Http::request( $this->site(), 'GET', $this->site()->url( '/wp-json/fabrement-oauth/v1/metadata' ) )['body'], true );
+        $kept     = $browser->get( $metadata['authorization_endpoint'] . '?' . http_build_query( [
+            'response_type' => 'code', 'client_id' => $client, 'redirect_uri' => $callback,
+            'resource' => $this->site()->url( '/wp-json/fabrement/v1/mcp' ), 'code_challenge_method' => 'S256', 'code_challenge' => $this->challenge(), 'state' => self::STATE,
         ] ) );
+        $this->assertSame( 302, $kept['status'], substr( $kept['body'], 0, 500 ) );
+        $this->assertStringContainsString( 'admin-post.php?action=fabrement_mcp_authorize&pending=fabrement_pending_', $kept['headers']['location'] );
+        $consent = $browser->get( $kept['headers']['location'] );
         $this->assertSame( 200, $consent['status'], substr( $consent['body'], 0, 500 ) );
-        $this->assertStringContainsString( 'Access ends when disconnected, after 90 days unused, or when this account', $consent['body'] );
+        $this->assertStringContainsString( 'Access ends when disconnected, after 90 days unused, when this account', $consent['body'] );
         $allowed = $browser->post( $this->site()->url( '/wp-admin/admin-post.php' ), Browser::form( $consent['body'] ) + [ 'decision' => 'allow' ] );
         $this->assertSame( 302, $allowed['status'] );
         parse_str( (string) parse_url( $allowed['headers']['location'], PHP_URL_QUERY ), $query );
         $this->assertStringStartsWith( $callback, $allowed['headers']['location'], 'back to the client\'s own callback' );
-        $this->assertSame( 'qa', $query['state'] ?? null );
+        // The client's state comes back exactly, and it cannot add a parameter or cut off the code.
+        $this->assertSame( self::STATE, $query['state'] ?? null );
+        $this->assertStringStartsWith( 'fabrement_code_', (string) ( $query['code'] ?? '' ) );
         return (string) $query['code'];
     }
 
@@ -67,6 +77,16 @@ final class McpOAuthTest extends SiteTestCase {
             'redirect_uri' => $callback, 'client_id' => $client, 'resource' => $this->site()->url( '/wp-json/fabrement/v1/mcp' ) ] );
         $this->assertSame( 200, $token['status'], json_encode( $token ) );
         return $token['data'] + [ 'client_id' => $client ];
+    }
+
+    public function test_well_known_discovery_names_the_rest_authorization_endpoint(): void {
+        $server = Http::request( $this->site(), 'GET', $this->site()->url( '/.well-known/oauth-authorization-server/fabrement/oauth' ) );
+        $this->assertSame( 200, $server['status'], substr( $server['body'], 0, 300 ) );
+        $metadata = json_decode( $server['body'], true );
+        $this->assertSame( $this->site()->url( '/wp-json/fabrement-oauth/v1/authorize' ), $metadata['authorization_endpoint'] );
+        $resource = Http::request( $this->site(), 'GET', $this->site()->url( '/.well-known/oauth-protected-resource/wp-json/fabrement/v1/mcp' ) );
+        $this->assertSame( 200, $resource['status'], substr( $resource['body'], 0, 300 ) );
+        $this->assertSame( $this->site()->url( '/wp-json/fabrement/v1/mcp' ), json_decode( $resource['body'], true )['resource'] );
     }
 
     public function test_an_allowed_client_gets_tokens_and_works_the_mcp_server_with_them(): void {

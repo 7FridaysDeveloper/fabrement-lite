@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The URL query arguments a theme or plugin registered with the `query_vars` filter, as opposed
  * to WordPress's own. An SEO plugin that strips "unregistered" arguments from URLs needs this

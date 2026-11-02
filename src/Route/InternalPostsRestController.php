@@ -2,6 +2,8 @@
 
 namespace Fabrement\Route;
 
+defined( 'ABSPATH' ) || exit;
+
 use WP_Error;
 use WP_REST_Posts_Controller;
 

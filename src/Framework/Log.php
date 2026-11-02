@@ -2,6 +2,8 @@
 
 namespace Fabrement\Framework;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The plugin's one way to write to the PHP error log.
  *

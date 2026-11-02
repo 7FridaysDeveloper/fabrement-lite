@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Whether a language version's search texts are translated — one rule for get-seo and list-seo.
  *

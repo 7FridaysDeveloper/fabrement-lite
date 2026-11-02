@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\PostType;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 
 /**

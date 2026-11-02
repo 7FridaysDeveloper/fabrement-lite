@@ -8,7 +8,7 @@ require_once dirname( __DIR__ ) . '/Support/ConnectionSettingsRender.php';
 
 final class McpConnectionSettingsTemplateTest extends TestCase {
     public function test_missing_table_shows_off_and_requires_reactivation(): void {
-        $html = \fabrement_render_connection_access( [], [], true, true, false );
+        $html = \fabrement_render_connection_access( [], true, true, false );
         $document = new \DOMDocument();
         @$document->loadHTML( $html );
         $xpath = new \DOMXPath( $document );
@@ -27,52 +27,44 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
         foreach ( $xpath->query( '//*[@id]' ) as $element ) { $ids[] = $element->getAttribute( 'id' ); }
         self::assertSame( $ids, array_unique( $ids ), 'Every label, tab and copy target must be unambiguous.' );
         $clients = '//nav[@aria-label="AI client"]';
-        self::assertSame( 4, $xpath->query( $clients . '/a' )->length );
+        self::assertSame( [ 'claude', 'chatgpt', 'codex' ], array_map( static fn( $a ) => $a->getAttribute( 'data-client' ), iterator_to_array( $xpath->query( $clients . '/a' ) ) ) );
         self::assertSame( 1, $xpath->query( $clients . '/a[@aria-current="page"]' )->length );
-        self::assertSame( $client === 'chatgpt' ? 0 : 1, $xpath->query( '//*[@id="fabrement-mcp-form"]' )->length );
-        // ChatGPT and Codex open on a numbered guide. Claude.ai and Cursor are a button
-        // each — one opens a form already filled in, the other installs itself — so they
-        // have nothing to number.
-        self::assertSame( in_array( $client, [ 'claude', 'cursor' ], true ) ? 0 : 1, $xpath->query( '//*[@id="fabrement-setup-panel-primary"]//ol[@class="fabrement-cred__steps"]' )->length );
+        // ChatGPT and Codex open on a numbered guide. Claude.ai is one button that opens a
+        // form already filled in, so it has nothing to number.
+        self::assertSame( 'claude' === $client ? 0 : 1, $xpath->query( '//*[@id="fabrement-setup-panel-primary"]//ol[@class="fabrement-cred__steps"]' )->length );
         $advanced = in_array( $client, [ 'claude', 'codex' ], true ) ? 1 : 0;
         self::assertSame( $advanced, $xpath->query( '//*[@id="fabrement-setup-panel-advanced"]' )->length );
         self::assertSame( $advanced * 2, $xpath->query( '//*[@data-setup-tab]' )->length, 'Only a client with a second way in gets Recommended / Advanced.' );
-        self::assertSame( 0, $xpath->query( '//*[@id="fabrement-mcp-instructions"]' )->length );
         self::assertSame( 1, $xpath->query( '//*[@id="fabrement-access"]' )->length );
         self::assertSame( 0, $xpath->query( '//*[@id="fabrement-access"]/ancestor::*[@data-setup-panel or @hidden]' )->length );
         self::assertSame( 1, $xpath->query( '//*[@id="fabrement-access"]//button[@role="switch"]' )->length );
         // The panel holds exactly two cards — the setup, then the register of what is
-        // already connected beside it — and nothing else: the Figma form belongs to
-        // API Connection and must not render here. The register is a SIBLING of the setup
+        // already connected beside it — and nothing else. The register is a SIBLING of the setup
         // card, not a section inside it: it lists every connection of every client, so
         // nesting it under the selected client's setup misread it.
         $panel = '//div[contains(@class,"fabrement-cred__panel--agents")]';
         self::assertSame( 2, $xpath->query( $panel . '/*' )->length );
         self::assertSame( 1, $xpath->query( $panel . '/*[1][contains(@class,"fabrement-cred__mcp")]' )->length );
         self::assertSame( 1, $xpath->query( $panel . '/*[2][@id="fabrement-access"]' )->length );
-        self::assertSame( 0, $xpath->query( '//input[@name="action" and @value="fabrement_save_figma_key"]' )->length );
-        if ( $client !== 'cursor' ) { self::assertStringContainsString( 'fabrement-example-studio', $html ); }
+        self::assertStringContainsString( 'fabrement-example-studio', $html );
     }
 
-    public static function clients(): array { return [ [ 'chatgpt' ], [ 'codex' ], [ 'claude' ], [ 'cursor' ] ]; }
+    public static function clients(): array { return [ [ 'chatgpt' ], [ 'codex' ], [ 'claude' ] ]; }
 
-    /**
-     * No sub-tabs, no key fields: this screen connects an agent and nothing else. The AI
-     * provider keys and the Figma token are API Connection's ({@see ApiConnectionTemplateTest}).
-     *
-     * Asserted against the DOM, not the source text: the templates' comments name the
-     * controls they explain, and a string search would match those and pass (or fail)
-     * for reasons that have nothing to do with what is rendered.
-     */
-    public function test_no_key_fields_or_subtabs_remain(): void {
-        $xpath = self::xpath( \fabrement_render_connection_settings( 'claude' ) );
-        self::assertSame( 0, $xpath->query( '//nav[contains(@class,"fabrement-subtabs")]' )->length );
-        foreach ( [ 'fabrement_builder_ai_provider', 'fabrement_builder_gemini_key', 'fabrement_builder_anthropic_key', 'fabrement_builder_openai_key', 'fabrement_builder_figma_key' ] as $field ) {
-            self::assertSame( 0, $xpath->query( '//*[@name="' . $field . '" or @id="' . $field . '"]' )->length, $field . ' belongs to the API Connection screen.' );
+    /** Nothing on the screen offers or names a credential other than OAuth, nor the dropped Cursor setup. */
+    public function test_no_application_password_or_cursor_setup_is_offered(): void {
+        foreach ( [ true, false ] as $https ) {
+            foreach ( self::clients() as [ $client ] ) {
+                foreach ( [ '', 'advanced' ] as $setup ) {
+                    $html = \fabrement_render_connection_settings( $client, $https, $setup );
+                    $text = html_entity_decode( strip_tags( $html ) );
+                    self::assertStringNotContainsStringIgnoringCase( 'application password', $text, $client );
+                    self::assertStringNotContainsStringIgnoringCase( 'cursor', $text, $client );
+                    self::assertStringNotContainsString( 'fabrement_revoke_mcp_password', $html );
+                    self::assertStringNotContainsString( 'Basic ', $html );
+                }
+            }
         }
-        self::assertSame( 0, $xpath->query( '//*[@data-provider or @data-provider-field]' )->length );
-        self::assertSame( 0, $xpath->query( self::with_class( 'fabrement-cred__pill' ) )->length );
-        self::assertSame( 0, $xpath->query( self::with_class( 'fabrement-cred__figma' ) )->length );
     }
 
     private static function xpath( string $html ): \DOMXPath {
@@ -82,85 +74,17 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
         return new \DOMXPath( $document );
     }
 
-    /** XPath for "has this class", which `contains(@class,…)` cannot express safely. */
-    private static function with_class( string $class ): string {
-        return '//*[contains(concat(" ", normalize-space(@class), " "), " ' . $class . ' ")]';
-    }
-
-    /** The account Log out link lives in the top nav, not duplicated on this screen. */
-    public function test_no_duplicate_logout_link(): void {
-        self::assertStringNotContainsString( 'fabrement_builder_logout', \fabrement_render_connection_settings( 'claude' ) );
-    }
-
-    public function test_fresh_password_shows_instructions_below_connection_methods_with_privacy_notice(): void {
-        foreach ( [ 'codex', 'claude' ] as $client ) {
-            $html = \fabrement_render_connection_settings( $client, true );
-            self::assertStringContainsString( 'id="fabrement-mcp-instructions"', $html );
-            self::assertStringContainsString( 'Contains a private application password.', $html );
-            self::assertStringContainsString( 'aria-selected="true"', $html );
-            self::assertStringContainsString( 'data-mcp-copy="fabrement-mcp-instructions"', $html );
-            $document = new \DOMDocument();
-            @$document->loadHTML( $html );
-            $xpath = new \DOMXPath( $document );
-            self::assertSame( 0, $xpath->query( '//*[@data-mcp-ready]/ancestor::*[@hidden]' )->length, 'The one-time setup opens in view.' );
-            self::assertSame( 0, $xpath->query( '//*[@data-mcp-tab="instructions" or @data-mcp-panel="instructions"]' )->length );
-            self::assertSame( 1, $xpath->query( '//*[@id="fabrement-mcp-instructions" and @readonly and @aria-describedby="fabrement-mcp-private-notice"]' )->length );
-            self::assertSame( 0, $xpath->query( '//*[@id="fabrement-mcp-instructions"]/ancestor::*[@hidden or @data-mcp-panel]' )->length );
-            // The instructions are the last way, after the ones with a command or a file.
-            $instructions = '//*[@data-mcp-ready]/div[@class="fabrement-cred__way fabrement-cred__way--instructions"]';
-            self::assertSame( 1, $xpath->query( $instructions )->length );
-            self::assertSame( $xpath->query( '//*[@data-mcp-panel]' )->length, $xpath->query( $instructions . '/preceding-sibling::*[@data-mcp-panel]' )->length );
-            self::assertSame( 0, $xpath->query( '//*[@data-mcp-tab]' )->length );
-            // Every way side by side with its code, nothing folded — the same layout as the
-            // OAuth options. The password's own fold is open, so the one-time setup is in view.
-            self::assertSame( 0, $xpath->query( '//details[@data-mcp-panel]' )->length );
-            self::assertSame( 1, $xpath->query( '//*[@data-mcp-ready]/ancestor::details[@open]' )->length );
-            self::assertSame( 1, $xpath->query( '//div[@data-mcp-panel="config"]//textarea[@id="fabrement-mcp-cmd"]' )->length );
-            if ( $client === 'claude' ) {
-                self::assertSame( 1, $xpath->query( '//div[@data-mcp-panel="cli"]//textarea[@id="fabrement-mcp-cli"]' )->length );
-            } else {
-                self::assertSame( 1, $xpath->query( '//div[@data-mcp-panel="ui"]//input[@id="fabrement-mcp-header-value"]' )->length );
-                self::assertSame( 1, $xpath->query( '//div[@data-mcp-panel="cli"]//textarea[@id="fabrement-mcp-cli-windows"]' )->length );
-                self::assertSame( 1, $xpath->query( '//div[@data-mcp-panel="cli"]//textarea[@id="fabrement-mcp-cli-posix"]' )->length );
-            }
-            $ids = [];
-            foreach ( $xpath->query( '//*[@id]' ) as $element ) { $ids[] = $element->getAttribute( 'id' ); }
-            self::assertSame( $ids, array_unique( $ids ) );
-        }
-    }
-
-    public function test_local_http_defaults_to_passwords_and_never_renders_o_auth_commands(): void {
-        $html = \fabrement_render_connection_settings( 'codex', false, false );
-        self::assertStringContainsString( 'HTTPS required for OAuth.', $html );
+    public function test_local_http_says_https_is_needed_and_never_renders_o_auth_commands(): void {
+        $html = \fabrement_render_connection_settings( 'codex', false );
+        self::assertStringContainsString( 'Connecting an AI agent needs HTTPS.', $html );
+        self::assertStringContainsString( 'HTTPS is required to connect.', $html );
         self::assertStringNotContainsString( 'codex mcp login', $html );
         self::assertStringContainsString( 'disabled aria-describedby="fabrement-oauth-unavailable"', $html );
         self::assertStringNotContainsString( 'id="fabrement-oauth-instructions"', $html );
     }
 
-    public function test_password_ui_commands_and_cursor_link_use_the_generated_site_name(): void {
-        foreach ( [ 'codex', 'claude', 'cursor' ] as $client ) {
-            $document = new \DOMDocument();
-            @$document->loadHTML( \fabrement_render_connection_settings( $client, true ) );
-            $xpath = new \DOMXPath( $document );
-            $panel = '//*[@data-mcp-ready]';
-            $text = $xpath->query( $panel )->item( 0 )->textContent;
-            self::assertStringNotContainsString( 'wp-blocks', $text );
-            self::assertStringContainsString( 'fabrement-example-studio', $text );
-            self::assertStringContainsString( 'Check existing MCP servers before adding', $text );
-            if ( $client === 'codex' ) {
-                self::assertSame( 'fabrement-example-studio', $xpath->query( '//*[@id="fabrement-mcp-name"]' )->item( 0 )->getAttribute( 'value' ) );
-                self::assertStringContainsString( 'Run in PowerShell', $text );
-                self::assertStringContainsString( 'The exported token lasts only for that terminal session.', $text );
-            } elseif ( $client === 'cursor' ) {
-                $url = $xpath->query( '//*[@id="fabrement-mcp-install"]' )->item( 0 )->getAttribute( 'href' );
-                parse_str( parse_url( $url, PHP_URL_QUERY ), $query );
-                self::assertSame( 'fabrement-example-studio', $query['name'] );
-            }
-        }
-    }
-
-    public function test_codex_o_auth_instructions_are_copyable_below_cli_and_separate_from_password_instructions(): void {
-        $html = \fabrement_render_connection_settings( 'codex', true );
+    public function test_codex_o_auth_instructions_are_copyable_below_cli(): void {
+        $html = \fabrement_render_connection_settings( 'codex', true, 'advanced' );
         $document = new \DOMDocument();
         @$document->loadHTML( $html );
         $xpath = new \DOMXPath( $document );
@@ -175,16 +99,15 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
         self::assertSame( 1, $xpath->query( '//button[@data-mcp-copy="fabrement-oauth-instructions" and @aria-label="Copy instructions"]' )->length );
         $prompt = $xpath->query( $instructions )->item( 0 )->textContent;
         self::assertStringContainsString( 'codex mcp login fabrement-example-studio', $prompt );
-        self::assertStringNotContainsString( 'SYNTHETIC_NOT_A_REAL_PASSWORD', $prompt );
         self::assertStringNotContainsString( 'Basic ', $prompt );
-        foreach ( [ 'chatgpt', 'claude', 'cursor' ] as $client ) {
+        foreach ( [ 'chatgpt', 'claude' ] as $client ) {
             self::assertStringNotContainsString( 'id="fabrement-oauth-instructions"', \fabrement_render_connection_settings( $client ) );
         }
         $visible_html = \fabrement_render_connection_settings( 'codex' );
         @$document->loadHTML( $visible_html );
         $xpath = new \DOMXPath( $document );
-        // Without a fresh password Codex opens on Recommended — the app's form — and the CLI
-        // commands and the instructions wait one tab away.
+        // Codex opens on Recommended — the app's form — and the CLI commands and the
+        // instructions wait one tab away.
         self::assertSame( 1, $xpath->query( '//*[@id="fabrement-setup-panel-advanced" and @hidden]' . $instructions )->length );
         self::assertSame( 1, $xpath->query( '//*[@id="fabrement-setup-panel-advanced" and @hidden]//textarea[@id="fabrement-oauth-command"]' )->length );
         self::assertSame( 0, $xpath->query( '//*[@id="fabrement-setup-panel-primary"]//textarea' )->length );
@@ -229,7 +152,7 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
     public function test_access_switch_state_and_https_restriction(): void {
         foreach ( [ true, false ] as $enabled ) {
             foreach ( [ true, false ] as $https ) {
-                $html = \fabrement_render_connection_access( [], [], $enabled, $https );
+                $html = \fabrement_render_connection_access( [], $enabled, $https );
                 $document = new \DOMDocument();
                 @$document->loadHTML( $html );
                 $xpath = new \DOMXPath( $document );
@@ -248,38 +171,30 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
     public function test_each_connection_has_its_own_escaped_disconnect_action(): void {
         $html = \fabrement_render_connection_access(
             [ [ 'payload' => [ 'client_name' => 'Claude <script>alert(1)</script>' ], 'family' => 'family-1', 'expires' => time() + 3600, 'user_id' => 7 ],
-              [ 'payload' => [ 'client_name' => 'ChatGPT' ], 'family' => 'family-2', 'expires' => 0, 'user_id' => 7 ] ],
-            [ [ 'name' => 'Fabrement MCP (Codex)', 'uuid' => 'password-1', 'last_used' => 0 ],
-              [ 'name' => 'Fabrement MCP (Cursor) - 2026-09-22 08:22', 'label' => 'Fabrement MCP (Cursor)',
-                'uuid' => 'password-2', 'created' => 1758529320, 'last_used' => 0 ] ]
+              [ 'payload' => [ 'client_name' => 'ChatGPT' ], 'family' => 'family-2', 'expires' => 0, 'user_id' => 7 ] ]
         );
         $document = new \DOMDocument();
         @$document->loadHTML( $html );
         $xpath = new \DOMXPath( $document );
-        self::assertSame( 4, $xpath->query( '//ul/li' )->length );
+        self::assertSame( 2, $xpath->query( '//ul/li' )->length );
+        self::assertSame( '2', trim( $xpath->query( '//*[contains(@class,"fabrement-cred__access-count")]' )->item( 0 )->textContent ) );
         // Every connection says who authorized it; this user no longer exists.
         self::assertSame( 2, $xpath->query( '//li//span[text()="By a deleted user"]' )->length );
-        // The creation stamp sits under the title, with the other dates — not inside it.
-        self::assertSame( 'Fabrement MCP (Cursor)', $xpath->query( '//li[4]//strong' )->item( 0 )->textContent );
-        self::assertSame( 1, $xpath->query( '//li[4]//span[starts-with(text(),"Created ")]' )->length );
-        // A password with no stamp to drop shows its name whole and no created line.
-        self::assertSame( 'Fabrement MCP (Codex)', $xpath->query( '//li[3]//strong' )->item( 0 )->textContent );
-        self::assertSame( 0, $xpath->query( '//li[3]//span[starts-with(text(),"Created ")]' )->length );
         self::assertSame( 2, $xpath->query( '//li/form/input[@name="oauth_command" and @value="revoke"]' )->length );
         self::assertSame( 2, $xpath->query( '//li/form/input[@name="_wpnonce"]' )->length );
         self::assertSame( [ 'family-1', 'family-2' ], array_map( static fn( $input ) => $input->getAttribute( 'value' ), iterator_to_array( $xpath->query( '//li/form/input[@name="family"]' ) ) ) );
-        self::assertSame( 1, $xpath->query( '//li/a[contains(@href,"fabrement_revoke_mcp_password") and contains(@href,"password-1")]' )->length );
+        self::assertSame( 0, $xpath->query( '//li/a' )->length );
         self::assertStringNotContainsString( '<script>', $html );
-        self::assertStringContainsString( 'Application passwords will stay active.', $html );
+        self::assertStringNotContainsStringIgnoringCase( 'application password', $html );
         // Every OAuth connection lasts until disconnected or 90 days unused, whatever end the row stores.
-        self::assertSame( 1, $xpath->query( '//li[1]//span[text()="Until disconnected, unused for 90 days, or the password changes"]' )->length );
-        self::assertSame( 1, $xpath->query( '//li[2]//span[text()="Until disconnected, unused for 90 days, or the password changes"]' )->length );
+        self::assertSame( 1, $xpath->query( '//li[1]//span[text()="Until disconnected, unused for 90 days, the password changes, or the plugin is deactivated"]' )->length );
+        self::assertSame( 1, $xpath->query( '//li[2]//span[text()="Until disconnected, unused for 90 days, the password changes, or the plugin is deactivated"]' )->length );
         self::assertSame( 0, $xpath->query( '//span[starts-with(text(),"Expires ")]' )->length );
     }
 
     public function test_chat_gpt_guide_is_visible_on_https_and_local_http_only_for_chat_gpt(): void {
         foreach ( [ true, false ] as $https ) {
-            $html = \fabrement_render_connection_settings( 'chatgpt', false, $https );
+            $html = \fabrement_render_connection_settings( 'chatgpt', $https );
             self::assertStringContainsString( 'id="fabrement-chatgpt-guide-title"', $html );
             self::assertStringContainsString( 'Security and login', $html );
             self::assertStringContainsString( 'Developer mode', $html );
@@ -324,7 +239,7 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
      */
     public function test_claude_ai_guide_is_one_button_with_the_values_folded_away(): void {
         foreach ( [ true, false ] as $https ) {
-            $xpath = self::xpath( \fabrement_render_connection_settings( 'claude', false, $https ) );
+            $xpath = self::xpath( \fabrement_render_connection_settings( 'claude', $https ) );
             $guide = '//section[@aria-labelledby="fabrement-claude-guide-title"]';
             self::assertSame( 1, $xpath->query( $guide )->length );
             self::assertSame( 1, $xpath->query( $guide . '/ancestor::*[@id="fabrement-setup-panel-primary"]' )->length );
@@ -348,23 +263,19 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
                 self::assertSame( 1, $xpath->query( $guide . '//details//input[@id="fabrement-oauth-name"]' )->length );
                 self::assertSame( 1, $xpath->query( $guide . '//details//input[@id="fabrement-oauth-url"]' )->length );
             } else {
-                // No HTTPS: nothing to click or paste, and the way out is named.
+                // No HTTPS: nothing to click or paste, and the reason is named.
                 self::assertSame( 0, $xpath->query( $button )->length );
                 self::assertSame( 0, $xpath->query( $values )->length );
-                self::assertStringContainsString( 'use Claude Code on the Advanced tab', $xpath->query( $guide )->item( 0 )->textContent );
+                self::assertStringContainsString( 'HTTPS is required to connect.', $xpath->query( $guide )->item( 0 )->textContent );
             }
         }
-        foreach ( [ 'chatgpt', 'codex', 'cursor' ] as $client ) {
+        foreach ( [ 'chatgpt', 'codex' ] as $client ) {
             self::assertStringNotContainsString( 'id="fabrement-claude-guide-title"', \fabrement_render_connection_settings( $client ) );
         }
     }
 
-    /**
-     * A client opens on its Recommended guide, unless that guide cannot work (no HTTPS
-     * rules OAuth out) or a password was just generated — its one-time setup is on
-     * Advanced, and landing anywhere else would hide the only copy of it.
-     */
-    public function test_setup_opens_on_recommended_unless_it_cannot_work(): void {
+    /** A client opens on its Recommended guide; Advanced only when it is asked for. */
+    public function test_setup_opens_on_recommended_unless_advanced_is_asked_for(): void {
         $visible = static function ( string $html ): string {
             $xpath = self::xpath( $html );
             $open  = $xpath->query( '//*[@data-setup-panel and not(@hidden)]' );
@@ -374,40 +285,19 @@ final class McpConnectionSettingsTemplateTest extends TestCase {
         };
         foreach ( [ 'claude', 'codex' ] as $client ) {
             self::assertSame( 'primary', $visible( \fabrement_render_connection_settings( $client ) ) );
-            self::assertSame( 'advanced', $visible( \fabrement_render_connection_settings( $client, false, false ) ) );
-            self::assertSame( 'advanced', $visible( \fabrement_render_connection_settings( $client, true ) ) );
+            self::assertSame( 'primary', $visible( \fabrement_render_connection_settings( $client, false ) ) );
+            self::assertSame( 'advanced', $visible( \fabrement_render_connection_settings( $client, true, 'advanced' ) ) );
         }
-        foreach ( [ 'chatgpt', 'cursor' ] as $client ) {
-            self::assertSame( 'primary', $visible( \fabrement_render_connection_settings( $client, 'cursor' === $client, false ) ) );
-        }
-
+        self::assertSame( 'primary', $visible( \fabrement_render_connection_settings( 'chatgpt', true, 'advanced' ) ) );
     }
 
-    /**
-     * Cursor is two clicks, one button at a time: Generate application password, then Add to Cursor.
-     * The config file and the AI instructions wait in an accordion for when the link does
-     * not open Cursor.
-     */
-    public function test_cursor_is_one_button_at_a_time_with_manual_setup_folded_away(): void {
-        $guide = '//*[@id="fabrement-setup-panel-primary"]/section[@aria-labelledby="fabrement-cursor-guide-title"]';
-
-        $before = self::xpath( \fabrement_render_connection_settings( 'cursor' ) );
-        self::assertSame( 1, $before->query( $guide . '/p[contains(@class,"fabrement-cred__guide-lead")]' )->length );
-        self::assertSame( 1, $before->query( $guide . '/form[@id="fabrement-mcp-form"]//button[@type="submit" and contains(@class,"button-primary")]' )->length );
-        self::assertSame( 1, $before->query( $guide . '//input[@name="fabrement_mcp_client" and @value="cursor"]' )->length );
-        self::assertSame( 0, $before->query( '//*[@data-mcp-ready] | //*[@id="fabrement-mcp-install"]' )->length );
-
-        $after = self::xpath( \fabrement_render_connection_settings( 'cursor', true ) );
-        self::assertSame( 0, $after->query( '//form[@id="fabrement-mcp-form"]' )->length, 'Once the key exists, Add to Cursor is the only button.' );
-        self::assertSame( 1, $after->query( $guide . '//*[@data-mcp-ready]/div/a[@id="fabrement-mcp-install" and contains(@class,"button-primary")]' )->length );
-        self::assertSame( 0, $after->query( '//*[@id="fabrement-mcp-install"]/ancestor::details' )->length );
-        // The first step stays in view as done, right before Add to Cursor — a status, not a button.
-        self::assertSame( 1, $after->query( '//*[@id="fabrement-mcp-install"]/preceding-sibling::span[@role="status" and contains(@class,"fabrement-cred__mcp-done")]//*[contains(@class,"dashicons-yes")]' )->length );
-        self::assertSame( 0, $after->query( '//*[contains(@class,"fabrement-cred__mcp-done")]/ancestor-or-self::button' )->length );
-        $manual = $guide . '//*[@data-mcp-ready]/details';
-        self::assertSame( 1, $after->query( $manual . '//textarea[@id="fabrement-mcp-cmd"]' )->length );
-        self::assertSame( 1, $after->query( $manual . '//textarea[@id="fabrement-mcp-instructions" and @aria-describedby="fabrement-mcp-private-notice"]' )->length );
-        self::assertSame( 1, $after->query( $manual . '//*[@id="fabrement-mcp-private-notice"]' )->length );
-        self::assertSame( 0, $after->query( '//*[@data-mcp-tab]' )->length );
+    /** Without HTTPS the screen says, above every guide, that connecting needs it. */
+    public function test_without_https_the_screen_says_connecting_needs_it(): void {
+        foreach ( self::clients() as [ $client ] ) {
+            $xpath = self::xpath( \fabrement_render_connection_settings( $client, false ) );
+            self::assertSame( 1, $xpath->query( '//*[@id="fabrement-connect"]/p[@role="status" and contains(text(),"Connecting an AI agent needs HTTPS.")]' )->length, $client );
+            $xpath = self::xpath( \fabrement_render_connection_settings( $client ) );
+            self::assertSame( 0, $xpath->query( '//*[contains(text(),"Connecting an AI agent needs HTTPS.")]' )->length, $client );
+        }
     }
 }

@@ -1,6 +1,8 @@
 <?php
 namespace Fabrement\Modules\Forms;
 
+defined( 'ABSPATH' ) || exit;
+
 /** The site's Contact Form 7 forms. */
 final class FormCatalog {
     public static function is_cf7_active(): bool {

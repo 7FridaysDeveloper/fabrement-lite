@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Bridge\NullSeoBridge;
 use Fabrement\Modules\Seo\Bridge\YoastBridge;
 use Fabrement\Modules\Seo\Contract\SeoBridge;

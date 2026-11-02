@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Updates;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use Fabrement\Modules\Lifecycle\NoticeScreen;
 use Fabrement\Modules\Mcp\OAuth\Lifecycle;

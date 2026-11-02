@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Contract;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * One SEO plugin, seen from the page it renders: where Fabrement hooks in so that plugin's output
  * knows what Fabrement builds — images in blocks for social previews and sitemaps, the query

@@ -458,34 +458,6 @@ final class FabShowTest extends SiteTestCase {
         $this->assertStringContainsString( 'the site has no language "xx"', $log );
     }
 
-    /** What a page in $url writes of the translated type's taxonomies, asked for with ?qa_tax_label. */
-    private function taxonomies_on_page( string $url ): array {
-        $t = self::TRANSLATED;
-        $this->site_code( 'qa-tax-label-page', "add_action( 'init', static function (): void {
-            register_taxonomy( 'qa_show_hidden', '$t', [ 'public' => false, 'label' => 'QA hidden' ] );
-        } );
-        add_action( 'template_redirect', static function (): void {
-            if ( ! isset( \$_GET['qa_tax_label'] ) ) {
-                return;
-            }
-            \$names = static fn( array \$list ): array => array_map( static fn( \$one ): string => \$one->name(), \$list );
-            [ \$tax ] = fabrement()->taxonomies( '$t', public: true );
-            ob_start();
-            \$returned = \$tax->label( render: fab_r( tag: 'h2' ) );
-            wp_send_json( [
-                'language' => fabrement()->language(),
-                'all'      => \$names( fabrement()->taxonomies( '$t' ) ),
-                'public'   => \$names( fabrement()->taxonomies( '$t', public: true ) ),
-                'other'    => \$names( fabrement()->taxonomies( '$t', public: false ) ),
-                'label'    => [ \$tax->label(), \$returned, ob_get_clean(), \$tax->to_array(), get_taxonomy( \$tax->name() )->labels->name ],
-                'terms'    => [ \$names( \$tax->terms( hide_empty: false ) ), \$names( fabrement()->terms( taxonomy: \$tax->name(), hide_empty: false ) ), \$names( \$tax->terms( hide_empty: false, lang: 'en' ) ) ],
-            ] );
-        }, 1 );" );
-        $page = $this->get( $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . 'qa_tax_label=1' );
-        $this->assertSame( 200, $page['status'] );
-        return json_decode( $page['body'], true );
-    }
-
     private function beta(): int {
         return self::$ids['beta'];
     }

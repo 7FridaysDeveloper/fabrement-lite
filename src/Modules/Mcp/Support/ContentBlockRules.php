@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Blocks an agent may not put into a record's content, and the sentence that says why.
  *

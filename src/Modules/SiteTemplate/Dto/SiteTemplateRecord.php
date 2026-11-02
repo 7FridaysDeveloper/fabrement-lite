@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Dto;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\Service\TemplateParts;
 
 /**
@@ -33,9 +35,6 @@ final class SiteTemplateRecord {
      * is opened below, once, by whoever actually renders.
      */
     public string  $manifest_key;
-
-    /** Memoised output of render_content(): the injection below is done once per record. */
-    private ?string $renderable = null;
 
     public function __construct(
         int     $id,

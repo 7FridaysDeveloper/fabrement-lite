@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\ContentPreview;
 
+defined( 'ABSPATH' ) || exit;
+
 /** Shared lifetime and stored-status encoding for frontend content preview tokens. */
 final class PreviewToken {
 

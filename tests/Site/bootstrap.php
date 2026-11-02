@@ -1,7 +1,7 @@
 <?php
 /**
  * Bootstrap of tests/Site: the plugin tested on real WordPress sites in Docker, from outside — the
- * agent through the MCP endpoint over HTTPS with an application password, the visitor through
+ * agent through the MCP endpoint over HTTPS with an OAuth access token, the visitor through
  * pages, the site's own code through WP-CLI. No WordPress is loaded in this process.
  *
  *   composer test:site:up     the sites' containers (tests/Site/docker-compose.yml)

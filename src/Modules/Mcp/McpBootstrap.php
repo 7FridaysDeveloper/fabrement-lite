@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use Fabrement\Framework\App;
 
@@ -18,8 +20,6 @@ final class McpBootstrap {
 
     public static function register(): void {
         OAuth\Bootstrap::register();
-        // On every request: an MCP application password is refused outside the MCP route.
-        McpPasswordScope::register();
 
         // Only a request to the Fabrement MCP route (or WP-CLI) registers the tools. The adapter
         // otherwise initialises on EVERY REST request and, creating our server, builds every tool
@@ -48,7 +48,6 @@ final class McpBootstrap {
             return;
         }
 
-        BearerApplicationPasswordAuth::register();
         self::register_abilities();
         self::register_server();
         self::boot_adapter();
@@ -124,9 +123,11 @@ final class McpBootstrap {
     }
 
     /**
-     * Is this request addressed to the Fabrement MCP route? Read from the raw request, because it
-     * is asked on `plugins_loaded`, before WordPress has parsed the request: `?rest_route=` for
-     * plain permalinks, the path under the REST prefix otherwise.
+     * Is this request addressed to the Fabrement MCP route? Asked on `plugins_loaded`, before
+     * WordPress has parsed the request, so the address decides: `?rest_route=` for plain
+     * permalinks, the path under the REST prefix otherwise. Once WordPress has parsed it, the
+     * route it serves decides (a POSTed rest_route wins over the address). Compared case-insensitively,
+     * as WordPress matches REST routes.
      */
     public static function is_mcp_request(): bool {
         // wp-admin, admin-ajax and admin-post never serve the MCP route, whatever the address says.
@@ -134,29 +135,25 @@ final class McpBootstrap {
             return false;
         }
         $route = ServerDefinition::ROUTE_NAMESPACE . '/' . ServerDefinition::ROUTE;
+        $wp    = $GLOBALS['wp'] ?? null;
+        // REST routes match case-insensitively; once WordPress has parsed the route, it decides.
+        if ( is_object( $wp ) && isset( $wp->query_vars['rest_route'] ) ) {
+            return 0 === strcasecmp( trim( (string) $wp->query_vars['rest_route'], '/' ), $route );
+        }
 
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only route detection; nothing is changed.
-        $rest_route = isset( $_GET['rest_route'] ) && is_string( $_GET['rest_route'] )
-            ? trim( sanitize_text_field( wp_unslash( $_GET['rest_route'] ) ), '/' ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only view parameter; nothing is changed.
-            : '';
+        $address = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
+        wp_parse_str( (string) wp_parse_url( $address, PHP_URL_QUERY ), $query );
         // WordPress runs the ?rest_route= route whatever the path says: when it is there, it alone
         // decides — /wp-json/fabrement/v1/mcp?rest_route=/other/route is not an MCP call.
-        if ( $rest_route !== '' ) {
-            return $rest_route === $route;
-        }
-        // A POSTed rest_route wins over the path too (WP::parse_request()): never an MCP call.
-        if ( isset( $_POST['rest_route'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only route detection; nothing is changed.
-            return false;
+        if ( isset( $query['rest_route'] ) ) {
+            return is_string( $query['rest_route'] ) && 0 === strcasecmp( trim( $query['rest_route'], '/' ), $route );
         }
 
-        $uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
-            ? (string) wp_parse_url( esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ), PHP_URL_PATH )
-            : '';
-        $uri  = rtrim( rawurldecode( $uri ), '/' );
+        $path = rtrim( rawurldecode( (string) wp_parse_url( $address, PHP_URL_PATH ) ), '/' );
         $home = rtrim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
         $tail = '/' . rest_get_url_prefix() . '/' . $route;
 
-        return $uri === $home . $tail || $uri === $home . '/index.php' . $tail;
+        return 0 === strcasecmp( $path, $home . $tail ) || 0 === strcasecmp( $path, $home . '/index.php' . $tail );
     }
 
     /** What this module calls on the adapter: checked as such, not by its version number. */

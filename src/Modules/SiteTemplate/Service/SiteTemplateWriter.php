@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
@@ -13,13 +15,13 @@ final class SiteTemplateWriter {
         $id = (int) ( $input['id'] ?? 0 );
         $post = $id > 0 ? get_post( $id ) : null;
         if ( $id > 0 && ( ! $post || $post->post_type !== SiteTemplatePostType::POST_TYPE ) ) {
-            return new \WP_Error( 'fabrement_st_not_found', 'Template not found.' );
+            return new \WP_Error( 'fabrement_st_not_found', __( 'Template not found.', 'fabrement-lite' ) );
         }
         $refusal = $id > 0 ? SiteTemplateTranslator::refusal_for_version( $id ) : null;
         if ( $refusal !== null ) { return $refusal; }
-        $title = trim( (string) ( $input['title'] ?? '' ) );
+        $title = trim( wp_strip_all_tags( (string) ( $input['title'] ?? '' ) ) );
         if ( $title === '' ) { $title = $post ? $post->post_title : ''; }
-        if ( $title === '' ) { return new \WP_Error( 'fabrement_st_title', 'Template name is required.' ); }
+        if ( $title === '' ) { return new \WP_Error( 'fabrement_st_title', __( 'Template name is required.', 'fabrement-lite' ) ); }
         $content = $input['content'] ?? ( $post ? $post->post_content : '' );
         try {
             $source = ContentSourceConfig::validate( $input['contentSource'] ?? ContentSourceConfig::read( $id ), $content, $id );
@@ -36,7 +38,7 @@ final class SiteTemplateWriter {
         if ( is_wp_error( $saved_source ) ) {
             if ( $created ) {
                 wp_delete_post( $id, true );
-                return new \WP_Error( 'fabrement_st_manifest_write', 'The shared source rules could not be saved; the new template was removed. Check the templates storage directory and retry.', [ 'status' => 500 ] );
+                return new \WP_Error( 'fabrement_st_manifest_write', __( 'The shared source rules could not be saved; the new template was removed. Check the templates storage directory and retry.', 'fabrement-lite' ), [ 'status' => 500 ] );
             }
             return $saved_source;
         }

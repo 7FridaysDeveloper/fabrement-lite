@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\Dto\SiteTemplateRecord;
 use Fabrement\Modules\SiteTemplate\PostType\SiteTemplatePostType;
 

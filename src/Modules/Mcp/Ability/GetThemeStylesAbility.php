@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ThemeStylesView;
 
 /** Read-only: how the active theme draws a page by default (its merged theme.json styles). */

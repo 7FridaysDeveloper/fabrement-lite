@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Integration;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Content\ContentImages;
 use Fabrement\Modules\Seo\Contract\SeoIntegration;
 use Fabrement\Modules\Seo\SiteQueryVars;

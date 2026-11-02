@@ -2,7 +2,7 @@
 
 namespace Fabrement\Modules\SiteTemplate\Service;
 
-use Fabrement\Framework\Keys;
+defined( 'ABSPATH' ) || exit;
 
 /**
  * GLOBAL BLOCKS — WordPress synced patterns (`wp_block` posts).
@@ -76,29 +76,28 @@ final class SyncedPatterns {
      * @return list<\WP_Post>
      */
     public static function find( string $search, int $limit ): array {
-        global $wpdb;
-
-        $where  = [ 'post_type = %s', "post_status IN ( 'publish', 'draft', 'private' )" ];
-        $params = [ self::POST_TYPE ];
-
+        $args = [
+            'post_type'           => self::POST_TYPE,
+            'post_status'         => [ 'publish', 'draft', 'private' ],
+            'posts_per_page'      => max( 1, $limit ),
+            'orderby'             => 'modified',
+            'order'               => 'DESC',
+            'ignore_sticky_posts' => true,
+            'no_found_rows'       => true,
+            'suppress_filters'    => true, // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.SuppressFilters_suppress_filters -- every language, as the patterns screen lists them.
+            // Unsynced patterns are copy-on-insert templates, not global blocks.
+            'meta_query'          => [ // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- the sync status lives only in meta.
+                'relation' => 'OR',
+                [ 'key' => 'wp_pattern_sync_status', 'compare' => 'NOT EXISTS' ],
+                [ 'key' => 'wp_pattern_sync_status', 'value' => 'unsynced', 'compare' => '!=' ],
+            ],
+        ];
         if ( $search !== '' ) {
-            $where[]  = 'post_title LIKE %s';
-            $params[] = '%' . $wpdb->esc_like( $search ) . '%';
+            $args['s']              = $search;
+            $args['search_columns'] = [ 'post_title' ];
         }
-        // Unsynced patterns are copy-on-insert templates, not global blocks.
-        $where[]  = "ID NOT IN ( SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = 'wp_pattern_sync_status' AND meta_value = 'unsynced' )";
-        $params[] = $limit;
 
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- a LIKE over post content plus a sync-status subquery, which WP_Query cannot express; $where holds fixed clauses with placeholders only; every value is in $params.
-        $ids = $wpdb->get_col(
-            $wpdb->prepare(
-                // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $where holds fixed clauses with %s placeholders only; every value is in $params.
-                "SELECT ID FROM {$wpdb->posts} WHERE " . implode( ' AND ', $where ) . ' ORDER BY post_modified_gmt DESC LIMIT %d',
-                $params
-            )
-        );
-
-        return array_values( array_filter( array_map( 'get_post', array_map( 'intval', (array) $ids ) ) ) );
+        return array_values( ( new \WP_Query( $args ) )->posts );
     }
 
     /**

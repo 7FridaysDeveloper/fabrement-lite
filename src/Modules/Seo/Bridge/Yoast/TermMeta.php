@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge\Yoast;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * A term's SEO as Yoast stores it: one row per term in the `wpseo_taxonomy_meta` option (not
  * termmeta), written through Yoast's own validator. Part of

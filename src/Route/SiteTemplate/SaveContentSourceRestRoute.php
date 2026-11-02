@@ -2,6 +2,8 @@
 
 namespace Fabrement\Route\SiteTemplate;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\Service\ContentSourceConfig;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;
@@ -50,17 +52,43 @@ final class SaveContentSourceRestRoute extends AbstractRestRoute {
     public function get_route_args(): array {
         return [
             'rules'         => [
-                'type'     => 'array',
-                'required' => false,
-                'items'    => [
+                'type'              => 'array',
+                'required'          => false,
+                'items'             => [
                     'type'       => 'object',
                     'properties' => [
                         'context' => [ 'type' => 'string' ],
                         'file'    => [ 'type' => 'string' ],
                     ],
                 ],
+                'validate_callback' => 'rest_validate_request_arg',
+                'sanitize_callback' => [ self::class, 'sanitize_rules' ],
             ],
         ];
+    }
+
+    /**
+     * Each rule's context and file as plain text; ContentSourceConfig then checks both (a known
+     * context, a file inside the theme's templates folder).
+     *
+     * @param mixed $rules
+     * @return mixed
+     */
+    public static function sanitize_rules( $rules ) {
+        if ( ! is_array( $rules ) ) {
+            return $rules;
+        }
+        foreach ( $rules as $i => $rule ) {
+            if ( ! is_array( $rule ) ) {
+                continue;
+            }
+            foreach ( [ 'context', 'file' ] as $key ) {
+                if ( isset( $rule[ $key ] ) && is_string( $rule[ $key ] ) ) {
+                    $rules[ $i ][ $key ] = sanitize_text_field( $rule[ $key ] );
+                }
+            }
+        }
+        return $rules;
     }
 
     public function handle( WP_REST_Request $request ) {

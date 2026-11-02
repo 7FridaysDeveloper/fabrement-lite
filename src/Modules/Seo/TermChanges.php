@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Fabrement's own event when one of ITS tools changes a record's terms — set-post-terms, and
  * delete-term for every record the deleted term leaves — so an SEO plugin's integration keeps what

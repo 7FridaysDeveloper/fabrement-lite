@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\ContentSource;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The set of PHP files the Content Source block may render — every `.php` under
  * the active + parent theme's `templates/` folder, path RELATIVE to that folder.

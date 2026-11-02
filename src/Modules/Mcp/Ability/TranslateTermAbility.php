@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Taxonomy\TermWriter;
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;
@@ -98,7 +100,7 @@ final class TranslateTermAbility extends AbstractAbility {
 	public function execute( array $input ) {
 		$term_id  = (int) ( $input['termId'] ?? 0 );
 		$language = trim( (string) ( $input['language'] ?? '' ) );
-		$name     = trim( (string) ( $input['name'] ?? '' ) );
+		$name     = sanitize_text_field( (string) ( $input['name'] ?? '' ) );
 
 		if ( $name === '' ) {
 			return new WP_Error( 'fabrement_bad_name', 'name is required — a term version with no name has nothing to show in a menu or an archive heading.', array( 'status' => 400 ) );
@@ -214,7 +216,7 @@ final class TranslateTermAbility extends AbstractAbility {
 			$fields['slug'] = sanitize_title( (string) $input['slug'] );
 		}
 		if ( array_key_exists( 'description', $input ) ) {
-			$fields['description'] = (string) $input['description'];
+			$fields['description'] = wp_kses_post( (string) $input['description'] );
 		}
 
 		// The third door into wp_terms: a version is a fresh row with a name of its own.

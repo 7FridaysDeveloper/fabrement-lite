@@ -127,6 +127,11 @@ final class MediaTest extends SiteTestCase {
         $this->assertSame( 'attachment', $this->site()->value( 'SELECT post_type FROM wp_posts WHERE ID = ?', [ $id ] ) );
         $this->assertSame( 200, $this->get( $image['url'] )['status'] );
 
+        // "false" as a string is not false: refused, never read as true (a permanent delete).
+        $this->assertStringContainsString( '`force` must be true or false', $this->mcp_error( 'delete-media', [ 'mediaId' => $id, 'force' => 'false' ] ) );
+        $this->assertSame( 'attachment', $this->site()->value( 'SELECT post_type FROM wp_posts WHERE ID = ?', [ $id ] ) );
+        $this->assertSame( 200, $this->get( $image['url'] )['status'] );
+
         $tool = array_column( $this->client()->tools(), null, 'name' )['fabrement-delete-media'];
         $this->assertTrue( $tool['annotations']['destructiveHint'] ?? false, 'marked destructive for the agent' );
 

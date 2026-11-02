@@ -34,13 +34,7 @@
     }
 }
 
-/* The palette, the card, the key field with its lock and clear button, the provider
-   pills and the Save button now live in assets/admin/credentials-card.css:
-   API Connection is a screen of its own and wears the same form. What is
-   left below belongs to THIS screen only. */
-
-/* ── Agent access (MCP) card — same brand tones as the settings card
-   above; overrides wp-admin's default .button / .widefat styling. ── */
+/* ── Agent access (MCP) card ── */
 .fabrement-cred__mcp { max-width: 900px; }
 .fabrement-cred__mcp .fabrement-cred__title { margin: 0 0 8px; }
 
@@ -81,14 +75,10 @@
     --mcp-client: #d17354; --mcp-client-rgb: 209, 115, 84;
     --mcp-button-bg-hover: #b95c3f;
 }
-.fabrement-cred__mcp-client-button[data-client="cursor"] {
-    --mcp-client: #080b0f; --mcp-client-rgb: 8, 11, 15;
-    --mcp-button-bg-hover: #22282f;
-}
-.fabrement-cred__oauth-clients { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-/* The client picker is a nav, not four calls to action: the buttons stay
+.fabrement-cred__oauth-clients { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+/* The client picker is a nav, not three calls to action: the buttons stay
    white and only the selected one is lit in its brand colour, so the other
-   three read as available rather than as competing buttons. */
+   two read as available rather than as competing buttons. */
 .fabrement-cred__oauth-clients .fabrement-cred__mcp-client-button {
     gap: 8px; min-width: 0; min-height: 46px; padding: 10px 12px; line-height: 1.4;
     color: var(--deact); background: #fff; border: 1px solid var(--card-border);
@@ -169,7 +159,6 @@
     .fabrement-cred__oauth-clients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 .fabrement-cred__mcp [hidden] { display: none !important; }
-.fabrement-cred__mcp-ready { margin-top: 22px; }
 .fabrement-cred__mcp-tabs {
     display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px;
     border-bottom: 1px solid var(--card-border);
@@ -231,8 +220,7 @@
     .fabrement-cred__mcp-client-button { flex: 1 1 100%; justify-content: center; }
 }
 
-/* One-time command box */
-.fabrement-cred__mcp textarea[id^="fabrement-mcp-"],
+/* Command box */
 .fabrement-cred__mcp textarea[id^="fabrement-oauth-"] {
     width: 100%; box-sizing: border-box; padding: 10px 12px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -240,7 +228,6 @@
     background: #f6f9fc !important; border: 1px solid var(--input-border) !important;
     border-radius: 6px !important; box-shadow: none !important; resize: vertical;
 }
-.fabrement-cred__mcp textarea[id^="fabrement-mcp-"]:focus,
 .fabrement-cred__mcp textarea[id^="fabrement-oauth-"]:focus {
     border-color: var(--green) !important; outline: none;
     box-shadow: 0 0 0 3px rgba(44,196,134,.18) !important;
@@ -250,8 +237,6 @@
     min-height: 104px; border: 0 !important; border-radius: 0 !important; line-height: 1.8;
 }
 .fabrement-cred__mcp .fabrement-cred__oauth-code textarea:focus { outline: 2px solid #21865d; outline-offset: -2px; box-shadow: none !important; }
-.fabrement-cred__mcp .fabrement-cred__private-notice { display: flex; gap: 7px; align-items: flex-start; margin: 12px 0 0; font-size: 12px; line-height: 1.6; color: #80530d; }
-.fabrement-cred__private-notice .dashicons { flex: 0 0 18px; font-size: 18px; }
 
 /* Branded buttons — override wp-admin .button / .button-primary inside the card */
 .fabrement-cred__mcp .button,
@@ -261,7 +246,7 @@
     border-radius: 6px !important; box-shadow: none !important; text-shadow: none;
     cursor: pointer; transition: background .14s, border-color .14s, color .14s;
 }
-/* Primary = green filled (Generate) */
+/* Primary = green filled */
 .fabrement-cred__mcp .button-primary {
     color: #fff !important; background: var(--green) !important; border: 1px solid var(--green) !important;
 }
@@ -270,17 +255,6 @@
     background: var(--green-hover) !important; border-color: var(--green-hover) !important;
 }
 .fabrement-cred__mcp .button:disabled { opacity: .55; cursor: not-allowed; }
-/* Cursor's done first step: looks like the button it replaces, at rest, but is not one. */
-.fabrement-cred__mcp .button.fabrement-cred__mcp-done { margin-top: 0 !important; opacity: .55; cursor: default; pointer-events: none; }
-/* Secondary = outline (Copy) */
-.fabrement-cred__mcp .button:not(.button-primary):not(.fabrement-cred__mcp-tab):not(.fabrement-cred__mcp-copy) {
-    margin-top: 8px; color: var(--deact) !important; background: #fff !important;
-    border: 1px solid var(--input-border) !important;
-}
-.fabrement-cred__mcp .button:not(.button-primary):not(.fabrement-cred__mcp-tab):not(.fabrement-cred__mcp-copy):hover,
-.fabrement-cred__mcp .button:not(.button-primary):not(.fabrement-cred__mcp-tab):not(.fabrement-cred__mcp-copy):focus {
-    color: var(--fg) !important; border-color: var(--fg) !important; background: #f6f9fc !important;
-}
 
 /* A card of its own now, beside the setup rather than a section under it — so
    no top rule, and padding tighter than the wide card's. The cap is 900px
@@ -398,23 +372,17 @@
 /* ── Advanced tab: the other ways to connect, one section each ── */
 .fabrement-cred__alt-title { margin: 0 0 4px; font-size: 15px; line-height: 1.5; color: var(--fg); }
 .fabrement-cred__alt-lead { margin: 0 0 14px; font-size: 13px; line-height: 1.6; color: var(--muted); }
-.fabrement-cred__alt > .fabrement-cred__mcp-form { margin-top: 0; }
 .fabrement-cred__alt > .fabrement-cred__hint { margin: 0 0 14px; }
 /* Claude's Advanced tab: each way is a collapsible panel. */
 .fabrement-cred__alt--fold { border: 1px solid var(--card-border); border-radius: 8px; padding: 0 16px; background: #f6f9fc; transition: background-color .15s; }
 .fabrement-cred__alt--fold:not([open]):hover { background: #eef2f6; }
 .fabrement-cred__alt--fold[open] { background: #fff; padding-bottom: 16px; }
-.fabrement-cred__alt--fold + .fabrement-cred__alt--fold { margin-top: 12px; padding-top: 0; border-top: 1px solid var(--card-border); }
 .fabrement-cred__alt--fold > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; cursor: pointer; list-style: none; }
 .fabrement-cred__alt--fold > summary::-webkit-details-marker { display: none; }
 .fabrement-cred__alt--fold > summary::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
 .fabrement-cred__alt--fold[open] > summary::after { transform: rotate(-135deg); }
 .fabrement-cred__alt--fold > summary .fabrement-cred__alt-title { display: flex; align-items: center; gap: 10px; margin: 0; }
 .fabrement-cred__alt--fold .fabrement-cred__alt-lead { font-size: 14px; color: var(--fg); }
-.fabrement-cred__cursor-manual { margin-top: 20px; }
-.fabrement-cred__alt-lead:has(+ .fabrement-cred__way-list) { margin-bottom: 6px; }
-.fabrement-cred__way-list { margin: 0 0 14px; padding-left: 20px; list-style: disc; font-size: 14px; line-height: 1.6; color: var(--fg); }
-.fabrement-cred__way-list li { margin: 0; }
 /* A way inside a fold: what to do on the left half, the code to copy on the right. */
 .fabrement-cred__way { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; padding-top: 16px; }
 /* The divider runs edge to edge: it steps out over the fold's 16px side padding. */
@@ -423,8 +391,6 @@
 .fabrement-cred__way-title .dashicons { flex: none; width: 18px; height: 18px; font-size: 18px; color: var(--muted); }
 .fabrement-cred__way-text p { margin: 0 0 10px; font-size: 14px; line-height: 1.6; color: var(--fg); }
 .fabrement-cred__way-code .fabrement-cred__mcp-command { margin: 0; }
-.fabrement-cred__way-code > * + * { margin-top: 12px; }
-.fabrement-cred__way-code > .fabrement-cred__mcp-fields { margin-top: 0; }
 @media (max-width: 960px) { .fabrement-cred__way { grid-template-columns: minmax(0, 1fr); gap: 12px; } }
 .fabrement-cred__alt--fold > summary .dashicons { flex: none; width: 20px; height: 20px; font-size: 20px; color: var(--fabrement-green-text, #229d6b); }
 @media (max-width: 520px) {
@@ -439,6 +405,5 @@
     .fabrement-cred__panel--agents .fabrement-cred__access-setting { gap: 10px; padding-bottom: 18px; }
 }
 
-/* The card's own heading is smaller than a screen title; the key note sits flush. */
+/* The card's own heading is smaller than a screen title. */
 .fabrement-cred__mcp > .fabrement-cred__title { font-size: 18px; }
-.fabrement-cred__mcp-ready > .fabrement-cred__hint { margin: 0; }

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Contract;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The SEO plugin's STORED data, in Fabrement's words — what the SEO tools read and write.
  *

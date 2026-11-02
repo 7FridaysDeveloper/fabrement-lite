@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\NotFound;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 use Fabrement\Modules\Translation\Translation;
 
@@ -175,13 +177,13 @@ final class NotFoundPage {
 
     /** @param mixed $value */
     public static function sanitize( $value ): int {
-        $id = (int) $value;
+        $id = is_numeric( $value ) ? absint( $value ) : 0;
         if ( $id <= 0 ) {
             return 0;
         }
         $error = self::invalid_choice( $id );
         if ( $error !== null ) {
-            add_settings_error( Keys::OPTION_NOT_FOUND_PAGE, Keys::OPTION_NOT_FOUND_PAGE, $error );
+            add_settings_error( Keys::OPTION_NOT_FOUND_PAGE, Keys::OPTION_NOT_FOUND_PAGE, esc_html( $error ) );
             return self::id();
         }
         // The original, whichever language's version was picked.

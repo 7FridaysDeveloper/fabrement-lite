@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Translation;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ContentParent;
 use WP_Error;
 use WP_Post;

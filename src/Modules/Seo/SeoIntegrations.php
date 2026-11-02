@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\Contract\SeoIntegration;
 use Fabrement\Modules\Seo\Integration\YoastIntegration;
 

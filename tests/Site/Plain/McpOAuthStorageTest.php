@@ -67,12 +67,12 @@ final class McpOAuthStorageTest extends SiteTestCase {
         $this->assertTrue( $this->cleanup_scheduled() );
     }
 
-    public function test_reactivation_keeps_connections_and_an_explicit_off(): void {
+    public function test_deactivation_ends_connections_and_reactivation_keeps_an_explicit_off(): void {
         $generation = $this->option( 'fabrement_mcp_oauth_generation' );
-        $this->put( 'grant', 'qa-kept', time() + 600 );
+        $this->put( 'grant', 'qa-ended', time() + 600 );
         $this->reactivate();
-        $this->assertNotNull( $this->stored( 'grant', 'qa-kept' ) );
-        $this->assertSame( $generation, $this->option( 'fabrement_mcp_oauth_generation' ), 'connections are not invalidated' );
+        $this->assertSame( 1, (int) ( $this->stored( 'grant', 'qa-ended' )['revoked'] ?? 0 ), 'a connection does not outlive a deactivation' );
+        $this->assertNotSame( $generation, $this->option( 'fabrement_mcp_oauth_generation' ), 'every earlier token is refused' );
 
         $this->site()->wp( 'option', 'update', 'fabrement_mcp_oauth_enabled', '0' );
         $this->reactivate();

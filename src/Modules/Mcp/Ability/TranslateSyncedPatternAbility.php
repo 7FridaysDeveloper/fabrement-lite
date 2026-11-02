@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\SiteTemplate\Service\SyncedPatterns;
 use Fabrement\Modules\Mcp\Support\ToolResult;

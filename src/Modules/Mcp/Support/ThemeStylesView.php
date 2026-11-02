@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * How the theme draws a page by default, from the merged theme.json "styles" (theme + the user's
  * Global Styles): the page, the elements (headings, links, buttons…) and the blocks' own defaults.

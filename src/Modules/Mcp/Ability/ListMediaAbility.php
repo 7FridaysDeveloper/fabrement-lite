@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Translation\Translation;
 
 /**
@@ -91,7 +93,7 @@ final class ListMediaAbility extends AbstractAbility {
         ];
         $mime     = $mime_map[ $kind ] ?? 'image';
 
-        $search = trim( (string) ( $input['search'] ?? '' ) );
+        $search = trim( wp_strip_all_tags( (string) ( $input['search'] ?? '' ) ) );
         // get_posts() suppresses filters: every attachment in every language, as stored. Ids only,
         // so the whole library costs one column; the page is read in full below.
         $base = [

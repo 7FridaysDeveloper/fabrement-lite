@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 use Fabrement\Modules\Seo\PrimaryTerm;
 use Fabrement\Modules\Seo\Seo;
@@ -105,7 +107,10 @@ final class SetPostTermsAbility extends AbstractAbility {
         // sending every other term back.
         // No default (the input schema requires it): silently replacing was how a call meant to
         // add one term took every other term off the record.
-        $mode = (string) $input['mode'];
+        $mode = (string) ( $input['mode'] ?? '' );
+        if ( ! in_array( $mode, [ 'replace', 'add', 'remove' ], true ) ) {
+            return new \WP_Error( 'invalid_mode', 'mode must be replace, add or remove.' );
+        }
 
         $post = get_post( $post_id );
         if ( ! $post instanceof \WP_Post ) {

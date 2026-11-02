@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Hand-written notes for one block, returned beside its schema by get-block-source: what the schema
  * does not say (markup that the editor accepts, how the block behaves, pitfalls). One file per block

@@ -2,9 +2,12 @@
 
 namespace Fabrement\Modules\Mcp;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Ability\AbilityInterface;
 use Fabrement\Modules\Mcp\Ability\AbstractAbility;
 use Fabrement\Modules\Mcp\Support\ContentSafety;
+use Fabrement\Modules\Mcp\Support\StrictBooleans;
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
 use Fabrement\Modules\Translation\Translation;
 
@@ -44,18 +47,20 @@ final class Registrar {
     }
 
     /**
-     * Runs on `wp_abilities_api_init`.
-     *
-     * Note: no `meta.mcp.public` flag on purpose — our abilities must be
-     * reachable ONLY through the Fabrement custom server (explicit tool
-     * list), never leak through an adapter default server discovery.
+     * Every tool judges what it was sent before it does anything: a boolean must be a JSON boolean
+     * (the Abilities API lets "false" through, which PHP reads as true). A writing tool also checks
+     * that its text is safe; a reading tool stores nothing, so its searches pass as sent.
      */
-    /** A writing tool judges the text it was sent before it does anything; a reading tool stores nothing. */
     private static function guarded( AbilityInterface $ability ): callable {
-        if ( ! empty( $ability->annotations()['readOnlyHint'] ) ) {
-            return [ $ability, 'execute' ];
-        }
-        return static function ( $input = [] ) use ( $ability ) {
+        $read_only = ! empty( $ability->annotations()['readOnlyHint'] );
+        return static function ( $input = [] ) use ( $ability, $read_only ) {
+            $invalid = StrictBooleans::check( $ability->input_schema(), is_array( $input ) ? $input : [] );
+            if ( $invalid !== null ) {
+                return $invalid;
+            }
+            if ( $read_only ) {
+                return $ability->execute( is_array( $input ) ? $input : [] );
+            }
             try {
                 ContentSafety::input( is_array( $input ) ? $input : [], $ability->name() );
             } catch ( McpAbilityException $refused ) {
@@ -65,6 +70,13 @@ final class Registrar {
         };
     }
 
+    /**
+     * Runs on `wp_abilities_api_init`.
+     *
+     * Note: no `meta.mcp.public` flag on purpose — our abilities must be
+     * reachable ONLY through the Fabrement custom server (explicit tool
+     * list), never leak through an adapter default server discovery.
+     */
     public function register_abilities(): void {
         foreach ( $this->abilities as $ability ) {
             $args = [

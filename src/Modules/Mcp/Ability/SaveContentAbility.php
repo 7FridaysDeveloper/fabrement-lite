@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\BlockEntry;
 use Fabrement\Modules\Mcp\Support\ContentEdits;
 use Fabrement\Modules\Mcp\Support\ContentParent;
@@ -429,8 +431,9 @@ final class SaveContentAbility extends AbstractAbility {
 		if ( array_key_exists( 'menuOrder', $args ) ) {
 			$update['menu_order'] = ContentParent::menu_order( $args['menuOrder'] );
 		}
-		if ( isset( $args['title'] ) && trim( (string) $args['title'] ) !== '' ) {
-			$update['post_title'] = trim( (string) $args['title'] );
+		$title = isset( $args['title'] ) ? trim( wp_strip_all_tags( (string) $args['title'] ) ) : '';
+		if ( $title !== '' ) {
+			$update['post_title'] = $title;
 		}
 		$slug = self::updated_slug( $record, $args, $parent );
 		if ( $slug !== null ) {
@@ -499,7 +502,8 @@ final class SaveContentAbility extends AbstractAbility {
 	/** CREATE a new page/post — always a draft. Publishing is set-content-status (see update()). */
 	private function create( array $args, string $markup, string $language ): int {
 		$bridge    = Translation::bridge();
-		$title     = isset( $args['title'] ) && trim( (string) $args['title'] ) !== '' ? trim( (string) $args['title'] ) : 'Untitled';
+		$title     = isset( $args['title'] ) ? trim( wp_strip_all_tags( (string) $args['title'] ) ) : '';
+		$title     = $title !== '' ? $title : 'Untitled';
 		$post_type = isset( $args['postType'] ) ? sanitize_key( (string) $args['postType'] ) : 'page';
 		if ( $post_type === '' ) {
 			$post_type = 'page';
@@ -828,10 +832,9 @@ final class SaveContentAbility extends AbstractAbility {
 		if ( ! $post instanceof \WP_Post || (string) $post->post_name !== '' || ! is_post_type_viewable( $post->post_type ) ) {
 			return [];
 		}
-		if ( ! function_exists( 'get_sample_permalink' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/post.php';
-		}
-		$slug = (string) ( get_sample_permalink( $content_id )[1] ?? '' );
+		// What get_sample_permalink() gives a draft, without loading wp-admin code.
+		$base = sanitize_title( (string) $post->post_title !== '' ? (string) $post->post_title : (string) $post->ID, (string) $post->ID );
+		$slug = (string) wp_unique_post_slug( $base, $post->ID, 'publish', $post->post_type, (int) $post->post_parent );
 		return $slug === '' ? [] : [ 'slugWhenPublished' => $slug ];
 	}
 }

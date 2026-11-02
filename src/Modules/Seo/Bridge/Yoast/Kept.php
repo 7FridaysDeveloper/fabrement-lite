@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Bridge\Yoast;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Whether Yoast keeps a value as it was sent, its own cleaning applied in a dry run first: ends
  * trimmed and runs of white space made one are not a change, nor is an address only re-encoded or

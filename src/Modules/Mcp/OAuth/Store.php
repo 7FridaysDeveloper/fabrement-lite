@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\OAuth;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 
 /** Site-local durable storage. Codes and refresh tokens are consumed with a compare-and-set. */
@@ -112,16 +114,15 @@ class Store {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic compare-and-set on the plugin's own OAuth table; no WordPress API, nothing cached to clear.
         return 1 === $wpdb->query( $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table() is $wpdb->prefix plus a fixed suffix; every value is a placeholder.
-            "UPDATE {$this->table()} SET used = 1 WHERE key_hash = %s AND kind = %s AND used = 0 AND revoked = 0 AND expires > %d",
-            hash( 'sha256', $key ), $kind, time()
+            'UPDATE %i SET used = 1 WHERE key_hash = %s AND kind = %s AND used = 0 AND revoked = 0 AND expires > %d',
+            $this->table(), hash( 'sha256', $key ), $kind, time()
         ) );
     }
 
     public function revoke( string $family ): void {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix.
-        if ( false === $wpdb->query( $wpdb->prepare( "UPDATE {$this->table()} SET revoked = 1 WHERE family = %s", $family ) ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear).
+        if ( false === $wpdb->query( $wpdb->prepare( 'UPDATE %i SET revoked = 1 WHERE family = %s', $this->table(), $family ) ) ) {
             throw new OAuthError( 'server_error', 'Could not revoke OAuth access.', 500 );
         }
     }
@@ -129,8 +130,8 @@ class Store {
     /** Every connection one user authorized: after their password changes. */
     public function revoke_user( int $user_id ): void {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix.
-        if ( false === $wpdb->query( $wpdb->prepare( "UPDATE {$this->table()} SET revoked = 1 WHERE user_id = %d", $user_id ) ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear).
+        if ( false === $wpdb->query( $wpdb->prepare( 'UPDATE %i SET revoked = 1 WHERE user_id = %d', $this->table(), $user_id ) ) ) {
             throw new OAuthError( 'server_error', 'Could not revoke OAuth access.', 500 );
         }
     }
@@ -140,15 +141,15 @@ class Store {
         global $wpdb;
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the plugin's own OAuth table (no WordPress API, nothing cached to clear).
         $wpdb->query( $wpdb->prepare(
-            "UPDATE {$this->table()} SET expires = %d WHERE key_hash = %s AND kind = 'grant' AND revoked = 0 AND expires > %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table() is $wpdb->prefix plus a fixed suffix; every value is a placeholder.
-            $expires, hash( 'sha256', $family ), time()
+            "UPDATE %i SET expires = %d WHERE key_hash = %s AND kind = 'grant' AND revoked = 0 AND expires > %d",
+            $this->table(), $expires, hash( 'sha256', $family ), time()
         ) );
     }
 
     public function revoke_all(): void {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix and the query has no values.
-        if ( false === $wpdb->query( "UPDATE {$this->table()} SET revoked = 1 WHERE kind IN ('grant', 'pending', 'code', 'access', 'refresh')" ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- revocation in the plugin's own OAuth table (no WordPress API, nothing cached to clear).
+        if ( false === $wpdb->query( $wpdb->prepare( "UPDATE %i SET revoked = 1 WHERE kind IN ('grant', 'pending', 'code', 'access', 'refresh')", $this->table() ) ) ) {
             throw new OAuthError( 'server_error', 'Could not revoke OAuth access.', 500 );
         }
     }
@@ -177,9 +178,8 @@ class Store {
         $hash = hash( 'sha256', 'rate:' . $bucket . ':' . $window );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- atomic rate-limit counter in the plugin's own OAuth table; no WordPress API.
         $ok = $wpdb->query( $wpdb->prepare(
-            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table() is $wpdb->prefix plus a fixed suffix; every value is a placeholder.
-            "INSERT INTO {$this->table()} (kind, key_hash, payload, expires, used) VALUES ('rate', %s, '{}', %d, 1) ON DUPLICATE KEY UPDATE used = used + 1",
-            $hash, ( $window + 1 ) * $period
+            "INSERT INTO %i (kind, key_hash, payload, expires, used) VALUES ('rate', %s, '{}', %d, 1) ON DUPLICATE KEY UPDATE used = used + 1",
+            $this->table(), $hash, ( $window + 1 ) * $period
         ) );
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- the counter just incremented above; a cached value would defeat the limit.
         $count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT used FROM %i WHERE key_hash = %s', $this->table(), $hash ) );
@@ -194,17 +194,20 @@ class Store {
             return;
         }
         // Consumed refresh tokens stay for replay detection until they expire or their connection is revoked.
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- bulk cleanup of the plugin's own OAuth table (no WordPress API, nothing cached to clear); table() is $wpdb->prefix plus a fixed suffix.
-        $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table()} WHERE expires <= %d OR revoked = 1", time() ) );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- bulk cleanup of the plugin's own OAuth table (no WordPress API, nothing cached to clear).
+        $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE expires <= %d OR revoked = 1', $this->table(), time() ) );
     }
 
     public function uninstall(): void {
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- uninstall: drops the plugin's own OAuth table; table() is $wpdb->prefix plus a fixed suffix.
-        $wpdb->query( "DROP TABLE IF EXISTS {$this->table()}" );
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- uninstall: drops the plugin's own OAuth table.
+        $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $this->table() ) );
         delete_option( Keys::OPTION_MCP_OAUTH_ENABLED );
         delete_option( Keys::OPTION_MCP_OAUTH_GENERATION );
         delete_option( Keys::OPTION_MCP_OAUTH_SCHEMA );
+        delete_option( Keys::OPTION_MCP_OAUTH_REWRITE );
+        // WordPress rebuilds the rewrite rules on the next request, without the well-known ones.
+        delete_option( 'rewrite_rules' );
         wp_clear_scheduled_hook( 'fabrement_mcp_oauth_cleanup' );
     }
 }

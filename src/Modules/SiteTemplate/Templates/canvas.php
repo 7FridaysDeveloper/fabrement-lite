@@ -31,7 +31,7 @@ if ( $fabrement_site_template === null ) {
 if ( is_singular() && have_posts() ) {
     the_post();
 }
-$fabrement_template_html = do_blocks( \Fabrement\Modules\SiteTemplate\Service\TemplateContent::for_reader( $fabrement_site_template ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- block render output.
+$fabrement_template_html = do_blocks( \Fabrement\Modules\SiteTemplate\Service\TemplateContent::for_reader( $fabrement_site_template ) );
 
 ?>
 <!DOCTYPE html>
@@ -45,7 +45,7 @@ $fabrement_template_html = do_blocks( \Fabrement\Modules\SiteTemplate\Service\Te
 <?php wp_body_open(); ?>
 
 <?php
-echo $fabrement_template_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rendered blocks/theme output.
+echo $fabrement_template_html; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- rendered blocks, printed as core's wp-includes/template-canvas.php prints them.
 ?>
 
 <?php wp_footer(); ?>

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Container;
 
+defined( 'ABSPATH' ) || exit;
+
 use Pimple\Container;
 use Fabrement\Container\Provider\AdminPageServiceProvider;
 use Fabrement\Container\Provider\McpServiceProvider;

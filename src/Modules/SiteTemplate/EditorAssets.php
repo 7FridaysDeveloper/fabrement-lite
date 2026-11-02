@@ -1,6 +1,8 @@
 <?php
 namespace Fabrement\Modules\SiteTemplate;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\App;
 
 /** Registers the editor bundle of the template editor: Content Source and the template panels. */

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Menu;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Navigation menu trees in one normalized node shape: {label, url, newTab?, children?[]}, with
  * `current` (this page) and `currentAncestor` (the current item is below it), as WordPress

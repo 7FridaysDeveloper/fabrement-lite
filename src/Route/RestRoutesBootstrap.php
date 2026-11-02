@@ -2,6 +2,8 @@
 
 namespace Fabrement\Route;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\App;
 
 /**

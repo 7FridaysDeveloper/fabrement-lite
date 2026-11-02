@@ -2,6 +2,8 @@
 
 namespace Fabrement\Framework;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Every name the plugin writes into the database: options, post meta, transients and the
  * table — and, for the names built at run time, the one method that builds each.
@@ -45,6 +47,9 @@ final class Keys {
     /** The version of the OAuth table the site holds. */
     public const OPTION_MCP_OAUTH_SCHEMA = 'fabrement_mcp_oauth_schema';
 
+    /** Which well-known OAuth addresses the rewrite rules were last flushed for. */
+    public const OPTION_MCP_OAUTH_REWRITE = 'fabrement_mcp_oauth_rewrite';
+
     // ───────────────────────────── Post meta ─────────────────────────────
 
     /** A record's own structured data. */
@@ -81,9 +86,6 @@ final class Keys {
     /** An adapter problem already logged today: {@see self::mcp_adapter_notice()}. */
     public const TRANSIENT_MCP_ADAPTER_NOTICE_PREFIX = 'fabrement_mcp_adapter_';
 
-    /** Per user ({@see self::for_user()}): the MCP connection command shown once after it is made. */
-    public const TRANSIENT_MCP_COMMAND = 'fabrement_mcp_command';
-
     // ───────────────────────────── Tables ─────────────────────────────
 
     /** The OAuth grants and tokens, behind the site's table prefix. */
@@ -97,10 +99,5 @@ final class Keys {
 
     public static function mcp_adapter_notice( string $message ): string {
         return self::TRANSIENT_MCP_ADAPTER_NOTICE_PREFIX . md5( $message );
-    }
-
-    /** A per-user transient: `<key>_<user id>`. */
-    public static function for_user( string $key, int $user_id ): string {
-        return $key . '_' . $user_id;
     }
 }

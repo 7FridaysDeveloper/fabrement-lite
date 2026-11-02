@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 
 use Fabrement\Modules\Seo\Schema\SchemaOutput;

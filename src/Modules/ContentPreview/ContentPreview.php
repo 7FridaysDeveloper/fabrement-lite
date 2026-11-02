@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\ContentPreview;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Framework\Keys;
 
 /**
@@ -98,7 +100,7 @@ final class ContentPreview {
 
     private static function stored(): string {
         // phpcs:disable WordPress.Security.NonceVerification.Recommended -- the token is the credential.
-        $token = isset( $_GET[ self::TOKEN_ARG ] ) ? sanitize_text_field( (string) wp_unslash( $_GET[ self::TOKEN_ARG ] ) ) : '';
+        $token = isset( $_GET[ self::TOKEN_ARG ] ) && is_string( $_GET[ self::TOKEN_ARG ] ) ? sanitize_text_field( wp_unslash( $_GET[ self::TOKEN_ARG ] ) ) : '';
         // phpcs:enable
 
         return preg_match( '/^[A-Za-z0-9]{32}$/', $token ) === 1 ? (string) get_transient( Keys::content_preview( $token ) ) : '';

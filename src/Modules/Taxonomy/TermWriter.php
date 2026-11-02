@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Taxonomy;
 
+defined( 'ABSPATH' ) || exit;
+
 use WP_Error;
 
 /**

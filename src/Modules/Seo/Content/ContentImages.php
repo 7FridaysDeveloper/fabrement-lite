@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Content;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * The images a record SHOWS that an SEO plugin cannot see: the ones inside the global blocks it
  * places.

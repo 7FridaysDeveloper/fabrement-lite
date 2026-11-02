@@ -2,6 +2,8 @@
 
 namespace Fabrement\Route\SiteTemplate;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplatePages;
 use Fabrement\Modules\SiteTemplate\Service\SiteTemplateRegistry;

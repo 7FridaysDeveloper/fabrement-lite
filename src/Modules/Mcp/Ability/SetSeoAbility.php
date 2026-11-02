@@ -2,10 +2,11 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ContentGuard;
 use Fabrement\Modules\Mcp\Support\LanguageVersion;
 use Fabrement\Modules\Mcp\Support\NotKept;
-use Fabrement\Modules\Mcp\Support\StrictBooleans;
 use Fabrement\Modules\Seo\Contract\SeoBridge;
 use Fabrement\Modules\Seo\Seo;
 use WP_Error;
@@ -112,10 +113,6 @@ final class SetSeoAbility extends AbstractAbility {
     }
 
     public function execute( array $input ) {
-        $invalid = StrictBooleans::check( $this->input_schema(), $input );
-        if ( $invalid !== null ) {
-            return $invalid;
-        }
         $seo = Seo::bridge();
         if ( ! $seo->is_active() ) {
             return new WP_Error( 'yoast_inactive', 'Yoast SEO is not active, so these fields would never reach the page. Ask the site admin to install and activate it (get-seo shows the state).' );

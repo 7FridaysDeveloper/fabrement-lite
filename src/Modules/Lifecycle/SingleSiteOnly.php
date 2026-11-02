@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Lifecycle;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Fabrement runs on a single WordPress install, never on a network.
  *

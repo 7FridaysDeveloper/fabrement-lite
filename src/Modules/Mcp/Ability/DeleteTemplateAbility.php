@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Capabilities;
 use Fabrement\Modules\Mcp\Support\ToolResult;
 use Fabrement\Modules\Mcp\Support\Usages;
@@ -148,6 +150,9 @@ final class DeleteTemplateAbility extends DestructiveAbility {
             );
         }
 
+        if ( ! current_user_can( 'delete_post', $template_id ) ) {
+            return ToolResult::error( 'forbidden', 'Nothing was deleted: you may not delete this template (delete_post).' );
+        }
         $cleared = SiteTemplateDeleter::delete( $template_id );
         if ( is_wp_error( $cleared ) ) {
             return $cleared;

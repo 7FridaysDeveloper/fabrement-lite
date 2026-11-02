@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Seo\Integration;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Seo\PrimaryTerm;
 use Fabrement\Modules\Seo\Seo;
 

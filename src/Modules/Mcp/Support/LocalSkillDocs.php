@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /** The instruction documents in skills/, read as text by a validated id. */
 final class LocalSkillDocs {
 

@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\Mcp\Support\ToolResult;
 use Fabrement\Modules\Mcp\Support\Usages;
 use Fabrement\Modules\Taxonomy\TermWriter;

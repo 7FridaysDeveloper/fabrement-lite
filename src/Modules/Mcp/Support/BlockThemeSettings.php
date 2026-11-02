@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Support;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * What the site offers for ONE block: the theme.json presets and switches behind each feature the
  * block supports, its registered styles and its variations. A feature the block does not support

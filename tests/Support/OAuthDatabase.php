@@ -37,8 +37,8 @@ final class OAuthDatabase {
 
     public function query( string $query ) {
         $this->queries[] = $query;
-        if ( 'UPDATE ' . $this->prefix . 'fabrement_mcp_oauth SET revoked = 1 WHERE user_id = %d' === $query ) {
-            $this->revoked_users[] = $this->arguments[0];
+        if ( 'UPDATE %i SET revoked = 1 WHERE user_id = %d' === $query && $this->prefix . 'fabrement_mcp_oauth' === $this->arguments[0] ) {
+            $this->revoked_users[] = $this->arguments[1];
             return 1;
         }
         if ( ! str_starts_with( $query, 'INSERT IGNORE INTO ' . $this->options ) ) {

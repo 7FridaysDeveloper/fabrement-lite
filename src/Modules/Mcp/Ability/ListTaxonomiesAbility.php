@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 /**
  * Every public taxonomy the site has: what terms can be added to and assigned with.
  */

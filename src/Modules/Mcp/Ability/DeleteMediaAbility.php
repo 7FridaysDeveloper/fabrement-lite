@@ -2,6 +2,8 @@
 
 namespace Fabrement\Modules\Mcp\Ability;
 
+defined( 'ABSPATH' ) || exit;
+
 use Fabrement\Modules\SiteTemplate\Service\SyncedPatterns;
 use Fabrement\Modules\Translation\Translation;
 use WP_Error;
@@ -140,8 +142,8 @@ final class DeleteMediaAbility extends DestructiveAbility {
         // broken files a cleanup is for.
         $patterns = array();
         foreach ( $group as $member ) {
-            $patterns[] = '%"id":' . $member . ',%';
-            $patterns[] = '%"id":' . $member . '}%';
+            $patterns[] = '%"id":' . (int) $member . ',%';
+            $patterns[] = '%"id":' . (int) $member . '}%';
             $member_url = $keeps_file ? '' : (string) wp_get_attachment_url( $member );
             if ( $member_url !== '' ) {
                 $patterns[] = '%' . $wpdb->esc_like( $member_url ) . '%';

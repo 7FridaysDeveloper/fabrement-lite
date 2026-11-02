@@ -42,11 +42,6 @@ final class WpmlSite {
         return $this->group( $id, $post_type )[ $lang ] ?? 0;
     }
 
-    /** WPML's translation_id of a record (the key of its translation status). */
-    public function translation_id( int $id, string $post_type = 'page' ): int {
-        return (int) $this->site->value( 'SELECT translation_id FROM wp_icl_translations WHERE element_id = ? AND element_type = ?', [ $id, self::type( $post_type ) ] );
-    }
-
     /** WPML's "needs update" flag of a translation; null when WPML keeps no status for it. */
     public function needs_update( int $translation, string $post_type = 'page' ): ?int {
         $flag = $this->site->value(
@@ -73,33 +68,5 @@ final class WpmlSite {
      */
     public function duplicate( int $id, string $lang ): int {
         return (int) trim( $this->site->php( sprintf( "wp_set_current_user( 1 ); global \$sitepress; echo (int) \$sitepress->make_duplicate( %d, '%s' );", $id, $lang ) ) );
-    }
-
-    /**
-     * The translation counted as complete in WPML, as its "Translation complete" switch leaves it:
-     * status 10, not outdated, the original's hash of today (WPML's own TranslationManagement).
-     */
-    public function mark_complete( int $original, int $translation, string $post_type = 'page' ): void {
-        $this->site->php( sprintf(
-            "wp_set_current_user( 1 );
-            wpml_load_core_tm()->update_translation_status( [
-                'translation_id' => %d,
-                'status'         => 10,
-                'needs_update'   => 0,
-                'md5'            => ( new WPML_TM_Action_Helper() )->post_md5( get_post( %d ) ),
-            ] );",
-            $this->translation_id( $translation, $post_type ), $original
-        ) );
-    }
-
-    /**
-     * Which editor translates the record, as WPML's "Translate with …" switch in its language box
-     * stores it: 'wpml' (WPML's translation editor) or 'native' (the WordPress editor).
-     */
-    public function use_editor( int $original, string $editor ): void {
-        $this->site->php( sprintf(
-            "update_post_meta( %d, WPML_TM_Post_Edit_TM_Editor_Mode::POST_META_KEY_EDITOR, %s );",
-            $original, $editor === 'wpml' ? 'WPML_TM_Post_Edit_TM_Editor_Mode::EDITOR_WPML' : 'WPML_TM_Post_Edit_TM_Editor_Mode::EDITOR_NATIVE'
-        ) );
     }
 }
