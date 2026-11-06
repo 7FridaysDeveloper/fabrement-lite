@@ -74,8 +74,17 @@ trait McpCalls {
             $call['id'] = wp_rand( 1, PHP_INT_MAX );
         }
         $request->set_body( wp_json_encode( $call ) );
-        // As WP_REST_Server::serve_request() does: the adapter puts the session id on through this filter.
-        $response = apply_filters( 'rest_post_dispatch', rest_ensure_response( rest_do_request( $request ) ), rest_get_server(), $request );
+        // The OAuth sign-in is left out (see above): its gate is lifted for this call only.
+        $gate   = [ \Fabrement\Modules\Mcp\OAuth\Bootstrap::class, 'authenticate' ];
+        $lifted = remove_filter( 'rest_request_before_callbacks', $gate, 5 );
+        try {
+            // As WP_REST_Server::serve_request() does: the adapter puts the session id on through this filter.
+            $response = apply_filters( 'rest_post_dispatch', rest_ensure_response( rest_do_request( $request ) ), rest_get_server(), $request );
+        } finally {
+            if ( $lifted ) {
+                add_filter( 'rest_request_before_callbacks', $gate, 5, 3 );
+            }
+        }
         if ( $method === 'initialize' ) {
             foreach ( $response->get_headers() as $name => $value ) {
                 if ( strtolower( $name ) === 'mcp-session-id' ) {
