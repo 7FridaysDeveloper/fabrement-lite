@@ -5,6 +5,7 @@ namespace Fabrement\Modules\Mcp\Ability;
 defined( 'ABSPATH' ) || exit;
 
 use Fabrement\Modules\Mcp\Support\McpAbilityException;
+use Fabrement\Modules\Storage\StorageFiles;
 
 /**
  * Puts a media file into this site's library and hands the agent back the {id, url}
@@ -244,7 +245,7 @@ final class UploadMediaAbility extends AbstractAbility {
         clearstatcache( true, $tmp );
         if ( $max > 0 && ( ( is_numeric( $length ) && (int) $length > $max ) || (int) filesize( $tmp ) > $max ) ) {
             wp_delete_file( $tmp );
-            throw self::too_large( $max ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- too_large() escapes what it prints.
+            throw new McpAbilityException( esc_html( self::too_large( $max ) ) );
         }
 
         return [ $tmp, sanitize_file_name( '' !== $name ? $name : 'file' ) ];
@@ -255,8 +256,9 @@ final class UploadMediaAbility extends AbstractAbility {
         return (int) wp_max_upload_size();
     }
 
-    private static function too_large( int $max ): McpAbilityException {
-        return new McpAbilityException( sprintf( 'The file is larger than this site\'s upload limit of %s.', esc_html( size_format( $max ) ) ) );
+    /** The refusal's text; the caller escapes it where it throws. */
+    private static function too_large( int $max ): string {
+        return sprintf( 'The file is larger than this site\'s upload limit of %s.', size_format( $max ) );
     }
 
     /**
@@ -284,7 +286,7 @@ final class UploadMediaAbility extends AbstractAbility {
             );
         }
         if ( self::max_bytes() > 0 && strlen( $bytes ) > self::max_bytes() ) {
-            throw self::too_large( self::max_bytes() ); // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- too_large() escapes what it prints.
+            throw new McpAbilityException( esc_html( self::too_large( self::max_bytes() ) ) );
         }
 
         require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -292,8 +294,7 @@ final class UploadMediaAbility extends AbstractAbility {
         if ( ! $tmp ) {
             throw new McpAbilityException( 'Could not create a temp file for the decoded payload.' );
         }
-        // WP_Filesystem is not initialised on this path; the target is a temp file we just made.
-        if ( false === file_put_contents( $tmp, $bytes ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents, WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- writes to the temp file just created by wp_tempnam(); WP_Filesystem is not initialised here.
+        if ( ! StorageFiles::put( $tmp, $bytes ) ) {
             wp_delete_file( $tmp );
             throw new McpAbilityException( 'Could not write the decoded payload to a temp file.' );
         }

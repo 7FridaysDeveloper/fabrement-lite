@@ -31,9 +31,7 @@ final class StorageFiles {
         }
         $tmp = dirname( $path ) . '/' . self::WRITE_TEMP_PREFIX . $token . '.tmp';
         $filesystem = self::filesystem();
-        $mode = $filesystem->is_file( $path )
-            ? octdec( $filesystem->getchmod( $path ) )
-            : ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : ( 0666 & ~umask() ) );
+        $mode = $filesystem->is_file( $path ) ? octdec( $filesystem->getchmod( $path ) ) : self::file_mode();
         if ( ! $mode ) {
             return false;
         }
@@ -65,6 +63,16 @@ final class StorageFiles {
         }
 
         return wp_delete_file( $path );
+    }
+
+    /** Write a file in one go, e.g. a temp file just made by wp_tempnam(). */
+    public static function put( string $path, string $contents ): bool {
+        return self::filesystem()->put_contents( $path, $contents, self::file_mode() );
+    }
+
+    /** WordPress's file mode; FS_CHMOD_FILE is defined only once WP_Filesystem() has run. */
+    private static function file_mode(): int {
+        return defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : ( 0666 & ~umask() );
     }
 
     /** Local paths must use the direct transport without replacing WordPress's global instance. */

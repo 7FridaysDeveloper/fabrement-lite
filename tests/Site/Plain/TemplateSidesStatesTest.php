@@ -47,7 +47,7 @@ final class TemplateSidesStatesTest extends SiteTestCase {
 
         // Placed, it is not made a draft — in a template, and on a page.
         $refusal = $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $own, 'status' => 'draft' ] );
-        $this->assertStringContainsString( 'is placed in 1 record(s): ' . $template . ' "Status"', $refusal );
+        $this->assertStringContainsString( 'is placed in 1 record(s): ' . $template . ' “Status”', $refusal );
         $this->assertSame( 'publish', $this->site()->value( 'SELECT post_status FROM wp_posts WHERE ID = ?', [ $own ] ) );
         $section = (int) $this->mcp( 'save-synced-pattern', [ 'mode' => 'create', 'title' => 'Status section', 'blocks' => [ [ 'markup' => '<!-- wp:paragraph --><p>Section</p><!-- /wp:paragraph -->' ] ] ] )['patternId'];
         $page    = $this->record( 'page', 'Status page' );
@@ -120,8 +120,8 @@ final class TemplateSidesStatesTest extends SiteTestCase {
         $this->assertSame( [ $page ], array_column( $this->mcp( 'get-synced-pattern', [ 'patternId' => $section ] )['usedBy'], 'id' ) );
 
         // So neither is made a draft, deleted, or re-marked while it stands there.
-        $this->assertStringContainsString( 'is placed in 1 record(s): ' . $template . ' "Written"', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $own, 'status' => 'draft' ] ) );
-        $this->assertStringContainsString( 'is placed in 1 record(s): ' . $page . ' "Written page"', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $section, 'status' => 'draft' ] ) );
+        $this->assertStringContainsString( 'is placed in 1 record(s): ' . $template . ' “Written”', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $own, 'status' => 'draft' ] ) );
+        $this->assertStringContainsString( 'is placed in 1 record(s): ' . $page . ' “Written page”', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $section, 'status' => 'draft' ] ) );
         $this->assertStringContainsString( 'is placed in 1 template(s)', $this->mcp_error( 'delete-synced-pattern', [ 'patternId' => $own ] ) );
         $this->assertStringContainsString( 'is placed as a section in 1 record(s)', $this->mcp_error( 'save-synced-pattern', [ 'mode' => 'replace', 'patternId' => $section, 'kind' => 'header' ] ) );
         $this->assertSame( [ 'publish', 'publish' ], [ $this->site()->value( 'SELECT post_status FROM wp_posts WHERE ID = ?', [ $own ] ), $this->site()->value( 'SELECT post_status FROM wp_posts WHERE ID = ?', [ $section ] ) ] );

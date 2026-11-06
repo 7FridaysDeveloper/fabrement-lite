@@ -364,7 +364,7 @@ final class BlockEntry {
                 esc_html( $type->name ),
                 $own === [] ? '(no attributes of its own)' : esc_html( implode( ', ', $own ) )
             ),
-            [ 'unknown' => $unknown, 'attributes' => $own ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- structured error data array, not output.
+            [],
             'unknown_attribute'
         );
     }

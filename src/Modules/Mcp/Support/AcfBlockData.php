@@ -82,8 +82,7 @@ final class AcfBlockData {
 
     public static function validate( string $name, array $data, string $where ): array {
         $schema = self::schema( $name );
-        // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- the block's own limitation sentences, returned to the MCP client as JSON text; never printed as HTML.
-        if ( ! $schema['writable'] ) { throw new McpAbilityException( implode( ' ', $schema['limitations'] ), [], 'unsupported_acf_block' ); }
+        if ( ! $schema['writable'] ) { throw new McpAbilityException( esc_html( implode( ' ', $schema['limitations'] ) ), [], 'unsupported_acf_block' ); }
         $used = [];
         $budget = 5000;
         $fields = self::fields( $name );

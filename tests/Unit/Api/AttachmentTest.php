@@ -109,7 +109,7 @@ final class AttachmentTest extends ApiTestCase {
         self::assertSame( [ Image::class, false, Video::class, File::class, File::class, File::class ], $out );
         self::assertStringContainsString( 'Fabrement::attachment(): a media value is {id, url}', implode( "
 ", $log ) );
-        self::assertStringContainsString( 'Fabrement::attachment(): kind: "photo" is not a media kind', implode( "
+        self::assertStringContainsString( 'Fabrement::attachment(): kind: “photo” is not a media kind', implode( "
 ", $log ) );
     }
 

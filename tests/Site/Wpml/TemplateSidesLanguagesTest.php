@@ -309,7 +309,7 @@ final class TemplateSidesLanguagesTest extends SiteTestCase {
         $this->assertSame( [ [ $template, $version ], 0 ], [ array_column( $listed[ $header ]['templates'], 'id' ), $listed[ $header ]['templatesHidden'] ] );
 
         $refusal = $this->mcp_error( 'delete-synced-pattern', [ 'patternId' => $header ] );
-        $this->assertStringContainsString( 'is placed in 2 template(s): ' . $template . ' "Counted"; ' . $version . ' "Counted (fr)" (the fr version of ' . $template . ')', $refusal );
+        $this->assertStringContainsString( 'is placed in 2 template(s): ' . $template . ' “Counted”; ' . $version . ' “Counted (fr)” (the fr version of ' . $template . ')', $refusal );
     }
 
     public function test_a_versions_save_leaves_the_shared_rules_file_named_after_the_original(): void {

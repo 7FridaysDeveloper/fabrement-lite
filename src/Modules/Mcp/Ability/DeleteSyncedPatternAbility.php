@@ -76,7 +76,7 @@ final class DeleteSyncedPatternAbility extends DestructiveAbility {
         // force does not apply — the template gets another one first.
         $templates = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::templates_using( $id );
         if ( $templates !== [] ) {
-            $listed = SyncedPatterns::refusal_list( $templates, static fn( $t ) => sprintf( '%d "%s"', $t['id'], $t['title'] ) . ( isset( $t['originalId'] ) ? sprintf( ' (the %s version of %d)', $t['language'], $t['originalId'] ) : '' ) );
+            $listed = SyncedPatterns::refusal_list( $templates, static fn( $t ) => sprintf( '%d “%s”', $t['id'], $t['title'] ) . ( isset( $t['originalId'] ) ? sprintf( ' (the %s version of %d)', $t['language'], $t['originalId'] ) : '' ) );
             return new WP_Error(
                 'pattern_is_template_part',
                 sprintf(
@@ -91,7 +91,7 @@ final class DeleteSyncedPatternAbility extends DestructiveAbility {
 
         $used = SyncedPatterns::placements( $id, 100 );
         if ( $used !== [] && empty( $input['force'] ) ) {
-            $listed = SyncedPatterns::refusal_list( $used, static fn( $r ) => sprintf( '%s %d "%s"', $r['postType'], $r['id'], $r['title'] ) );
+            $listed = SyncedPatterns::refusal_list( $used, static fn( $r ) => sprintf( '%s %d “%s”', $r['postType'], $r['id'], $r['title'] ) );
             return new WP_Error(
                 'pattern_in_use',
                 sprintf(

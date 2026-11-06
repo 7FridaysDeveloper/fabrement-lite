@@ -422,7 +422,7 @@ final class FabShowTest extends SiteTestCase {
         $this->assertSame( [ 'Fabrement\Api\Media\Image', '' ], $one, 'not of the kind asked: an empty one of that kind, or of none' );
         $this->assertSame( [], $wrong );
         $this->assertFalse( $empty );
-        $this->assertStringContainsString( 'Fabrement::attachments(): kind: "photo" is not a media kind', $log );
+        $this->assertStringContainsString( 'Fabrement::attachments(): kind: “photo” is not a media kind', $log );
         $this->assertStringContainsString( 'Fabrement::attachment(): kind: give a media kind', $log );
     }
 

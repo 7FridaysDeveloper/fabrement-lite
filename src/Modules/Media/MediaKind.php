@@ -41,7 +41,7 @@ final class MediaKind {
         }
         foreach ( $list as $kind ) {
             if ( ! is_string( $kind ) || ! in_array( $kind, self::KINDS, true ) ) {
-                throw new \InvalidArgumentException( '"' . ( is_scalar( $kind ) ? esc_html( (string) $kind ) : esc_html( get_debug_type( $kind ) ) ) . '" is not a media kind — use ' . esc_html( implode( ', ', self::KINDS ) ) . '.' );
+                throw new \InvalidArgumentException( '“' . ( is_scalar( $kind ) ? esc_html( (string) $kind ) : esc_html( get_debug_type( $kind ) ) ) . '” is not a media kind — use ' . esc_html( implode( ', ', self::KINDS ) ) . '.' );
             }
         }
         if ( count( array_unique( $list ) ) !== count( $list ) ) {

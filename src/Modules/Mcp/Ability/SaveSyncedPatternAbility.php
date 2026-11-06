@@ -189,15 +189,15 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
             $placed = \Fabrement\Modules\SiteTemplate\Service\TemplateParts::original_of( $id ) ?: $id;
             $used   = SyncedPatterns::placements( $placed, 100 );
             if ( $used !== [] ) {
-                $listed = SyncedPatterns::refusal_list( $used, static fn( array $p ): string => sprintf( '%d "%s"', $p['id'], $p['title'] ) );
+                $listed = SyncedPatterns::refusal_list( $used, static fn( array $p ): string => sprintf( '%d “%s”', $p['id'], $p['title'] ) );
                 throw new McpAbilityException(
                     sprintf(
                         'Pattern %1$d is placed in %2$d record(s): %3$s. As a draft it would draw nothing there — take it out of each first (save-template / save-content mode "edit"), then make it a draft' . ( $placed !== $id ? '; to stop showing this language\'s version alone, delete the version (delete-synced-pattern) and its pages show the original' : '' ) . '.',
                         (int) $id,
                         count( $used ),
-                        $listed['text'] // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- a tool's answer, read as JSON text; escaping turns the titles' quotes into entities.
+                        esc_html( $listed['text'] )
                     ),
-                    [ 'usedBy' => $listed['readable'], 'hidden' => $listed['hidden'] ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                    [],
                     'pattern_in_use'
                 );
             }
@@ -228,7 +228,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
                     throw new McpAbilityException(
                         'This language version is written by the site\'s translation plugin: it rebuilds each language from the original, so a change made here would be overwritten by its next job. Do not write; tell the user it is translated in that plugin\'s own editor'
                             . ( $screen !== '' ? ' — ' . esc_url_raw( $screen ) : '' ) . '.',
-                        [ 'screenUrl' => $screen ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                        [],
                         'translation_owned_by_plugin'
                     );
                 }
@@ -320,7 +320,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
                 if ( $templates !== [] ) {
                     throw new McpAbilityException(
                         sprintf( 'Pattern %d is the %s of %d template(s) — it stays a %s. Make a new global block instead.', (int) $id, esc_html( $was ), count( $templates ), esc_html( $was ) ),
-                        [ 'templates' => SyncedPatterns::readable( $templates ), 'hidden' => count( $templates ) - count( SyncedPatterns::readable( $templates ) ) ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                        [],
                         'pattern_kind_change'
                     );
                 }
@@ -336,7 +336,7 @@ final class SaveSyncedPatternAbility extends AbstractAbility {
             if ( $pages !== [] ) {
                 throw new McpAbilityException(
                     sprintf( 'Pattern %d is placed as a section in %d record(s); a %s is placed in templates only. Remove those placements first, or make a new global block.', (int) $id, count( $pages ), esc_html( $kind ) ),
-                    [ 'usedBy' => SyncedPatterns::readable( $pages ), 'hidden' => count( $pages ) - count( SyncedPatterns::readable( $pages ) ) ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                    [],
                     'pattern_kind_change'
                 );
             }

@@ -49,7 +49,7 @@ final class ContentParent {
                     'Post type "%s" is not hierarchical, so its records have no parent. Nesting needs a hierarchical type (list-post-types `hierarchical`).',
                     esc_html( $post_type )
                 ),
-                [ 'postType' => $post_type ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+                [],
                 'not_hierarchical'
             );
         }

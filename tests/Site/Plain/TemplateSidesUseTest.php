@@ -197,7 +197,7 @@ final class TemplateSidesUseTest extends SiteTestCase {
 
         // The agent, with force: the same answer and the way out.
         $refusal = $this->mcp_error( 'delete-synced-pattern', [ 'patternId' => $placed, 'force' => true ] );
-        $this->assertStringContainsString( 'is placed in 1 template(s): ' . $template . ' "Guarded"', $refusal );
+        $this->assertStringContainsString( 'is placed in 1 template(s): ' . $template . ' “Guarded”', $refusal );
         $this->assertStringContainsString( 'save-template', $refusal );
         $this->assertSame( 'publish', $this->status( $placed ) );
 

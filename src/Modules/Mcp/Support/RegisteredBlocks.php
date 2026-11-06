@@ -75,8 +75,7 @@ final class RegisteredBlocks {
                 // WP rich-text is serialized as a string, though block metadata calls it rich-text.
                 if ( $schema['type'] === 'rich-text' ) { $schema['type'] = 'string'; }
                 $valid = rest_validate_value_from_schema( $value, $schema, $where . '.' . $key );
-                // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- WordPress's own validation message, returned to the MCP client as JSON text; never printed as HTML.
-                if ( is_wp_error( $valid ) ) { throw new McpAbilityException( $valid->get_error_message(), [], 'invalid_attribute' ); }
+                if ( is_wp_error( $valid ) ) { throw new McpAbilityException( esc_html( $valid->get_error_message() ), [], 'invalid_attribute' ); }
             }
         }
         if ( AcfBlockData::is_block( $type->name ) ) {

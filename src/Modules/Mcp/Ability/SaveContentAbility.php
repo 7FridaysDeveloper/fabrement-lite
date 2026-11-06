@@ -687,7 +687,7 @@ final class SaveContentAbility extends AbstractAbility {
 					'"%s" is a WooCommerce record and is not written here — it needs price, stock and tax data this tool does not set. Edit it in WooCommerce.',
 					esc_html( $post_type )
 				),
-				[ 'postType' => $post_type ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+				[],
 				'commerce_type_refused'
 			);
 		}
@@ -742,7 +742,7 @@ final class SaveContentAbility extends AbstractAbility {
 					'Post type "%s" does not support excerpts, so the editor would show no field for one and nobody could edit it. Leave the summary out.',
 					esc_html( $post_type )
 				),
-				[ 'postType' => $post_type ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+				[],
 				'excerpt_unsupported'
 			);
 		}
@@ -779,7 +779,7 @@ final class SaveContentAbility extends AbstractAbility {
 					'Post type "%s" does not support featured images, so setting one would store meta nothing reads. Leave it out.',
 					esc_html( $post_type )
 				),
-				[ 'postType' => $post_type ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+				[],
 				'thumbnail_unsupported'
 			);
 		}
@@ -790,7 +790,7 @@ final class SaveContentAbility extends AbstractAbility {
 					'The active theme does not support featured images for "%s", so WordPress would not store one — the theme needs add_theme_support( "post-thumbnails" ).',
 					esc_html( $post_type )
 				),
-				[ 'postType' => $post_type ], // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- error data array, not output.
+				[],
 				'thumbnail_unsupported_by_theme'
 			);
 		}

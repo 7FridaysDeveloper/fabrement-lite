@@ -65,8 +65,7 @@ abstract class Attachment {
         try {
             return MediaKind::parse( $kind );
         } catch ( \InvalidArgumentException $e ) {
-            // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- MediaKind::parse() escapes what it quotes.
-            throw new ApiException( 'kind: ' . $e->getMessage() );
+            throw new ApiException( 'kind: ' . esc_html( $e->getMessage() ) );
         }
     }
 
