@@ -46,15 +46,8 @@ if ( ! class_exists( \Fabrement\Framework\App::class ) ) {
     return;
 }
 
-// Multisite is not supported. WordPress activates a plugin by including this very file and then
-// firing the activation hook, so the REFUSAL has to be registered before the guard below returns
-// — a `return` placed first would take the hook registration with it, and the plugin would
-// activate on a network in silence, which is the one case the refusal exists for.
-register_activation_hook( __FILE__, [ \Fabrement\Modules\Lifecycle\SingleSiteOnly::class, 'refuse_activation' ] );
-
-// The guard itself, for an install already active on a network: a network activation, or a single
-// site turned into one afterwards. Nothing boots — no post types, no MCP routes, and no schema
-// update that would create a table from this site's prefix. Only the explanation is left running.
+// Multisite is not supported. The plugin activates there without errors, but nothing boots — no
+// post types, no MCP routes, no activation hook and no table. Only a notice explains why.
 if ( ! \Fabrement\Modules\Lifecycle\SingleSiteOnly::supported() ) {
     add_action( 'admin_notices', [ \Fabrement\Modules\Lifecycle\SingleSiteOnly::class, 'notice' ] );
     add_action( 'network_admin_notices', [ \Fabrement\Modules\Lifecycle\SingleSiteOnly::class, 'notice' ] );
@@ -90,8 +83,7 @@ add_action( 'admin_notices', [ \Fabrement\Modules\Updates\DatabaseUpdater::class
 register_activation_hook(
     __FILE__,
     static function (): void {
-        // The network refusal is registered at the top of this file and runs first; on a network
-        // it wp_die()s, so nothing below is reached. This hook only ever runs on a single site.
+        // Registered after the multisite guard, so it only runs on a single site.
         \Fabrement\Modules\Updates\DatabaseUpdater::activate();
     }
 );

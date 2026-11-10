@@ -53,7 +53,7 @@ Nothing in Lite is locked or time-limited. Fabrement is a separate product by th
 
 == Installation ==
 
-1. Install and activate the plugin on a single WordPress site.
+1. Install and activate the plugin on a single WordPress site. Multisite is not supported.
 2. Open **Fabrement > MCP Connection**.
 3. Choose your AI client and follow the steps shown.
 4. Approve the access with your WordPress account (an Administrator).
@@ -71,7 +71,7 @@ Clients connect through OAuth, which needs the site to use HTTPS. A connection e
 
 = Which AI clients work with it? =
 
-Claude (claude.ai and Claude Code), ChatGPT and Codex. Other desktop clients work too when they sign in with OAuth and return to a local callback address: `http://localhost:<port>/callback` (or 127.0.0.1, [::1]). The MCP Connection screen has ready steps for Claude, ChatGPT and Codex. The site must use HTTPS.
+Claude (claude.ai and Claude Code), ChatGPT and Codex. Other desktop clients work too when they sign in with OAuth and return to a local callback address: `http://localhost:<port>/callback` (or 127.0.0.1, [::1]). The site must use HTTPS.
 
 = Is it free? Do I need an account or an API key? =
 

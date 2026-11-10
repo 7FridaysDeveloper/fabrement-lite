@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Fabrement stores everything per install — one blocks folder, plain options for the credentials
  * and the project binding, an OAuth table built from this site's prefix. A network breaks those
- * assumptions quietly, so the plugin refuses to run on one rather than half-working.
+ * assumptions quietly, so on one the plugin stays inactive and says why rather than half-working.
  */
 final class SingleSiteOnlyTest extends TestCase {
 
@@ -35,15 +35,6 @@ final class SingleSiteOnlyTest extends TestCase {
         $this->admin( true );
 
         self::assertFalse( SingleSiteOnly::supported() );
-    }
-
-    public function test_a_plain_install_is_never_stopped_from_activating(): void {
-        $this->admin( false );
-
-        // wp_die() throws in this harness, so returning normally IS the behaviour under test.
-        SingleSiteOnly::refuse_activation();
-
-        self::assertTrue( SingleSiteOnly::supported() );
     }
 
     public function test_the_notice_says_why_and_names_multisite(): void {
@@ -85,15 +76,13 @@ final class SingleSiteOnlyTest extends TestCase {
         self::assertSame( '', (string) ob_get_clean() );
     }
 
-    public function test_both_guards_give_the_same_reason(): void {
+    public function test_the_notice_gives_the_message(): void {
         $this->admin( true );
 
         ob_start();
         SingleSiteOnly::notice();
         $html = (string) ob_get_clean();
 
-        // One sentence, one source: an admin must not get two different explanations depending on
-        // which way they ran into it.
         self::assertStringContainsString( esc_html( SingleSiteOnly::message() ), $html );
     }
 }
