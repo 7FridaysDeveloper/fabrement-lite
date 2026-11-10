@@ -15,12 +15,9 @@ if ($phase === 'preflight') {
     $assert(!class_exists('Fabrement\\Framework\\App',false),'Lite shared runtime did not load');
     update_option('active_plugins',$phase === 'lite-first' ? [$pro,$lite] : [$pro]);
 } elseif ($phase === 'reverse') {
-    $die = static function() { return static function($message) { throw new RuntimeException(strip_tags($message)); }; };
-    add_filter('wp_die_handler',$die,PHP_INT_MAX);
-    $refused = false;
-    try { activate_plugin($lite); } catch (RuntimeException $e) { $refused = str_contains($e->getMessage(),'Another Fabrement edition is active'); }
-    remove_filter('wp_die_handler',$die,PHP_INT_MAX);
-    $assert($refused && !is_plugin_active($lite),'Lite activation refused while other edition active');
+    $result = activate_plugin($lite);
+    $assert(!is_wp_error($result) && is_plugin_active($lite) && !class_exists('Fabrement\\Framework\\App',false),'Lite activates paused while other edition active');
+    deactivate_plugins($lite, true);
     // Pro's installed copy owns shared state even while inactive.
     update_option('active_plugins',[]);
     global $wpdb;

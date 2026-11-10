@@ -25,15 +25,10 @@ final class LiteEdition {
     }
 
     public static function boot( string $self ): bool {
-        register_activation_hook( $self, static function () use ( $self ): void {
-            if ( self::active_other( $self ) ) {
-                wp_die( esc_html__( 'Another Fabrement edition is active. Deactivate it before activating Fabrement Lite. Your content and settings are preserved.', 'fabrement-lite' ) );
-            }
-        } );
-
         if ( self::active_other( $self ) || defined( 'FABREMENT_BLOCKS_FILE' ) ) {
-            // Covers an imported active_plugins list, regardless of the plugin load order.
-            // Do not load Lite's shared classes/functions into the other edition's process.
+            // Lite activated next to another edition, or an imported active_plugins list: Lite
+            // stays paused and says so. Activation is never stopped, it just loads nothing —
+            // Lite's shared classes/functions must not enter the other edition's process.
             add_action( 'admin_notices', static function (): void {
                 if ( ! current_user_can( 'activate_plugins' ) || ! NoticeScreen::here() ) {
                     return;
