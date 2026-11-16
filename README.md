@@ -4,6 +4,7 @@ A WordPress plugin that makes your site an MCP (Model Context Protocol) server. 
 you already use — Claude (claude.ai and Claude Code), ChatGPT or Codex — say what you want in plain
 words, and it is done on your site with the blocks, theme and plugins it already has.
 
+- WordPress.org: [wordpress.org/plugins/fabrement-lite](https://wordpress.org/plugins/fabrement-lite/)
 - Website: [fabrement.com](https://fabrement.com/)
 - Requires WordPress 6.9+, PHP 8.0+ and an Administrator account
 - MCP endpoint: `/wp-json/fabrement/v1/mcp`
@@ -26,13 +27,13 @@ WordPress.
 
 ## Installing
 
-Download `fabrement-lite.zip` from the
-[latest release](https://github.com/7FridaysDeveloper/fabrement-lite/releases/latest) and upload it in
-*Plugins → Add New → Upload Plugin*, then activate it.
+Install it from the WordPress.org plugin directory: in wp-admin open *Plugins → Add New*, search for
+**Fabrement Lite**, then install and activate it. Or download the zip from
+[wordpress.org/plugins/fabrement-lite](https://wordpress.org/plugins/fabrement-lite/) and upload it in
+*Plugins → Add New → Upload Plugin*. Updates then come through WordPress like for any other plugin.
 
-> Don't use the green **Code → Download ZIP** button — that is the source code, without the built
-> scripts and dependencies. Download `fabrement-lite.zip` from
-> [Releases](https://github.com/7FridaysDeveloper/fabrement-lite/releases/latest).
+> Don't use the green **Code → Download ZIP** button here — that is the source code, without the built
+> scripts and dependencies. This repository is for development; the plugin is published on WordPress.org.
 
 ## Connecting a client
 
@@ -122,12 +123,17 @@ Run `composer dump-autoload` after adding a PHP class.
    ./build.sh
    ```
 
-3. Commit and tag: `git tag vX.Y.Z && git push origin main --tags`.
-4. Create the release and attach the zip under the name `fabrement-lite.zip`:
+3. Commit and push: `git push origin main`.
+4. Publish on WordPress.org through its SVN repository
+   (`https://plugins.svn.wordpress.org/fabrement-lite`): replace `trunk/` with the contents of the
+   built `fabrement-lite/` folder, copy it to the new tag, and commit:
 
    ```
-   cp dist/fabrement-lite-X.Y.Z.zip fabrement-lite.zip
-   gh release create vX.Y.Z fabrement-lite.zip --title "X.Y.Z" --notes "…"
+   svn cp trunk tags/X.Y.Z
+   svn commit -m "Fabrement Lite X.Y.Z"
    ```
 
-Installed sites are not updated automatically: the plugin has no update checker.
+   Icons, banners and screenshots live in the SVN `assets/` folder, not in the plugin. A readme-only
+   change needs no new version: update `trunk/` and the current tag folder.
+
+Installed sites get the update from WordPress.org. The plugin has no update checker of its own.
