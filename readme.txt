@@ -62,10 +62,9 @@ Clients connect through OAuth, which needs the site to use HTTPS. A connection e
 
 == Screenshots ==
 
-1. MCP Connection: pick your AI client, follow the steps, see who is connected.
-2. Templates: each template with the pages, post types and archives it is assigned to.
-3. A template in the block editor: a header, the Content Source block and a footer.
-4. A page an AI client built from the theme's own blocks.
+1. A page an AI client built from the theme's own blocks.
+2. MCP Connection: pick your AI client, follow the steps, see who is connected.
+3. Templates: each template with the pages, post types and archives it is assigned to.
 
 == Frequently Asked Questions ==
 
